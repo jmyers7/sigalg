@@ -2322,9 +2322,11 @@ class SigmaAlgebra:
 
         if not isinstance(other, SigmaAlgebra):
             return False
-        if pandas_all_equal(self.data, other.data) or (
-            self.is_power_set and other.is_power_set
-        ):
+        if self.domain != other.domain:
+            return False
+        if pandas_all_equal(self.data, other.data):
+            return True
+        if self.is_power_set and other.is_power_set:
             return True
         if self.num_atoms != other.num_atoms:
             return False

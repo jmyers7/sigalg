@@ -1,10 +1,3 @@
-"""Tests for ParametrizedMeasure.__eq__ method.
-
-Tests partition-equivalence equality: two measures are equal if they assign
-the same values to corresponding partition cells, regardless of atom labels,
-domain orderings, or parameter orderings.
-"""
-
 from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
 
 

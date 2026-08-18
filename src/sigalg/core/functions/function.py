@@ -1050,6 +1050,7 @@ class Function:
 
         from .._utils.utils import subscript_var_names
         from ..measures.measure import Measure
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not all(isinstance(function, Function) for function in factors):
@@ -1105,7 +1106,7 @@ class Function:
 
         mapping = mapping.rename(name)
 
-        if cls.__name__ == "Measure":
+        if cls is Measure or cls is ProbabilityMeasure:
             all_probs = len(
                 [
                     function.kind
@@ -1118,7 +1119,7 @@ class Function:
                 [function.sig_alg for function in factors]
             )
 
-            return Measure._from_validated(
+            return cls._from_validated(
                 data=mapping,
                 kind="probability" if all_probs else "measure",
                 name=name,

@@ -1433,7 +1433,7 @@ class Operators:
             name=name,
         )
 
-    # TODO: this is slow... develop pandas-only logic without calling expectation
+    # TODO: slow reference implementation
     @classmethod
     def variance(
         cls,
@@ -1444,6 +1444,8 @@ class Operators:
         r"""Compute the variance of a random vector, optionally conditioned on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
+
+        **User note**: This is a naive reference implementation. It is slow.
 
         Parameters
         ----------
@@ -1583,7 +1585,7 @@ class Operators:
 
         return result
 
-    # TODO: this is slow... develop pandas-only logic without calling variance
+    # TODO: slow reference implementation
     @classmethod
     def std(
         cls,
@@ -1594,6 +1596,8 @@ class Operators:
         r"""Compute the standard deviation of a random vector, optionally conditioned on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
+
+        **User note**: This is a naive reference implementation. It is slow.
 
         Parameters
         ----------
@@ -1729,7 +1733,7 @@ class Operators:
 
         return result
 
-    # TODO: this is slow... develop pandas-only logic without calling expectation
+    # TODO: slow reference implementation
     @classmethod
     def cov(
         cls,
@@ -1741,6 +1745,8 @@ class Operators:
         r"""Compute the covariance of two random variables, optionally conditioned on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
+
+        **User note**: This is a naive reference implementation. It is slow.
 
         Parameters
         ----------
@@ -1858,7 +1864,7 @@ class Operators:
 
         return result
 
-    # TODO: this is slow... develop pandas-only logic without calling covariance and standard devation
+    # TODO: slow reference implementation
     @classmethod
     def corr(
         cls,
@@ -1870,6 +1876,8 @@ class Operators:
         r"""Compute the correlation of two random variables, optionally conditioned on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
+
+        **User note**: This is a naive reference implementation. It is slow.
 
         Parameters
         ----------
@@ -3056,6 +3064,8 @@ class OperatorsMethods:
 
         Calls `Operators.variance` with appropriate arguments.
 
+        **User note**: This is a naive reference implementation. It is slow.
+
         Parameters
         ----------
         given : SigmaAlgebra | None, default=None
@@ -3185,6 +3195,8 @@ class OperatorsMethods:
         See the Notes section below for the mathematical details.
 
         Calls `Operators.std` with appropriate arguments.
+
+        **User note**: This is a naive reference implementation. It is slow.
 
         Parameters
         ----------

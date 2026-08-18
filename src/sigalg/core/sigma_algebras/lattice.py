@@ -234,6 +234,10 @@ class Lattice:
 
         sub_data = to_df(sub_alg.data, "_sub")
         super_data = to_df(super_alg.data, "_super")
+
+        if self.base.domain.dimension > 1:
+            sub_data = sub_alg.data.reorder_levels(super_alg.data.index.names)
+
         test_data = pd.concat([sub_data, super_data], axis=1).drop_duplicates()
 
         if len(test_data) != super_alg.num_atoms:

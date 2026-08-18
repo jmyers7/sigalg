@@ -946,17 +946,11 @@ class ParametrizedMeasure(Function):
     # --------------------- equality --------------------- #
 
     # TODO: docstring!
-    def __eq__(
-        self,
-        other: ParametrizedMeasure,
-        rtol=1e-5,
-        atol=1e-8,
-    ) -> bool:
+    def __eq__(self, other: ParametrizedMeasure) -> bool:
         """Test equality of two parametrized measures."""
-        import numpy as np
         import pandas as pd
 
-        from .._utils.utils import to_df
+        from .._utils.utils import add_subscript, to_df
 
         if not isinstance(other, ParametrizedMeasure):
             return False
@@ -972,84 +966,39 @@ class ParametrizedMeasure(Function):
             return False
 
         parameter_names = self.parameter_names
-        self_sig_alg_var_names = [
-            f"{name}_self" for name in self.sig_alg.variable_names
-        ]
-        other_sig_alg_var_names = [
-            f"{name}_other" for name in other.sig_alg.variable_names
-        ]
 
-        self_data = (
-            self.data.reorder_levels(parameter_names + self.measure_domain_names)
-            .sort_index(level=parameter_names)
-            .reset_index(self.measure_domain_names)
-            .add_suffix("_self")
-            .reset_index()
-        )
-        other_data = (
-            other.data.reorder_levels(parameter_names + other.measure_domain_names)
-            .sort_index(level=parameter_names)
-            .reset_index(other.measure_domain_names)
-            .add_suffix("_other")
-            .reset_index()
+        self_data = self.data.reorder_levels(
+            parameter_names + self.measure_domain_names
+        ).sort_index(level=parameter_names)
+        other_data = other.data.reorder_levels(
+            parameter_names + other.measure_domain_names
+        ).sort_index(level=parameter_names)
+
+        self_sig_alg_variable_names_subscripted = add_subscript(
+            self.sig_alg.variable_names, "ID"
         )
 
-        # print(self_data)
-        # print(other_data)
+        self_data = self_data.unstack(level=parameter_names)
+        self_data.columns = self_data.columns.to_flat_index()
+        self_data.index.names = self_sig_alg_variable_names_subscripted
 
-        if isinstance(self.sig_alg.data.index, pd.MultiIndex):
-            other_sig_alg_data = other.sig_alg.data.reorder_levels(
-                self.sig_alg.domain.variable_names
-            )
-        else:
-            other_sig_alg_data = other.sig_alg.data
+        other_data = other_data.unstack(level=parameter_names)
+        other_data.columns = other_data.columns.to_flat_index()
 
-        self_sig_alg_sorted = (
-            to_df(self.sig_alg.data.sort_index()).add_suffix("_self").reset_index()
-        )
-        other_sig_alg_sorted = (
-            to_df(other_sig_alg_data.sort_index()).add_suffix("_other").reset_index()
-        )
+        sig_alg_data = to_df(other.lattice.get_atom_data(self.sig_alg))
+        sig_alg_data.columns = self_sig_alg_variable_names_subscripted
 
-        # print(self_sig_alg_sorted)
-        # print(other_sig_alg_sorted)
-
-        parameter_df = (
-            self_data[parameter_names].drop_duplicates().reset_index(drop=True)
-        )
-
-        # TODO: check merge logic — possibly change to `on`?
-        combined_sig_alg_data = pd.merge(
-            left=parameter_df,
-            right=self_sig_alg_sorted,
-            how="cross",
-        )
-        combined_sig_alg_data = pd.merge(
-            left=combined_sig_alg_data,
-            right=other_sig_alg_sorted,
-            on=self.sig_alg.domain.variable_names,
-        )
-
-        # print(combined_sig_alg_data)
-
-        data = pd.merge(
-            left=combined_sig_alg_data,
+        self_data_with_other_sig_alg_ids = pd.merge(
+            left=sig_alg_data,
             right=self_data,
-            on=parameter_names + self_sig_alg_var_names,
-        )
-        # print(data)
-        data = pd.merge(
-            left=data,
-            right=other_data,
-            on=parameter_names + other_sig_alg_var_names,
-        )
-        # print(data)
+            left_on=self_sig_alg_variable_names_subscripted,
+            right_index=True,
+        ).drop(columns=self_sig_alg_variable_names_subscripted)
 
-        return np.allclose(
-            data[self.output_name + "_self"],
-            data[other.output_name + "_other"],
-            rtol=rtol,
-            atol=atol,
+        return bool(
+            (self_data_with_other_sig_alg_ids.reindex(other_data.index) == other_data)
+            .all()
+            .all()
         )
 
     # --------------------- representation --------------------- #

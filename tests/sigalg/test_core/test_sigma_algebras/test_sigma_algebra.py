@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
-from sigalg.core import Domain, Lattice, Set, SampleSpace, SigmaAlgebra
+from sigalg.core import Domain, Lattice, SampleSpace, Set, SigmaAlgebra
+from sigalg.core.sigma_algebras.lattice import NonMeasurableError
 
 # --------------------- test constructors --------------------- #
 
@@ -67,7 +68,7 @@ class TestConstructor:
                 3: 2,
             },
             index=Omega.data,
-            name="u",
+            name="G",
         )
 
         assert G.domain == Omega
@@ -235,7 +236,7 @@ class TestAtomSpace:
                 3: 1,
             },
         )
-        expected_data = pd.Index([0, 1], name="u")
+        expected_data = pd.Index([0, 1], name="F")
 
         pd.testing.assert_index_equal(F.atom_space.data, expected_data)
 
@@ -251,7 +252,7 @@ class TestAtomSpace:
             },
         )
         expected_data = pd.MultiIndex.from_tuples(
-            [(1, 2), (0, 3)], names=["u_0", "u_1"]
+            [(1, 2), (0, 3)], names=["F_0", "F_1"]
         )
 
         pd.testing.assert_index_equal(F.atom_space.data, expected_data)
@@ -355,8 +356,8 @@ class TestAtomIdDictionaries:
     def test_atom_id_to_atom(self, F, Omega):
         """Test that atom_id_to_atom returns correct mapping."""
         expected = {
-            0: Set.from_list([0, 1], sig_alg=F, name=0),
-            1: Set.from_list([2, 3], sig_alg=F, name=1),
+            0: Set([0, 1], domain=Omega, name=0),
+            1: Set([2, 3], domain=Omega, name=1),
         }
 
         assert F.atom_id_to_atom == expected
@@ -378,8 +379,8 @@ class TestToAtoms:
         atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
         F = SigmaAlgebra(domain=Omega, mapping=atom_ids)
         expected = [
-            Set.from_list([0, 1], sig_alg=F, name=0),
-            Set.from_list([2, 3], sig_alg=F, name=1),
+            Set([0, 1], domain=Omega, name=0),
+            Set([2, 3], domain=Omega, name=1),
         ]
 
         assert F.atoms == expected
@@ -390,7 +391,7 @@ class TestToAtoms:
         atom_ids = {0: 0, 1: 0, 2: 0}
         F = SigmaAlgebra(domain=Omega, mapping=atom_ids)
         expected = [
-            Set.from_list([0, 1, 2], sig_alg=F, name=0),
+            Set([0, 1, 2], domain=Omega, name=0),
         ]
 
         assert F.atoms == expected
@@ -401,9 +402,9 @@ class TestToAtoms:
         atom_ids = {0: 0, 1: 1, 2: 2}
         F = SigmaAlgebra(domain=Omega, mapping=atom_ids)
         expected = [
-            Set.from_list([0], sig_alg=F, name=0),
-            Set.from_list([1], sig_alg=F, name=1),
-            Set.from_list([2], sig_alg=F, name=2),
+            Set([0], domain=Omega, name=0),
+            Set([1], domain=Omega, name=1),
+            Set([2], domain=Omega, name=2),
         ]
 
         assert F.atoms == expected
@@ -414,8 +415,8 @@ class TestToAtoms:
         atom_ids = {0: 0, 1: 0, 2: 0, 3: 1}
         F = SigmaAlgebra(domain=Omega, mapping=atom_ids)
         expected = [
-            Set.from_list([0, 1, 2], sig_alg=F, name=0),
-            Set.from_list([3], sig_alg=F, name=1),
+            Set([0, 1, 2], domain=Omega, name=0),
+            Set([3], domain=Omega, name=1),
         ]
         assert F.atoms == expected
 
@@ -425,37 +426,40 @@ class TestToAtoms:
 
 class TestGetSet:
     @pytest.fixture
-    def F(self):
-        Omega = SampleSpace.from_sequence(size=4)
+    def Omega(self):
+        return SampleSpace.from_sequence(size=4)
+
+    @pytest.fixture
+    def F(self, Omega):
         atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
         return SigmaAlgebra(domain=Omega, mapping=atom_ids)
 
-    def test_get_set_measurable_single_atom(self, F):
+    def test_get_set_measurable_single_atom(self, F, Omega):
         """Test get_set with indices forming a single atom."""
         A = F.get_set([0, 1], name="A")
-        expected_event = Set.from_list(indices=[0, 1], sig_alg=F)
+        expected_event = Set(indices=[0, 1], domain=Omega)
 
         assert A == expected_event
         assert A.name == "A"
-        assert A.sig_alg == F
+        assert A.domain == Omega
 
-    def test_get_set_measurable_second_atom(self, F):
+    def test_get_set_measurable_second_atom(self, F, Omega):
         """Test get_set with indices forming the second atom."""
         B = F.get_set([2, 3], name="B")
-        expected_event = Set.from_list([2, 3], name="B", sig_alg=F)
+        expected_event = Set([2, 3], name="B", domain=Omega)
 
         assert B == expected_event
         assert B.name == "B"
-        assert B.sig_alg == F
+        assert B.domain == Omega
 
-    def test_get_set_measurable_union_of_atoms(self, F):
+    def test_get_set_measurable_union_of_atoms(self, F, Omega):
         """Test get_set with indices forming a union of multiple atoms."""
         C = F.get_set([0, 1, 2, 3], name="C")
-        expected_event = Set.from_list([0, 1, 2, 3], name="C", sig_alg=F)
+        expected_event = Set([0, 1, 2, 3], name="C", domain=Omega)
 
         assert C == expected_event
         assert C.name == "C"
-        assert C.sig_alg == F
+        assert C.domain == Omega
 
     def test_get_set_measurable_empty_event(self, F):
         """Test get_set with empty indices."""
@@ -464,7 +468,6 @@ class TestGetSet:
         assert isinstance(empty, Set)
         assert empty.name == "empty"
         assert len(empty) == 0
-        assert empty.sig_alg == F
 
     def test_get_set_custom_name(self, F):
         """Test get_set with custom name parameter."""
@@ -480,60 +483,69 @@ class TestGetSet:
 
     def test_get_set_single_point_from_atom(self, F):
         """Test get_set with single point from a two-point atom."""
-        with pytest.raises(ValueError, match="The candidate set is not measurable."):
+        with pytest.raises(
+            NonMeasurableError, match="The candidate set is not measurable."
+        ):
             F.get_set([0], name="invalid")
 
     def test_invalid_indices_not_in_sample_space(self, F):
         """Test that indices not in sample space raise ValueError."""
         with pytest.raises(
             ValueError,
-            match="The set of points is not a subset of the domain of the sigma-algebra",
+            match="The set of points is not a subset of the domain",
         ):
             F.get_set([0, 1, 5], name="invalid")
 
     def test_invalid_non_measurable_event(self, F):
         """Test that non-measurable event raises ValueError."""
-        with pytest.raises(ValueError, match="The candidate set is not measurable"):
+        with pytest.raises(
+            NonMeasurableError, match="The candidate set is not measurable"
+        ):
             F.get_set([0, 2], name="invalid")
 
     def test_invalid_partial_atoms(self, F):
         """Test that partial atoms are not measurable."""
-        with pytest.raises(ValueError, match="The candidate set is not measurable"):
+        with pytest.raises(
+            NonMeasurableError, match="The candidate set is not measurable"
+        ):
             F.get_set([1, 3], name="invalid")
 
 
 class TestGetAtomContaining:
     @pytest.fixture
-    def F(self):
-        Omega = SampleSpace.from_sequence(size=4)
+    def Omega(self):
+        return SampleSpace.from_sequence(size=4)
+
+    @pytest.fixture
+    def F(self, Omega):
         atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
         return SigmaAlgebra(domain=Omega, mapping=atom_ids)
 
-    def test_get_atom_containing_first_atom_point(self, F):
+    def test_get_atom_containing_first_atom_point(self, F, Omega):
         """Test that get_atom_containing returns the correct atom for first atom point."""
         atom = F.get_atom_containing(0)
-        expected_atom = Set.from_list([0, 1], sig_alg=F, name=0)
+        expected_atom = Set([0, 1], domain=Omega, name=0)
 
         assert atom == expected_atom
 
-    def test_get_atom_containing_first_atom_point_second(self, F):
+    def test_get_atom_containing_first_atom_point_second(self, F, Omega):
         """Test that get_atom_containing returns the correct atom for first atom second point."""
         atom = F.get_atom_containing(1)
-        expected_atom = Set.from_list([0, 1], sig_alg=F, name=0)
+        expected_atom = Set([0, 1], domain=Omega, name=0)
 
         assert atom == expected_atom
 
-    def test_get_atom_containing_second_atom_point(self, F):
+    def test_get_atom_containing_second_atom_point(self, F, Omega):
         """Test that get_atom_containing returns the correct atom for second atom point."""
         atom = F.get_atom_containing(2)
-        expected_atom = Set.from_list([2, 3], sig_alg=F, name=1)
+        expected_atom = Set([2, 3], domain=Omega, name=1)
 
         assert atom == expected_atom
 
-    def test_get_atom_containing_second_atom_point_second(self, F):
+    def test_get_atom_containing_second_atom_point_second(self, F, Omega):
         """Test that get_atom_containing returns the correct atom for second atom second point."""
         atom = F.get_atom_containing(3)
-        expected_atom = Set.from_list([2, 3], sig_alg=F, name=1)
+        expected_atom = Set([2, 3], domain=Omega, name=1)
 
         assert atom == expected_atom
 
@@ -568,15 +580,14 @@ class TestIsMeasurable:
             },
         )
 
-    def test_is_measurable_measurable_event(self, F):
+    def test_is_measurable_measurable_event(self, F, Omega):
         """Test is_measurable method with a measurable event."""
-        A = Set.from_list([1, 2], sig_alg=F)
+        A = Set([1, 2], domain=Omega)
         assert F.is_measurable(A)
 
     def test_is_measurable_nonmeasurable_event(self, F, Omega):
         """Test is_measurable method with a non-measurable event."""
-        power_set = SigmaAlgebra.power_set(Omega)
-        A = Set.from_list([2, 3], sig_alg=power_set)
+        A = Set([2, 3], domain=Omega)
         assert not F.is_measurable(A)
 
     def test_is_measurable_with_list_of_indices(self, F):
@@ -761,28 +772,41 @@ class TestJoin:
 
     def test_join_with_string_instead_of_list_raises_error(self):
         """Test that join raises TypeError when given string input."""
-        with pytest.raises(TypeError, match="Expected a list of sigma-algebras"):
+        with pytest.raises(
+            TypeError,
+            match="sigma_algebras must be a list of instances of SigmaAlgebra",
+        ):
             Lattice.join("not a list")
 
     def test_join_with_dict_instead_of_list_raises_error(self):
         """Test that join raises TypeError when given dict input."""
-        with pytest.raises(TypeError, match="Expected a list of sigma-algebras"):
+        with pytest.raises(
+            TypeError,
+            match="sigma_algebras must be a list of instances of SigmaAlgebra",
+        ):
             Lattice.join({"key": "value"})
 
     def test_join_with_int_instead_of_list_raises_error(self):
         """Test that join raises TypeError when given int input."""
-        with pytest.raises(TypeError, match="Expected a list of sigma-algebras"):
+        with pytest.raises(
+            TypeError,
+            match="sigma_algebras must be a list of instances of SigmaAlgebra",
+        ):
             Lattice.join(123)
 
     def test_join_with_empty_list_raises_error(self):
         """Test that join raises ValueError when given empty list."""
-        with pytest.raises(ValueError, match="empty list"):
+        with pytest.raises(
+            TypeError,
+            match="sigma_algebras must be a list of instances of SigmaAlgebra",
+        ):
             Lattice.join([])
 
     def test_join_with_non_sigma_algebra_element_raises_error(self, F1):
         """Test that join raises TypeError when list contains non-SigmaAlgebra elements."""
         with pytest.raises(
-            TypeError, match="All elements of the list must be a SigmaAlgebra"
+            TypeError,
+            match="sigma_algebras must be a list of instances of SigmaAlgebra",
         ):
             Lattice.join([F1, "not a sigma algebra"])
 

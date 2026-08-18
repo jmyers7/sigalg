@@ -6,12 +6,13 @@ import pytest
 from sigalg.core import (
     ProbabilityMeasure,
     ProbabilitySpace,
+    RandomVariable,
+    RandomVector,
     SampleSpace,
     Set,
     SigmaAlgebra,
 )
-from sigalg.core.functions.random_variable import RandomVariable
-from sigalg.core.functions.random_vector import RandomVector
+from sigalg.core.sigma_algebras.lattice import NonMeasurableError
 
 # --------------------- test constructors --------------------- #
 
@@ -54,8 +55,7 @@ class TestConstructor:
 
         assert Q.name == "Q"
         assert Q.sig_alg is F
-        assert Q.domain is F.atom_space
-        assert Q.data is not None
+        assert Q.domain == F.atom_space
 
     def test_from_pandas_with_valid_sig_alg(self):
         """Test from pandas with a valid sigma-algebra."""
@@ -79,13 +79,13 @@ class TestConstructor:
         )
         expected_data = pd.Series(
             [0.2, 0.2, 0.6],
-            index=pd.Index([1, 0, 2], name="atom_ID"),
-            name="probability",
+            index=pd.Index([1, 0, 2], name="F"),
+            name="Q",
         )
 
         assert Q.name == "Q"
         assert Q.sig_alg is F
-        assert Q.domain is F.atom_space
+        assert Q.domain == F.atom_space
         pd.testing.assert_series_equal(Q.data, expected_data)
 
 
@@ -99,8 +99,8 @@ class TestUniform:
         U = ProbabilityMeasure.uniform(domain=Omega)
         expected_data = pd.Series(
             [0.25, 0.25, 0.25, 0.25],
-            index=pd.Index(["a", "b", "c", "d"], name="sample"),
-            name="probability",
+            index=pd.Index(["a", "b", "c", "d"], name="s"),
+            name="U",
         )
 
         pd.testing.assert_series_equal(U.data, expected_data)
@@ -111,7 +111,7 @@ class TestUniform:
         F = SigmaAlgebra(domain=Omega, mapping={"a": 0, "b": 0, "c": 1, "d": 1})
         K = ProbabilityMeasure.uniform(domain=F, name="K")
         expected_data = pd.Series(
-            [0.5, 0.5], index=pd.Index([0, 1], name="atom_ID"), name="probability"
+            [0.5, 0.5], index=pd.Index([0, 1], name="F"), name="K"
         )
 
         pd.testing.assert_series_equal(K.data, expected_data)
@@ -121,9 +121,7 @@ class TestUniform:
         """Test the uniform probability measure constructor on a trivial sigma-algebra."""
         F = SigmaAlgebra.trivial(domain=Omega, name="F")
         U = ProbabilityMeasure.uniform(domain=F)
-        expected_data = pd.Series(
-            [1.0], index=pd.Index([0], name="atom_ID"), name="probability"
-        )
+        expected_data = pd.Series([1.0], index=pd.Index([0], name="F"), name="U")
 
         pd.testing.assert_series_equal(U.data, expected_data)
         assert U.name == "U"
@@ -168,7 +166,7 @@ class TestTensorProduct:
             },
             name="Q",
         )
-        P_times_Q = P @ Q
+        P_times_Q = ProbabilityMeasure.tensor_product([P, Q])
         expected_data = pd.Series(
             [
                 0.1 * 0.3,
@@ -185,7 +183,7 @@ class TestTensorProduct:
                 ],
                 names=["u", "v", "w"],
             ),
-            name="probability",
+            name="P x Q",
         )
 
         pd.testing.assert_series_equal(P_times_Q.data, expected_data)
@@ -274,50 +272,29 @@ class TestCallMethod:
         C = F.get_set([2, 3, 4, 5], name="C")
         D = G.get_set([2, 3, 4, 5], name="D")
 
-        assert P(measurable_set=A) == 0.2
         assert P(A) == 0.2
-        assert Q(measurable_set=B) == 0.2
         assert Q(B) == 0.2
-        assert P(measurable_set=C) == 0.8
         assert P(C) == 0.8
-        assert Q(measurable_set=D) == 0.8
         assert Q(D) == 0.8
 
     def test_on_list(self, P, Q):
         """Test call method on list of sample points."""
-        assert P(measurable_set=[0, 1]) == 0.2
         assert P([0, 1]) == 0.2
-        assert Q(measurable_set=[0, 1]) == 0.2
         assert Q([0, 1]) == 0.2
-
-    def test_on_sample_point(self, P, Q):
-        """Test call method on single sample point."""
-        assert P(point=2) == 0.2
-        assert P(2) == 0.2
-        assert Q(point=2) == 0.2
-        assert Q(2) == 0.2
 
     def test_on_atom_id(self, P, Q):
         """Test call method on atom ID."""
         assert P(F=2) == 0.6
         assert Q(G_0=2, G_1=4) == 0.6
 
-    def test_curry(self, Q):
-        """Test the curried call method on atom ID."""
-        assert Q(G_0=2)(G_1=4) == 0.6
-        assert Q(G_1=4)(G_0=2) == 0.6
-
     def test_non_measurable_event_raises(self, Omega, P):
         power_set = SigmaAlgebra.power_set(Omega)
-        A = power_set.get_set([2, 3])
-
-        with pytest.raises(ValueError, match="The candidate set is not measurable"):
-            P([2, 3])
+        power_set.get_set([2, 3])
 
         with pytest.raises(
-            ValueError, match="Measurable set is not in the domain of the measure"
+            NonMeasurableError, match="The candidate set is not measurable"
         ):
-            P(measurable_set=A)
+            P([2, 3])
 
 
 # --------------------- test equality --------------------- #
@@ -498,17 +475,17 @@ class TestAreIndependent:
             },
         )
 
-    def test_are_independent_events_independent(self, F, P):
+    def test_are_independent_events_independent(self, F, P, Omega):
         """Test the are_independent method with independent events."""
-        A = Set.from_list([0, 1], sig_alg=F)
-        B = Set.from_list([0, 2], sig_alg=F)
+        A = Set([0, 1], domain=Omega)
+        B = Set([0, 2], domain=Omega)
 
         assert P.are_independent(given1=A, given2=B)
 
-    def test_are_independent_events_dependent(self, F, P):
+    def test_are_independent_events_dependent(self, F, P, Omega):
         """Test the are_independent method with dependent events."""
-        A = Set.from_list([0, 1], sig_alg=F)
-        B = Set.from_list([2, 3], sig_alg=F)
+        A = Set([0, 1], domain=Omega)
+        B = Set([2, 3], domain=Omega)
 
         assert not P.are_independent(given1=A, given2=B)
 

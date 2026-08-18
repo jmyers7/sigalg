@@ -51,7 +51,7 @@ class TestConstructor:
         measure_space = MeasureSpace(Omega, F, P)
 
         assert K.measure_space == measure_space
-        assert K.domain is Omega
+        assert K.domain == Omega
         assert K.sig_alg is F
         assert K.measure is P
         assert K.name == "K"
