@@ -1001,7 +1001,7 @@ class TestVariance:
 
     def test_variance_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
-        with pytest.raises(TypeError, match="rv must be a MeasurableVector instance"):
+        with pytest.raises(TypeError, match="rv must be a RandomVector instance"):
             Operators.variance("not a random vector")
 
     def test_variance_invalid_sigma_algebra_type_raises(self, X):
@@ -1265,7 +1265,7 @@ class TestStandardDeviation:
 
     def test_standard_deviation_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
-        with pytest.raises(TypeError, match="rv must be a MeasurableVector instance"):
+        with pytest.raises(TypeError, match="rv must be a RandomVector instance"):
             Operators.std("not a random vector")
 
     def test_standard_deviation_invalid_sigma_algebra_type_raises(self, X):
@@ -1338,22 +1338,22 @@ class TestCovariance:
     @pytest.fixture
     def X(self, prob_space):
         rng = np.random.default_rng(42)
-        return RandomVariable.from_randint(
-            *prob_space, low=-20, high=21, random_state=rng
+        return RandomVariable.from_rand(
+            *prob_space, min_value=-20, max_value=21, random_state=rng
         )
 
     @pytest.fixture
     def Y(self, prob_space):
         rng = np.random.default_rng(42)
-        return RandomVariable.from_randint(
-            *prob_space, name="Y", low=-10, high=11, random_state=rng
+        return RandomVariable.from_rand(
+            *prob_space, name="Y", min_value=-10, max_value=11, random_state=rng
         )
 
     @pytest.fixture
     def Z(self, prob_space):
         rng = np.random.default_rng(42)
-        return RandomVariable.from_randint(
-            *prob_space, name="Z", low=-20, high=21, random_state=rng
+        return RandomVariable.from_rand(
+            *prob_space, name="Z", min_value=-20, max_value=21, random_state=rng
         )
 
     @pytest.fixture
@@ -1375,9 +1375,11 @@ class TestCovariance:
         cov = Operators.cov
         exp = Operators.expectation
         covar = cov(X, Y)
-        expected_covar = (exp(X * Y) - exp(X) * exp(Y)).with_name("cov(X, Y)")
+        expected_covar = exp(X * Y) - exp(X) * exp(Y)
 
-        pd.testing.assert_series_equal(covar.data, expected_covar.data)
+        pd.testing.assert_series_equal(
+            covar.data, expected_covar.data.rename("cov(X, Y)")
+        )
         assert covar.name == "cov(X, Y)"
 
     def test_conditional_covariance(self, X, Y, G):
@@ -1385,11 +1387,11 @@ class TestCovariance:
         cov = Operators.cov
         exp = Operators.expectation
         covar_cond = cov(X, Y, G)
-        expected_covar_cond = (exp(X * Y, G) - exp(X, G) * exp(Y, G)).with_name(
-            "cov(X, Y|G)"
-        )
+        expected_covar_cond = exp(X * Y, G) - exp(X, G) * exp(Y, G)
 
-        pd.testing.assert_series_equal(covar_cond.data, expected_covar_cond.data)
+        pd.testing.assert_series_equal(
+            covar_cond.data, expected_covar_cond.data.rename("cov(X, Y|G)")
+        )
         assert covar_cond.name == "cov(X, Y|G)"
 
     def test_sum_of_atom_covariances_formula(self, X, Y, G):
@@ -1399,9 +1401,11 @@ class TestCovariance:
 
         covar_linear_combo = sum(
             [cov(X | atom, Y | atom).item() * atom.indicator for atom in G]
-        ).with_name("cov(X, Y|G)")
+        )
 
-        pd.testing.assert_series_equal(covar_cond.data, covar_linear_combo.data)
+        pd.testing.assert_series_equal(
+            covar_cond.data, covar_linear_combo.data.rename("cov(X, Y|G)")
+        )
         assert covar_cond.name == "cov(X, Y|G)"
 
     def test_alternate_formula_for_covariance(self, X, Y, G):
@@ -1409,9 +1413,9 @@ class TestCovariance:
         cov = Operators.cov
         exp = Operators.expectation
         covar = cov(X, Y, G)
-        alternate = exp((X - exp(X, G)) * (Y - exp(Y, G)), G).with_name("cov(X, Y|G)")
+        alternate = exp((X - exp(X, G)) * (Y - exp(Y, G)), G)
 
-        pd.testing.assert_series_equal(covar.data, alternate.data)
+        pd.testing.assert_series_equal(covar.data, alternate.data.rename("cov(X, Y|G)"))
 
     def test_symmetry_of_covariance(self, X, Y, G):
         """Test that cov(X, Y|G) = cov(Y, X|G)."""
@@ -1428,7 +1432,9 @@ class TestCovariance:
 
     def test_covariance_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
-        with pytest.raises(TypeError, match="rv1 and rv2 must be MeasurableFunctions"):
+        with pytest.raises(
+            TypeError, match="rv1 and rv2 must be RandomVariable instances"
+        ):
             Operators.cov("not a random variable", "also not")
 
     def test_covariance_different_domains_raises(self, Omega):
@@ -1491,22 +1497,22 @@ class TestCorrelation:
     @pytest.fixture
     def X(self, prob_space):
         rng = np.random.default_rng(42)
-        return RandomVariable.from_randint(
-            *prob_space, low=-20, high=21, random_state=rng
+        return RandomVariable.from_rand(
+            *prob_space, min_value=-20, max_value=21, random_state=rng
         )
 
     @pytest.fixture
     def Y(self, prob_space):
         rng = np.random.default_rng(42)
-        return RandomVariable.from_randint(
-            *prob_space, name="Y", low=-10, high=11, random_state=rng
+        return RandomVariable.from_rand(
+            *prob_space, name="Y", min_value=-10, max_value=11, random_state=rng
         )
 
     @pytest.fixture
     def Z(self, prob_space):
         rng = np.random.default_rng(42)
-        return RandomVariable.from_randint(
-            *prob_space, name="Z", low=-20, high=21, random_state=rng
+        return RandomVariable.from_rand(
+            *prob_space, name="Z", min_value=-20, max_value=21, random_state=rng
         )
 
     @pytest.fixture
@@ -1528,9 +1534,11 @@ class TestCorrelation:
         corr = Operators.corr(X, Y)
         var = Operators.variance
         cov = Operators.cov
-        expected_corr = (cov(X, Y) / (var(X) * var(Y)) ** 0.5).with_name("corr(X, Y)")
+        expected_corr = cov(X, Y) / (var(X) * var(Y)) ** 0.5
 
-        pd.testing.assert_series_equal(corr.data, expected_corr.data)
+        pd.testing.assert_series_equal(
+            corr.data, expected_corr.data.rename("corr(X, Y)")
+        )
         assert corr.name == "corr(X, Y)"
 
     def test_conditional_correlation(self, X, Y, G):
@@ -1538,22 +1546,21 @@ class TestCorrelation:
         corr = Operators.corr(X, Y, G)
         var = Operators.variance
         cov = Operators.cov
-        expected_corr = (cov(X, Y, G) / (var(X, G) * var(Y, G)) ** 0.5).with_name(
-            "corr(X, Y|G)"
-        )
+        expected_corr = cov(X, Y, G) / (var(X, G) * var(Y, G)) ** 0.5
 
-        pd.testing.assert_series_equal(corr.data, expected_corr.data)
+        pd.testing.assert_series_equal(
+            corr.data, expected_corr.data.rename("corr(X, Y|G)")
+        )
         assert corr.name == "corr(X, Y|G)"
 
     def test_sum_of_atom_correlations_formula(self, X, Y, G):
         """Test whether the conditional correlation is the linear combination of the indicator functions of the atoms with weights given by restricted correlations."""
         corr = Operators.corr
-        corr_linear_combo = sum(
-            [corr(X | A, Y | A).item() * A.indicator for A in G]
-        ).with_name("corr(X, Y|G)")
+        corr_linear_combo = sum([corr(X | A, Y | A).item() * A.indicator for A in G])
 
         pd.testing.assert_series_equal(
-            Operators.corr(X, Y, G).data, corr_linear_combo.data
+            Operators.corr(X, Y, G).data,
+            corr_linear_combo.data.rename("corr(X, Y|G)"),
         )
         assert Operators.corr(X, Y, G).name == "corr(X, Y|G)"
 
@@ -1616,7 +1623,9 @@ class TestCorrelation:
 
     def test_correlation_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
-        with pytest.raises(TypeError, match="rv1 and rv2 must be MeasurableFunctions"):
+        with pytest.raises(
+            TypeError, match="rv1 and rv2 must be RandomVariable instances"
+        ):
             Operators.corr("not a random variable", "also not")
 
     def test_correlation_different_domains_raises(self, Omega):

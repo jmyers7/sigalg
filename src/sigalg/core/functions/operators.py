@@ -1359,7 +1359,7 @@ class Operators:
 
             sig_alg = SigmaAlgebra._from_validated(
                 data=pd.Series(0, name=name, index=rv.domain.data),
-                variable_names="T",
+                variable_names=["T"],
                 domain_kind=type(rv.domain).__name__,
                 domain_name=rv.domain.name,
                 index_kind="Index",
@@ -1367,7 +1367,9 @@ class Operators:
                 name="T",
             )
             measure = ProbabilityMeasure._from_validated(
-                data=pd.Series(1.0, index=pd.Index([0], name="T")),
+                data=pd.Series(
+                    1.0, index=pd.Index([0], name="T"), name=f"{measure.name}|T"
+                ),
                 kind="probability",
                 sig_alg=sig_alg,
                 name=f"{measure.name}|T",
@@ -1435,17 +1437,17 @@ class Operators:
     @classmethod
     def variance(
         cls,
-        rv: MeasurableVector,
+        rv: RandomVector,
         given: SigmaAlgebra | None = None,
         measure: ProbabilityMeasure | None = None,
-    ) -> MeasurableVector:
+    ) -> RandomVector:
         r"""Compute the variance of a random vector, optionally conditioned on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
 
         Parameters
         ----------
-        rv : MeasurableVector
+        rv : RandomVector
             The random vector for which to compute the variance.
         given : SigmaAlgebra | None, default=None
             The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
@@ -1454,13 +1456,11 @@ class Operators:
 
         Returns
         -------
-        var : MeasurableVector
+        var : RandomVector
             The variance of the random vector.
 
         Examples
         --------
-        Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
-
         >>> import numpy as np
         >>> from sigalg.core import (
         ...     Operators,
@@ -1470,6 +1470,9 @@ class Operators:
         ...     SigmaAlgebra,
         ... )
         >>> rng = np.random.default_rng(42)
+
+        Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
+
         >>> Omega = SampleSpace.from_sequence(size=100)
         >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
         >>> P = ProbabilityMeasure.from_rand(
@@ -1477,14 +1480,14 @@ class Operators:
         ...     num_null_atoms=5,
         ...     random_state=rng,
         ... )
-        >>> X = RandomVector.from_randnorm(
+        >>> X = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
         ...     dim=1,
         ...     random_state=rng,
         ... )
-        >>> Y = RandomVector.from_randnorm(
+        >>> Y = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
@@ -1500,19 +1503,16 @@ class Operators:
 
         Check that the unconditional variance is equal to its definition and that it can be computed using the "shortcut formula."
 
-        >>> print(V(X) == E((X - E(X)) ** 2))
+        >>> np.allclose(V(X), E((X - E(X)) ** 2))
         True
-        >>> print(V(X) == E(X**2) - E(X) ** 2)
+        >>> np.allclose(V(X), E(X**2) - E(X) ** 2)
         True
 
         Compute the unconditional variance of the random vector `Y`, and check that its components are the unconditional variances of the components of `Y`.
 
-        >>> for V_Y_i, Y_i in zip(V(Y), Y):
-        ...     print(np.allclose(V_Y_i, E((Y_i - E(Y_i)) ** 2)))
-        ...     print(np.allclose(V_Y_i, E(Y_i**2) - E(Y_i) ** 2))
+        >>> all(np.allclose(V_Y_i, E((Y_i - E(Y_i)) ** 2)) for V_Y_i, Y_i in zip(V(Y), Y))
         True
-        True
-        True
+        >>> all(np.allclose(V_Y_i, E(Y_i**2) - E(Y_i) ** 2) for V_Y_i, Y_i in zip(V(Y), Y))
         True
 
         Define a sub-sigma-algebra of `F` for conditional variances.
@@ -1531,9 +1531,10 @@ class Operators:
 
         Check the same for the random vector `Y`.
 
-        >>> for V_Y_i_G, Y_i in zip(V(Y, G), Y):
-        ...     print(np.allclose(V_Y_i_G, sum(V(Y_i | B).item() * B.indicator for B in G if P(B) > 0)))
-        True
+        >>> all(
+        ...     np.allclose(V_Y_i_G, sum(V(Y_i | B).item() * B.indicator for B in G if P(B) > 0))
+        ...     for V_Y_i_G, Y_i in zip(V(Y, G), Y)
+        ... )
         True
 
         Notes
@@ -1575,23 +1576,28 @@ class Operators:
 
         name = f"V({rv.name}|{given.name})" if given is not None else f"V({rv.name})"
 
-        return result.with_name(name)
+        if isinstance(result.data, pd.Series):
+            result.data.name = name
+
+        result.name = name
+
+        return result
 
     # TODO: this is slow... develop pandas-only logic without calling variance
     @classmethod
     def std(
         cls,
-        rv: MeasurableVector,
+        rv: RandomVector,
         given: SigmaAlgebra | None = None,
         measure: ProbabilityMeasure | None = None,
-    ) -> MeasurableVector:
+    ) -> RandomVector:
         r"""Compute the standard deviation of a random vector, optionally conditioned on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
 
         Parameters
         ----------
-        rv : MeasurableVector
+        rv : RandomVector
             The random vector for which to compute the standard deviation.
         given : SigmaAlgebra | None, default=None
             The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
@@ -1600,13 +1606,11 @@ class Operators:
 
         Returns
         -------
-        std : MeasurableVector
+        std : RandomVector
             The standard deviation of the random vector.
 
         Examples
         --------
-        Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
-
         >>> import numpy as np
         >>> from sigalg.core import (
         ...     Operators,
@@ -1616,6 +1620,9 @@ class Operators:
         ...     SigmaAlgebra,
         ... )
         >>> rng = np.random.default_rng(42)
+
+        Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
+
         >>> Omega = SampleSpace.from_sequence(size=100)
         >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
         >>> P = ProbabilityMeasure.from_rand(
@@ -1623,14 +1630,14 @@ class Operators:
         ...     num_null_atoms=5,
         ...     random_state=rng,
         ... )
-        >>> X = RandomVector.from_randnorm(
+        >>> X = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
         ...     dim=1,
         ...     random_state=rng,
         ... )
-        >>> Y = RandomVector.from_randnorm(
+        >>> Y = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
@@ -1646,14 +1653,12 @@ class Operators:
 
         Check that the unconditional standard deviation is equal to its definition.
 
-        >>> print(std(X) == V(X) ** 0.5)
+        >>> std(X) == V(X) ** 0.5
         True
 
         Compute the unconditional standard deviation of the random vector `Y`, and check that its components are the unconditional standard deviations of the components of `Y`.
 
-        >>> for std_Y_i, Y_i in zip(std(Y), Y):
-        ...     print(std_Y_i == V(Y_i) ** 0.5)
-        True
+        >>> all(std_Y_i == V(Y_i) ** 0.5 for std_Y_i, Y_i in zip(std(Y), Y))
         True
 
         Define a sub-sigma-algebra of `F` for conditional standard deviations.
@@ -1667,20 +1672,19 @@ class Operators:
 
         Check that the conditional standard deviation of the random variable `X` is equal to a linear combination of indicators weighted by unconditional standard deviations.
 
-        >>> print(std(X, G) == sum(std(X | B).item() * B.indicator for B in G if P(B) > 0))
+        >>> std(X, G) == sum(std(X | B).item() * B.indicator for B in G if P(B) > 0)
         True
 
         Check the same for the random vector `Y`.
 
-        >>> for std_Y_i_G, Y_i in zip(std(Y, G), Y):
-        ...     print(
-        ...         np.allclose(
-        ...             std_Y_i_G.data,
-        ...             sum(std(Y_i | B).item() * B.indicator for B in G if P(B) > 0).data,
-        ...             atol=1e-7,
-        ...         )
+        >>> all(
+        ...     np.allclose(
+        ...         std_Y_i_G.data,
+        ...         sum(std(Y_i | B).item() * B.indicator for B in G if P(B) > 0).data,
+        ...         atol=1e-7,
         ...     )
-        True
+        ...     for std_Y_i_G, Y_i in zip(std(Y, G), Y)
+        ... )
         True
 
         Notes
@@ -1712,32 +1716,37 @@ class Operators:
         cls._validate_univariate_parameters(rv=rv, sig_alg=given, measure=measure)
 
         result = cls.variance(rv, given, measure) ** 0.5
-        result._data = result._data.fillna(0.0)
+        result.data = result.data.fillna(0.0)
 
         name = (
             (f"std({rv.name}|{given.name})") if given is not None else f"std({rv.name})"
         )
 
-        return result.with_name(name)
+        if isinstance(result.data, pd.Series):
+            result.data.name = name
+
+        result.name = name
+
+        return result
 
     # TODO: this is slow... develop pandas-only logic without calling expectation
     @classmethod
     def cov(
         cls,
-        rv1: MeasurableFunction,
-        rv2: MeasurableFunction,
+        rv1: RandomVariable,
+        rv2: RandomVariable,
         given: SigmaAlgebra | None = None,
         measure: ProbabilityMeasure | None = None,
-    ) -> MeasurableFunction:
+    ) -> RandomVariable:
         r"""Compute the covariance of two random variables, optionally conditioned on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
 
         Parameters
         ----------
-        rv1 : MeasurableFunction
+        rv1 : RandomVariable
             The first random variable for which to compute the covariance.
-        rv2 : MeasurableFunction
+        rv2 : RandomVariable
             The second random variable for which to compute the covariance
         given : SigmaAlgebra | None, default=None
             The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
@@ -1746,13 +1755,11 @@ class Operators:
 
         Returns
         -------
-        cov : MeasurableFunction
+        cov : RandomVariable
             The covariance of the random variables.
 
         Examples
         --------
-        Define a probability space along with two random variables.
-
         >>> import numpy as np
         >>> from sigalg.core import (
         ...     Operators,
@@ -1762,6 +1769,9 @@ class Operators:
         ...     SigmaAlgebra,
         ... )
         >>> rng = np.random.default_rng(42)
+
+        Define a probability space along with two random variables.
+
         >>> Omega = SampleSpace.from_sequence(size=100)
         >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
         >>> P = ProbabilityMeasure.from_rand(
@@ -1769,14 +1779,14 @@ class Operators:
         ...     num_null_atoms=5,
         ...     random_state=rng,
         ... )
-        >>> X = RandomVector.from_randnorm(
+        >>> X = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
         ...     dim=1,
         ...     random_state=rng,
         ... )
-        >>> Y = RandomVector.from_randnorm(
+        >>> Y = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
@@ -1792,7 +1802,7 @@ class Operators:
 
         Check that the unconditional covariance is equal to its definition.
 
-        >>> print(cov(X, Y) == E(X * Y) - E(X) * E(Y))
+        >>> cov(X, Y) == E(X * Y) - E(X) * E(Y)
         True
 
         Define a sub-sigma-algebra of `F` for conditional covariance.
@@ -1841,26 +1851,31 @@ class Operators:
             else f"cov({rv1.name}, {rv2.name})"
         )
 
-        return result.with_name(name)
+        if isinstance(result.data, pd.Series):
+            result.data.name = name
+
+        result.name = name
+
+        return result
 
     # TODO: this is slow... develop pandas-only logic without calling covariance and standard devation
     @classmethod
     def corr(
         cls,
-        rv1: MeasurableFunction,
-        rv2: MeasurableFunction,
+        rv1: RandomVariable,
+        rv2: RandomVariable,
         given: SigmaAlgebra | None = None,
         measure: ProbabilityMeasure | None = None,
-    ) -> MeasurableFunction:
+    ) -> RandomVariable:
         r"""Compute the correlation of two random variables, optionally conditioned on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
 
         Parameters
         ----------
-        rv1 : MeasurableFunction
+        rv1 : RandomVariable
             The first random variable for which to compute the correlation.
-        rv2 : MeasurableFunction
+        rv2 : RandomVariable
             The second random variable for which to compute the correlation
         given : SigmaAlgebra | None, default=None
             The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
@@ -1869,13 +1884,11 @@ class Operators:
 
         Returns
         -------
-        corr : MeasurableFunction
+        corr : RandomVariable
             The correlation of the two random variables.
 
         Examples
         --------
-        Define a probability space along with two random variables.
-
         >>> import numpy as np
         >>> from sigalg.core import (
         ...     Operators,
@@ -1885,6 +1898,9 @@ class Operators:
         ...     SigmaAlgebra,
         ... )
         >>> rng = np.random.default_rng(42)
+
+        Define a probability space along with two random variables.
+
         >>> Omega = SampleSpace.from_sequence(size=100)
         >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
         >>> P = ProbabilityMeasure.from_rand(
@@ -1892,14 +1908,14 @@ class Operators:
         ...     num_null_atoms=5,
         ...     random_state=rng,
         ... )
-        >>> X = RandomVector.from_randnorm(
+        >>> X = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
         ...     dim=1,
         ...     random_state=rng,
         ... )
-        >>> Y = RandomVector.from_randnorm(
+        >>> Y = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
@@ -1916,7 +1932,7 @@ class Operators:
 
         Check that the unconditional correlation is equal to its definition.
 
-        >>> print(corr(X, Y) == cov(X, Y) / (std(X) * std(Y)))
+        >>> corr(X, Y) == cov(X, Y) / (std(X) * std(Y))
         True
 
         Define a sub-sigma-algebra of `F` for conditional correlation.
@@ -1958,7 +1974,7 @@ class Operators:
         result = cls.cov(rv1, rv2, given, measure) / (
             cls.std(rv1, given, measure) * cls.std(rv2, given, measure)
         )
-        result._data = result._data.fillna(0.0)
+        result.data = result.data.fillna(0.0)
 
         name = (
             f"corr({rv1.name}, {rv2.name}|{given.name})"
@@ -1966,7 +1982,12 @@ class Operators:
             else f"corr({rv1.name}, {rv2.name})"
         )
 
-        return result.with_name(name)
+        if isinstance(result.data, pd.Series):
+            result.data.name = name
+
+        result.name = name
+
+        return result
 
     @staticmethod
     def _validate_univariate_parameters(
@@ -2006,19 +2027,17 @@ class Operators:
 
     @staticmethod
     def _validate_bivariate_parameters(
-        rv1: MeasurableFunction,
-        rv2: MeasurableFunction,
+        rv1: RandomVariable,
+        rv2: RandomVariable,
         sig_alg: SigmaAlgebra | None = None,
         measure: ProbabilityMeasure | None = None,
     ) -> None:
         from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .measurable_function import MeasurableFunction
+        from .random_variable import RandomVariable
 
-        if not isinstance(rv1, MeasurableFunction) or not isinstance(
-            rv2, MeasurableFunction
-        ):
-            raise TypeError("rv1 and rv2 must be MeasurableFunctions.")
+        if not isinstance(rv1, RandomVariable) or not isinstance(rv2, RandomVariable):
+            raise TypeError("rv1 and rv2 must be RandomVariable instances.")
         if rv1.measurable_space != rv2.measurable_space:
             raise ValueError(
                 "rv1 and rv2 must be defined on the same measurable space."
@@ -3030,7 +3049,7 @@ class OperatorsMethods:
         self,
         given: SigmaAlgebra | None = None,
         measure: ProbabilityMeasure | None = None,
-    ) -> MeasurableVector:
+    ) -> RandomVector:
         r"""Compute the variance of a random vector, optionally conditioned on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
@@ -3046,22 +3065,22 @@ class OperatorsMethods:
 
         Returns
         -------
-        var : MeasurableVector
+        var : RandomVector
             The variance of the random vector.
 
         Examples
         --------
-        Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
-
         >>> import numpy as np
         >>> from sigalg.core import (
-        ...     Operators,
         ...     ProbabilityMeasure,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
         >>> rng = np.random.default_rng(42)
+
+        Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
+
         >>> Omega = SampleSpace.from_sequence(size=100)
         >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
         >>> P = ProbabilityMeasure.from_rand(
@@ -3069,14 +3088,14 @@ class OperatorsMethods:
         ...     num_null_atoms=5,
         ...     random_state=rng,
         ... )
-        >>> X = RandomVector.from_randnorm(
+        >>> X = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
         ...     dim=1,
         ...     random_state=rng,
         ... )
-        >>> Y = RandomVector.from_randnorm(
+        >>> Y = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
@@ -3087,19 +3106,16 @@ class OperatorsMethods:
 
         Check that the unconditional variance is equal to its definition and that it can be computed using the "shortcut formula."
 
-        >>> print(X.variance() == ((X - X.expectation()) ** 2).expectation())
+        >>> np.allclose(X.variance(), ((X - X.expectation()) ** 2).expectation())
         True
-        >>> print(X.variance() == (X**2).expectation() - X.expectation() ** 2)
+        >>> np.allclose(X.variance(), (X**2).expectation() - X.expectation() ** 2)
         True
 
         Compute the unconditional variance of the random vector `Y`, and check that its components are the unconditional variances of the components of `Y`.
 
-        >>> for V_Y_i, Y_i in zip(Y.variance(), Y):
-        ...     print(np.allclose(V_Y_i, ((Y_i - Y_i.expectation()) ** 2).expectation()))
-        ...     print(np.allclose(V_Y_i, (Y_i**2).expectation() - Y_i.expectation() ** 2))
+        >>> all(np.allclose(V_Y_i, ((Y_i - Y_i.expectation()) ** 2).expectation()) for V_Y_i, Y_i in zip(Y.variance(), Y))
         True
-        True
-        True
+        >>> all(np.allclose(V_Y_i, (Y_i**2).expectation() - Y_i.expectation() ** 2) for V_Y_i, Y_i in zip(Y.variance(), Y))
         True
 
         Define a sub-sigma-algebra of `F` for conditional variances.
@@ -3118,9 +3134,13 @@ class OperatorsMethods:
 
         Check the same for the random vector `Y`.
 
-        >>> for V_Y_i_G, Y_i in zip(Y.variance(given=G), Y):
-        ...     print(np.allclose(V_Y_i_G, sum((Y_i | B).variance().item() * B.indicator for B in G if P(B) > 0)))
-        True
+        >>> all(
+        ...     np.allclose(
+        ...         V_Y_i_G,
+        ...         sum((Y_i | B).variance().item() * B.indicator for B in G if P(B) > 0),
+        ...     )
+        ...     for V_Y_i_G, Y_i in zip(Y.variance(given=G), Y)
+        ... )
         True
 
         Notes
@@ -3159,7 +3179,7 @@ class OperatorsMethods:
         self,
         given: SigmaAlgebra | None = None,
         measure: ProbabilityMeasure | None = None,
-    ) -> MeasurableVector:
+    ) -> RandomVector:
         r"""Compute the standard deviation of a random vector, optionally conditioned on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
@@ -3175,22 +3195,22 @@ class OperatorsMethods:
 
         Returns
         -------
-        std : MeasurableVector
+        std : RandomVector
             The standard deviation of the random vector.
 
         Examples
         --------
-        Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
-
         >>> import numpy as np
         >>> from sigalg.core import (
-        ...     Operators,
         ...     ProbabilityMeasure,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
         >>> rng = np.random.default_rng(42)
+
+        Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
+
         >>> Omega = SampleSpace.from_sequence(size=100)
         >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
         >>> P = ProbabilityMeasure.from_rand(
@@ -3198,14 +3218,14 @@ class OperatorsMethods:
         ...     num_null_atoms=5,
         ...     random_state=rng,
         ... )
-        >>> X = RandomVector.from_randnorm(
+        >>> X = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
         ...     dim=1,
         ...     random_state=rng,
         ... )
-        >>> Y = RandomVector.from_randnorm(
+        >>> Y = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
@@ -3216,14 +3236,12 @@ class OperatorsMethods:
 
         Check that the unconditional standard deviation is equal to its definition.
 
-        >>> print(X.std() == X.variance() ** 0.5)
+        >>> X.std() == X.variance() ** 0.5
         True
 
         Compute the unconditional standard deviation of the random vector `Y`, and check that its components are the unconditional standard deviations of the components of `Y`.
 
-        >>> for std_Y_i, Y_i in zip(Y.std(), Y):
-        ...     print(std_Y_i == Y_i.variance() ** 0.5)
-        True
+        >>> all(std_Y_i == Y_i.variance() ** 0.5 for std_Y_i, Y_i in zip(Y.std(), Y))
         True
 
         Define a sub-sigma-algebra of `F` for conditional standard deviations.
@@ -3237,20 +3255,19 @@ class OperatorsMethods:
 
         Check that the conditional standard deviation of the random variable `X` is equal to a linear combination of indicators weighted by unconditional standard deviations.
 
-        >>> print(X.std(given=G) == sum((X | B).std().item() * B.indicator for B in G if P(B) > 0))
+        >>> X.std(given=G) == sum((X | B).std().item() * B.indicator for B in G if P(B) > 0)
         True
 
         Check the same for the random vector `Y`.
 
-        >>> for std_Y_i_G, Y_i in zip(Y.std(given=G), Y):
-        ...     print(
-        ...         np.allclose(
-        ...             std_Y_i_G.data,
-        ...             sum((Y_i | B).std().item() * B.indicator for B in G if P(B) > 0).data,
-        ...             atol=1e-7,
-        ...         )
+        >>> all(
+        ...     np.allclose(
+        ...         std_Y_i_G.data,
+        ...         sum((Y_i | B).std().item() * B.indicator for B in G if P(B) > 0).data,
+        ...         atol=1e-7,
         ...     )
-        True
+        ...     for std_Y_i_G, Y_i in zip(Y.std(given=G), Y)
+        ... )
         True
 
         Notes

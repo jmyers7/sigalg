@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.domain import Domain
     from ..spaces.measure_space import MeasureSpace
+    from ..spaces.set import Set
     from .function import Function
 
 
@@ -267,6 +268,30 @@ class RandomVector(MeasurableVector):
         """Pass."""
         return self.measure_space
 
+    # --------------------- function methods --------------------- #
+
+    # TODO: add docstring
+    def restrict_to(
+        self,
+        subset: Set | list,
+        subset_name: Hashable | None = "A",
+    ) -> Function:
+        """Pass."""
+        from .function import Function
+
+        conditional_measure = self.measure.restrict_to(
+            obj=subset, normalize=True, subset_name=subset_name
+        )
+        restricted_sig_alg = conditional_measure.sig_alg
+
+        return Function.restrict_to(
+            self=self,
+            subset=subset,
+            subset_name=subset_name,
+            sig_alg=restricted_sig_alg,
+            measure=conditional_measure,
+        )
+
     # --------------------- conversion methods --------------------- #
 
     def to_measurable_vec(self) -> MeasurableVector:
@@ -502,7 +527,7 @@ class RandomVector(MeasurableVector):
         Again, the arithmetic operations do not strictly require that measurable functions carry the same measure, as long as one is defined on a sub-sigma-algebra of another and is the restriction of the measure on the larger sigma-algebra. Then the result of an arithmetic operation will carry the larger sigma-algebra and its measure.
 
         >>> nu = Measure(domain=G, mapping=dict(zip(G.atom_space, [4, 9])), name="nu")
-        >>> nu <= mu  # This checks if nu is the restrictio of mu to G
+        >>> nu.is_restriction_of(mu)
         True
 
         >>> f = MeasurableFunction.from_rand(

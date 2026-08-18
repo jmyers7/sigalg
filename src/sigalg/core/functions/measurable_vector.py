@@ -1272,9 +1272,9 @@ class MeasurableVector(Function, OperatorsMethods):
         else:
             max_measure = measures[0]
             for measure in measures[1:]:
-                if max_measure.is_restriction(of=measure):
+                if max_measure.is_restriction_of(measure):
                     max_measure = measure
-                elif not measure.is_restriction(of=max_measure):
+                elif not measure.is_restriction_of(max_measure):
                     raise ValueError(
                         "All measurable vectors must have consistent measures."
                     )
@@ -1785,55 +1785,6 @@ class MeasurableVector(Function, OperatorsMethods):
             measure=self.measure,
         )
 
-    # --------------------- equality --------------------- #
-
-    # def __eq__(
-    #     self, other: MeasurableVector | Hashable | tuple[Hashable] | pd.Series
-    # ) -> bool:
-    #     r"""Check equality with another measurable vector or compute an inverse image of a value under the measurable vector.
-
-    #     See the Notes section below for the mathematical details.
-
-    #     Parameters
-    #     ----------
-    #     other : MeasurableVector | Hashable | tuple[Hashable] | pd.Series
-    #         Another measurable vector to compare with, or a value for which to compute the inverse image.
-
-    #     Returns
-    #     -------
-    #     output : bool | MeasurableSet
-    #         If `other` is a `MeasurableVector`, returns `True` if the two measurable vectors are equal, and `False` otherwise. If `other` is a value, returns the measurable set corresponding to the inverse image of that value under the measurable vector.
-    #     """
-    #     import pandas as pd
-
-    #     if not isinstance(other, MeasurableVector):
-    #         try:
-    #             return self.get_inverse_image(other)
-    #         except TypeError as e:
-    #             raise TypeError(
-    #                 "If comparing a MeasurableVector to a non-MeasurableVector, the other object must be a Hashable, tuple[Hashable], or pd.Series corresponding to a possible output of the measurable vector."
-    #             ) from e
-
-    #     if self.domain != other.domain:
-    #         return False
-    #     if self.index != other.index:
-    #         return False
-
-    #     if isinstance(other.data.index, pd.MultiIndex):
-    #         other_data = other.data.reorder_levels(self.data.index.names)
-    #     else:
-    #         other_data = other.data
-
-    #     if other.index is not None:
-    #         other_data = other_data.reindex(columns=self.data.columns)
-    #     else:
-    #         other_data = other_data
-
-    #     self_sorted = self.data.sort_index()
-    #     other_sorted = other_data.sort_index()
-
-    #     return self_sorted.equals(other_sorted)
-
     # --------------------- conversion methods --------------------- #
 
     def to_function(self) -> Function:
@@ -2121,7 +2072,7 @@ class MeasurableVector(Function, OperatorsMethods):
         Again, the arithmetic operations do not strictly require that measurable functions carry the same measure, as long as one is defined on a sub-sigma-algebra of another and is the restriction of the measure on the larger sigma-algebra. Then the result of an arithmetic operation will carry the larger sigma-algebra and its measure.
 
         >>> nu = Measure(domain=G, mapping=dict(zip(G.atom_space, [4, 9])), name="nu")
-        >>> nu.is_restriction(of=mu)
+        >>> nu.is_restriction_of(mu)
         True
 
         >>> f = MeasurableFunction.from_rand(

@@ -2690,7 +2690,7 @@ class Function:
         from ..spaces.set import Set
 
         if not isinstance(subset, (Set, list)):
-            raise TypeError("subtset must be a Set or a list of points.")
+            raise TypeError("subset must be a Set or a list of points.")
         if isinstance(subset, list):
             subset = Set(subset, domain=self.domain, name=subset_name)
         if not set(subset.data) <= set(self.domain.data):
@@ -2856,6 +2856,8 @@ class Function:
         >>> g.item()
         1
         """
+        import pandas as pd
+
         if self.data is None:
             raise ValueError("Cannot retrieve the item of an empty measurable vector.")
 
@@ -2864,7 +2866,9 @@ class Function:
                 "Can only retrieve the item of a constant measurable vector."
             )
 
-        return self(self.domain[0])
+        result = self.data.iloc[0]
+
+        return tuple(result) if isinstance(result, pd.Series) else result.astype(Real)
 
     def __round__(self, ndigits: int = None, **kwargs) -> Function:
         """Round the outputs of the measurable vector to a specified number of decimal places.
@@ -3810,7 +3814,8 @@ class Function:
                     other_data.columns = index.data
 
                     if not reverse:
-                        data = operation(self_data, other_data).dropna()
+                        data = operation(self_data, other_data)
+
                         if set(self.variable_names) != set(other.variable_names):
                             domain_name = (
                                 f"({self.domain_name} int {other.domain_name})"
@@ -3819,7 +3824,7 @@ class Function:
                             domain_name = self.domain.name
 
                     else:
-                        data = operation(other_data, self_data).dropna()
+                        data = operation(other_data, self_data)
 
                         if set(self.variable_names) != set(other.variable_names):
                             domain_name = (
@@ -3864,8 +3869,12 @@ class Function:
                             else f"{other.domain_name} x {self.domain_name}"
                         )
 
-                if self.dimension == 1:
+                if isinstance(data, pd.DataFrame) and data.shape[1] == 1:
                     data = data.squeeze(axis=1).rename(name)
+                    index_kind = "Index"
+                    index_name = None
+                elif isinstance(data, pd.Series):
+                    data = data.rename(name)
                     index_kind = "Index"
                     index_name = None
                 else:
@@ -3965,19 +3974,6 @@ class Function:
                     **kwargs,
                 )
 
-                # return self._apply_binary_operation(
-                #     other=other,
-                #     operation=operation,
-                #     op_symbol=op_symbol,
-                #     reverse=reverse,
-                #     domain_name=domain_name,
-                #     index=index,
-                #     index_kind=index_kind,
-                #     index_name=index_name,
-                #     name=name,
-                #     **kwargs,
-                # )
-
             elif isinstance(self.data, Callable):
                 raise NotImplementedError(
                     "Adding functions without data to scalars it not implemented yet."
@@ -4022,9 +4018,26 @@ class Function:
         sum : Function
             The sum of the function and the object.
         """
+        import pandas as pd
+
+        from .._utils.utils import to_df
+
+        def operation(a, b):
+            if isinstance(b, Real):
+                return a + b
+
+            result = pd.DataFrame.add(to_df(a), to_df(b))
+
+            index_mask = ~result.index.to_frame().isna().any(axis=1)
+
+            if isinstance(result, pd.DataFrame):
+                return result[index_mask].squeeze(axis=1)
+            else:
+                return result[index_mask]
+
         return self._apply_binary_operation(
             other=other,
-            operation=lambda a, b: a + b,
+            operation=operation,
             op_symbol="+",
             domain_name=domain_name,
             index=index,
@@ -4251,9 +4264,26 @@ class Function:
         difference : Function
             The difference of the function and the object.
         """
+        import pandas as pd
+
+        from .._utils.utils import to_df
+
+        def operation(a, b):
+            if isinstance(b, Real):
+                return a - b
+
+            result = pd.DataFrame.subtract(to_df(a), to_df(b))
+
+            index_mask = ~result.index.to_frame().isna().any(axis=1)
+
+            if isinstance(result, pd.DataFrame):
+                return result[index_mask].squeeze(axis=1)
+            else:
+                return result[index_mask]
+
         return self._apply_binary_operation(
             other=other,
-            operation=lambda a, b: a - b,
+            operation=operation,
             op_symbol="-",
             domain_name=domain_name,
             index=index,
@@ -4341,9 +4371,26 @@ class Function:
         product : Function
             The product of the function and the object.
         """
+        import pandas as pd
+
+        from .._utils.utils import to_df
+
+        def operation(a, b):
+            if isinstance(b, Real):
+                return a * b
+
+            result = pd.DataFrame.multiply(to_df(a), to_df(b))
+
+            index_mask = ~result.index.to_frame().isna().any(axis=1)
+
+            if isinstance(result, pd.DataFrame):
+                return result[index_mask].squeeze(axis=1)
+            else:
+                return result[index_mask]
+
         return self._apply_binary_operation(
             other=other,
-            operation=lambda a, b: a * b,
+            operation=operation,
             op_symbol="*",
             domain_name=domain_name,
             index=index,
@@ -4431,15 +4478,33 @@ class Function:
         quotient : Function
             The quotient of the function and the object.
         """
+        import pandas as pd
+
+        from .._utils.utils import to_df
+
+        def operation(a, b):
+            if isinstance(b, Real):
+                return a / b
+
+            result = pd.DataFrame.divide(to_df(a), to_df(b))
+
+            index_mask = ~result.index.to_frame().isna().any(axis=1)
+
+            if isinstance(result, pd.DataFrame):
+                return result[index_mask].squeeze(axis=1)
+            else:
+                return result[index_mask]
+
         return self._apply_binary_operation(
             other=other,
-            operation=lambda a, b: a / b,
+            operation=operation,
             op_symbol="/",
             domain_name=domain_name,
             index=index,
             index_kind=index_kind,
             index_name=index_name,
             name=name,
+            **kwargs,
         )
 
     def divide(
@@ -4520,9 +4585,28 @@ class Function:
         power : Function
             The power of the function and the object.
         """
+        import pandas as pd
+
+        from .._utils.utils import to_df
+
+        def operation(a, b):
+            if isinstance(b, Real):
+                return self._to_float(a) ** self._to_float(b)
+
+            result = pd.DataFrame.pow(
+                self._to_float(to_df(a)), self._to_float(to_df(b))
+            )
+
+            index_mask = ~result.index.to_frame().isna().any(axis=1)
+
+            if isinstance(result, pd.DataFrame):
+                return result[index_mask].squeeze(axis=1)
+            else:
+                return result[index_mask]
+
         return self._apply_binary_operation(
             other=other,
-            operation=lambda a, b: self._to_float(a) ** self._to_float(b),
+            operation=operation,
             op_symbol="**",
             domain_name=domain_name,
             index=index,

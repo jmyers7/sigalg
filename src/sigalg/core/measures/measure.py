@@ -830,6 +830,7 @@ class Measure(Function):
         if isinstance(obj, SigmaAlgebra):
             sig_alg = obj
 
+            # TODO: add fast path if pandas_all_equal
             if sig_alg is self.sig_alg:
                 return self
 
@@ -849,7 +850,6 @@ class Measure(Function):
                 .sum()
                 .rename(name)
             )
-
             data.index.names = sig_alg.variable_names
 
             return type(self)._from_validated(
@@ -858,6 +858,7 @@ class Measure(Function):
                 sig_alg=sig_alg,
                 name=name,
             )
+            return
 
         elif isinstance(obj, Set | list):
             subset = obj
@@ -876,7 +877,7 @@ class Measure(Function):
             data = self.data[atom_data != 0].rename(name)
 
             if normalize:
-                if self(subset) < 1e-8:
+                if self(subset) < 1e-10:
                     raise ValueError(
                         "Cannot normalize the restrict measure on a subset of measure 0."
                     )
@@ -1198,7 +1199,7 @@ class Measure(Function):
     # --------------------- comparison methods --------------------- #
 
     # TODO: add more comparison methods
-    def is_restriction(self, of: Measure) -> bool:
+    def is_restriction_of(self, other: Measure) -> bool:
         """Check whether this measure is the restriction of the other measure to a sub-sigma-algebra.
 
         Returns
@@ -1206,8 +1207,6 @@ class Measure(Function):
         is_le : bool
             `True` if this measure is the restriction of the other measure or is equal to it, `False` otherwise.
         """
-        other = of
-
         if self is other:
             return True
 
