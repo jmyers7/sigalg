@@ -409,6 +409,28 @@ class Set(Index):
         else:
             return None
 
+    def indicator_atom_data(self, sig_alg: SigmaAlgebra) -> pd.Series | None:
+        """Pass."""
+        import pandas as pd
+
+        from .._utils.utils import to_df
+
+        if self.indicator_data is not None:
+            sig_alg_data = to_df(sig_alg.data)
+            sig_alg_cols = list(sig_alg_data.columns)
+
+            data = (
+                pd.concat([self.indicator_data, sig_alg_data], axis=1)
+                .drop_duplicates(sig_alg_cols)
+                .set_index(sig_alg_cols)
+            )
+            data.index.names = sig_alg.variable_names
+
+            return data
+
+        else:
+            return None
+
     # --------------------- set-theoretic operations --------------------- #
 
     def complement(self) -> Set:

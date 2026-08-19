@@ -1,6 +1,6 @@
 from .function_helpers import (
     compose_funcs,
-    compute_atom_data,
+    compute_expectation,
     sig_alg_func_to_measurable_func,
 )
 from .index_helpers import align_index
@@ -18,7 +18,7 @@ from .utils import (
 __all__ = [
     "add_suffix",
     "compose_funcs",
-    "compute_atom_data",
+    "compute_expectation",
     "align_index",
     "add_subscript",
     "pandas_all_equal",

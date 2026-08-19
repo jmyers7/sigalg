@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from sigalg.core import (
+    Operators,
     ProbabilityMeasure,
     ProbabilitySpace,
     RandomVariable,
@@ -420,7 +421,7 @@ class TestConditional:
         for A, B in product(F.atoms, G.atoms):
             assert np.allclose(
                 P(A & B),
-                P.conditional(event=A, given=G).integrate(measurable_set=B),
+                P.conditional(event=A, given=G).integrate(subset=B),
             )
 
 
@@ -430,28 +431,83 @@ class TestGiven:
         prob_space = ProbabilitySpace.from_rand(
             domain_size=10,
             num_atoms=4,
-            sig_alg_variable_names=["x"],
             random_state=42,
         )
-        X = RandomVariable.from_randnorm(
+        X = RandomVariable.from_rand(
             *prob_space,
             random_state=42,
         )
         P = prob_space.measure
         F = prob_space.sig_alg
-        G = SigmaAlgebra.from_rand(
-            super=F,
-            num_atoms=3,
-            random_state=42,
-            variable_names=["y"],
+        G = SigmaAlgebra.from_rand(super=F, num_atoms=3, random_state=42, name="G")
+        expectation = Operators.expectation(X, G)
+        integral = Operators.integrate(X, measure=P.given(G)).to_measurable_vector(
+            sig_alg=G
         )
 
-        for id in G.atom_ids:
-            B = G.atom_id_to_atom[id]
-            assert np.allclose(
-                X.integrate(measure=P.given(G)(y=id)),
-                X.expectation(given=G)(B),
-            )
+        assert P.equal_almost_surely(expectation, integral)
+
+    def test_with_random_variables_and_pushforward(self):
+        """Integration test of the given method with random variables and pushforwards."""
+        Omega = SampleSpace.from_sequence(size=7)
+        F = SigmaAlgebra(
+            domain=Omega,
+            mapping={
+                0: 0,
+                1: 1,
+                2: 1,
+                3: 2,
+                4: 3,
+                5: 3,
+                6: 4,
+            },
+        )
+        P = ProbabilityMeasure(
+            domain=F,
+            mapping={
+                0: 0.2,
+                1: 0.5,
+                2: 0.2,
+                3: 0.05,
+                4: 0.05,
+            },
+        )
+        X = RandomVariable(
+            domain=Omega,
+            sig_alg=F,
+            measure=P,
+            mapping={
+                0: 2,
+                1: -1,
+                2: -1,
+                3: 4,
+                4: 1,
+                5: 1,
+                6: 5,
+            },
+        )
+        Y = RandomVector(
+            domain=Omega,
+            sig_alg=F,
+            measure=P,
+            mapping={
+                0: (1, 2),
+                1: (1, 2),
+                2: (1, 2),
+                3: (1, 2),
+                4: (3, 4),
+                5: (3, 4),
+                6: (5, 6),
+            },
+            name="Y",
+        )
+        conditional = P.given(Y) >> X
+        quotient = (P >> (X | Y)) / (P >> Y)
+
+        assert all(
+            conditional(**kwargs) == quotient(**kwargs)
+            for kwargs in (X | Y).range.to_kwargs()
+        )
 
 
 class TestAreIndependent:

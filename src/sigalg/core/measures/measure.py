@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
+from collections.abc import Callable, Hashable
 from functools import cached_property
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from ...typing.mapping_like import MappingLike
     from ...typing.measure_domain import MeasureDomain
     from ..functions.measurable_vector import MeasurableVector
+    from ..indices.index import Index
     from ..sigma_algebras.lattice import Lattice
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.set import Set
@@ -721,7 +722,7 @@ class Measure(Function):
 
         measure_different = np.sum(are_different.astype(float) * prob_arr)
 
-        return measure_different < tol
+        return bool(measure_different < tol)
 
     def restrict_to(
         self,
@@ -1113,14 +1114,33 @@ class Measure(Function):
                 "A measure may only be called with a MeasurableSet (or list of points corresponding to a measurable set) as a positional argument, or atom identifiers as keyword arguments."
             )
 
-        return (
-            get_measure_of_set(
+        if measurable_set is not None:
+            return get_measure_of_set(
                 indicator_data=measurable_set.indicator_data,
                 sig_alg_data=self.sig_alg.data,
                 measure_data=self.data,
             )
-            if measurable_set
-            else super().__call__(**kwargs)
+        else:
+            result = super().__call__(**kwargs)
+
+            if hasattr(result, "data"):
+                if isinstance(result.data, pd.Series) and result.data.empty:
+                    return 0.0
+                else:
+                    result.data.name = result.name
+
+            return result
+
+    def to_function(self) -> Function:
+        """Promote to a `Function` instance."""
+        return Function._from_validated(
+            data=self.data,
+            kind="any",
+            domain_kind=type(self.domain).__name__,
+            domain_name=self.domain.name,
+            index_kind="Index",
+            index_name=None,
+            name=self.name,
         )
 
     # --------------------- representation --------------------- #
@@ -1198,7 +1218,6 @@ class Measure(Function):
 
     # --------------------- comparison methods --------------------- #
 
-    # TODO: add more comparison methods
     def is_restriction_of(self, other: Measure) -> bool:
         """Check whether this measure is the restriction of the other measure to a sub-sigma-algebra.
 
@@ -1211,3 +1230,32 @@ class Measure(Function):
             return True
 
         return bool((self.sig_alg <= other.sig_alg) and (self == other | self.sig_alg))
+
+    # --------------------- arithmetic operations --------------------- #
+
+    def _apply_binary_operation(
+        self,
+        other: Function | Real,
+        operation: Callable,
+        op_symbol: str,
+        reverse: bool = False,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Apply a binary operation to this measure."""
+        return Function._apply_binary_operation(
+            self=self.to_function(),
+            other=other,
+            operation=operation,
+            op_symbol=op_symbol,
+            reverse=reverse,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+        )

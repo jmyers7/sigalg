@@ -23,8 +23,11 @@ def to_df(  # noqa: D103
     return result
 
 
-def add_suffix(lst: list, suffix: str) -> list:  # noqa: D103
-    return [f"{name}{suffix}" for name in lst]
+def add_suffix(lst: list, suffix: str | None) -> list:  # noqa: D103
+    if suffix is not None:
+        return [f"{name}{suffix}" for name in lst]
+    else:
+        return lst
 
 
 def add_subscript(lst: list, subscript: str) -> list:  # noqa: D103

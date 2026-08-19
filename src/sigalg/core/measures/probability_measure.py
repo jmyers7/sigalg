@@ -362,6 +362,7 @@ class ProbabilityMeasure(Measure):
         self,
         event: Set,
         given: SigmaAlgebra | Set | RandomVector,
+        name: Hashable | None = None,
     ) -> RandomVariable:
         r"""Compute a conditional probability.
 
@@ -386,42 +387,85 @@ class ProbabilityMeasure(Measure):
 
         Examples
         --------
+        >>> import pytest
+        >>> from sigalg.core import Operators, ProbabilityMeasure, SampleSpace, Set, SigmaAlgebra
+
         Define a probability space and a sub-sigma-algebra.
 
-        >>> import numpy as np
-        >>> import pytest
-        >>> from sigalg.core import ProbabilitySpace, SigmaAlgebra
-        >>> rng = np.random.default_rng(seed=42)
-        >>> Omega, F, P = ProbabilitySpace.from_rand(
-        ...     domain_size=25,
-        ...     num_atoms=12,
-        ...     random_state=rng,
+        >>> Omega = SampleSpace.from_sequence(size=7)
+        >>> F = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...         4: 3,
+        ...         5: 3,
+        ...         6: 4,
+        ...     },
         ... )
-        >>> G = SigmaAlgebra.from_rand(
-        ...     super=F,
-        ...     num_atoms=7,
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 0,
+        ...         3: 0,
+        ...         4: 1,
+        ...         5: 1,
+        ...         6: 1,
+        ...     },
         ...     name="G",
-        ...     random_state=rng,
+        ... )
+        >>> P = ProbabilityMeasure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 0.2,
+        ...         1: 0.5,
+        ...         2: 0.1,
+        ...         3: 0.2,
+        ...         4: 0.0,
+        ...     },
         ... )
 
-        Check that the conditional probability has its defining property through 15 random trials. (See the Notes section.)
+        Extract an event and construct the conditional probability.
 
-        >>> is_consistent = []
-        >>> for _ in range(15):
-        ...     U = F.get_random_set(
-        ...         num_atoms=int(rng.integers(0, F.num_atoms, endpoint=True)),
-        ...         random_state=rng,
-        ...         name="U",
-        ...     )
-        ...     V = G.get_random_set(
-        ...         num_atoms=int(rng.integers(0, G.num_atoms, endpoint=True)),
-        ...         random_state=rng,
-        ...         name="V",
-        ...     )
-        ...     is_consistent.append(
-        ...         P(U & V) == pytest.approx(P.conditional(event=U, given=G).integrate(V))
-        ...     )
-        >>> print(all(is_consistent))
+        >>> U = Set([1, 2, 3, 4, 5], domain=Omega, name="U")
+        >>> conditional = P.conditional(U, G)
+
+        Note that `conditional` is a `G`-measurable random variable.
+
+        >>> conditional
+        RandomVariable(parameters=(s), domain=Omega, sig_alg=G, measure=P|G, name=P(U|G))
+
+        Print its values.
+
+        >>> print(conditional)  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'P(U|G)':
+           P(U|G)
+        s
+        0    0.75
+        1    0.75
+        2    0.75
+        3    0.75
+        4    1.00
+        5    1.00
+        6    1.00
+
+        Extract the atoms from `G` and verify these computations.
+
+        >>> B_0, B_1 = G
+        >>> P(U & B_0) / P(B_0)
+        0.75
+        >>> P(U & B_1) / P(B_1)
+        1.0
+
+        Check that the conditional probability has its defining property for another measurable set `V`. (See the Notes section.)
+
+        >>> integrate = Operators.integrate
+        >>> V = Set([0, 1, 2, 3], domain=Omega, name="V")
+        >>> P(U & V) == pytest.approx(integrate(P.conditional(U, G), subset=V, measure=P))
         True
 
         Notes
@@ -434,33 +478,52 @@ class ProbabilityMeasure(Measure):
 
         for all $V \in \mathcal{G}$. The conditional probability is unique up to almost sure equality.
         """
+        from .._utils.function_helpers import compute_expectation
+        from ..functions.random_variable import RandomVariable
         from ..functions.random_vector import RandomVector
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.set import Set
 
         if not isinstance(given, SigmaAlgebra | Set | RandomVector):
             raise TypeError(
-                "given must be a SigmaAlgebra, MeasurableSet, or RandomVector instance."
+                "given must be a SigmaAlgebra, Set, or RandomVector instance."
             )
         if not isinstance(event, Set):
-            raise TypeError("event must be an MeasurableSet instance.")
+            raise TypeError("event must be an Set instance.")
 
-        if isinstance(given, Set):
-            sig_alg = SigmaAlgebra.from_set(given)
-        elif isinstance(given, RandomVector):
-            sig_alg = SigmaAlgebra.from_function(given)
-        else:
-            sig_alg = given
+        given_name = given.name
 
-        return event.indicator.expectation(given=sig_alg, measure=self).with_name(
-            f"P({event.name}|{sig_alg.name})"
+        if isinstance(given, Set | RandomVector):
+            given = given.generated_sig_alg
+
+        restricted_measure = self | given
+
+        data = compute_expectation(
+            rv_atom_data=event.indicator_atom_data(self.sig_alg),
+            given_data=given.data,
+            given_variable_names=given.variable_names,
+            atom_data=given.up_lattice.get_atom_data(self.sig_alg),
+            measure_data=self.data,
+            measure_data_on_given=restricted_measure.data,
+        )
+
+        if name is None:
+            name = f"P({event.name}|{given_name})"
+
+        return RandomVariable._from_validated(
+            data=data.rename(name),
+            sig_alg=given,
+            measure=restricted_measure,
+            index_kind="Index",
+            index_name=None,
+            name=name,
         )
 
     def given(
         self,
         condition: SigmaAlgebra | Set | MeasurableVector,
-        conditioning_suffix: str = "_g",
         name: Hashable | None = None,
+        descend: bool = False,
     ) -> ParametrizedProbabilityMeasure:
         r"""Compute a conditional probability measure.
 
@@ -483,140 +546,239 @@ class ProbabilityMeasure(Measure):
 
         Examples
         --------
-        Define a probability space, a random variable, and a 2-dimensional random vector.
-
-        >>> import numpy as np
-        >>> from sigalg.core import ProbabilitySpace, RandomVariable, RandomVector
-        >>> rng = np.random.default_rng(seed=42)
-        >>> prob_space = ProbabilitySpace.from_rand(
-        ...     domain_size=100,
-        ...     num_atoms=42,
-        ...     random_state=rng,
-        ... )
-        >>> X = RandomVariable.from_randint(
-        ...     *prob_space,
-        ...     diff_values=2,
-        ...     random_state=rng,
-        ... )
-        >>> Y = RandomVector.from_randint(
-        ...     *prob_space,
-        ...     diff_values=3,
-        ...     dim=2,
-        ...     random_state=rng,
-        ...     name="Y",
+        >>> from sigalg.core import (
+        ...     Operators,
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
         ... )
 
-        Extract the measure from the probability space. Verify that the conditional expectation of the random variable given the random vector may be computed as an integral of the variable against the conditional probability distribution.
+        Define a random variable on a probability space. Notice that the sigma-algebra has a single null atom with identifier `4`.
 
-        >>> P = prob_space.measure
-        >>> X.expectation(Y)(Y == (0, 0)) == X.integrate(measure=P.given(Y)(Y_0=0, Y_1=0))
+        >>> Omega = SampleSpace.from_sequence(size=7)
+        >>> F = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...         4: 3,
+        ...         5: 3,
+        ...         6: 4,
+        ...     },
+        ... )
+        >>> P = ProbabilityMeasure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 0.2,
+        ...         1: 0.5,
+        ...         2: 0.2,
+        ...         3: 0.1,
+        ...         4: 0.0,
+        ...     },
+        ... )
+        >>> X = RandomVariable(
+        ...     domain=Omega,
+        ...     sig_alg=F,
+        ...     measure=P,
+        ...     mapping={
+        ...         0: 2,
+        ...         1: -1,
+        ...         2: -1,
+        ...         3: 4,
+        ...         4: 1,
+        ...         5: 1,
+        ...         6: 5,
+        ...     },
+        ... )
+
+        Define a sub-sigma-algebra of `F`. Notice that the two sigma-algebras share the same null atom, with identifer `4` in `F` and identifier `2` in `G`.
+
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 0,
+        ...         3: 0,
+        ...         4: 1,
+        ...         5: 1,
+        ...         6: 2,
+        ...     },
+        ...     name="G",
+        ... )
+
+        Compute the conditional probability distribution and print it.
+
+        >>> conditional = P.given(G, descend=True)
+        >>> conditional
+        ParametrizedProbabilityMeasure(parameters=(s), domain_vars=(F), sig_alg=F, name=P(-|G))
+        >>> print(conditional)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'P(-|G)':
+        s         0         1         2         3    4    5    6
+        F
+        0  0.222222  0.222222  0.222222  0.222222  0.0  0.0  0.2
+        1  0.555556  0.555556  0.555556  0.555556  0.0  0.0  0.2
+        2  0.222222  0.222222  0.222222  0.222222  0.0  0.0  0.2
+        3  0.000000  0.000000  0.000000  0.000000  1.0  1.0  0.2
+        4  0.000000  0.000000  0.000000  0.000000  0.0  0.0  0.2
+
+        Notice that when `s=6`, the distribution is uniform. This is because `s=6` is a sample point (in fact, the *only* sample point) in the null atom of `G`, and by default SigAlg assings the uniform distribution to conditional distributions evaluated at null atoms of the conditioning sigma-algebra.
+
+        We will not show that integration against conditional distributions yields conditional expectations.
+
+        Alias the expectation and integral operators.
+
+        >>> E = Operators.expectation
+        >>> integrate = Operators.integrate
+
+        The `integrate` method accepts parametrized measures, returning a function on the sample space.
+
+        >>> integral = integrate(X, measure=conditional)
+        >>> integral
+        Function(parameters=(s), domain=Omega, name=int X dP(-|G))
+        >>> print(integral)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'int X dP(-|G)':
+           int X dP(-|G)
+        s
+        0       0.777778
+        1       0.777778
+        2       0.777778
+        3       0.777778
+        4       1.000000
+        5       1.000000
+        6       2.200000
+
+        For each sample point `s=a`, the value of this function is the integral of `X` against the probability measure `P.given(G)(s=a)`.
+
+        This integral is an instance of `Function` by default, but it is actually `G`-measurable. We convert it:
+
+        >>> integral = integral.to_measurable_vector(sig_alg=G)
+        >>> integral
+        MeasurableFunction(parameters=(s), domain=Omega, sig_alg=G, name=int X dP(-|G))
+
+        Now, compute the conditional expectation:
+
+        >>> expectation = E(X, G)
+        >>> print(expectation)  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'E(X|G)':
+             E(X|G)
+        s
+        0  0.777778
+        1  0.777778
+        2  0.777778
+        3  0.777778
+        4  1.000000
+        5  1.000000
+        6  0.000000
+
+        Comparing these values to the `integral` above, they differ only at `s=6`. However, remember that this sample point is equal to the (singleton) null atom, so the integral and expectation should agree almost surely, as predicted by the theory.
+
+        >>> P.equal_almost_surely(expectation, integral)
         True
-
-
-        Notes
-        -----
-        Let $(\Omega, \mathcal{F}, P)$ be a probability space, let $U \in \mathcal{F}$ be an event, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional probability* of $U$ given $\mathcal{G}$ is a $\mathcal{G}$-measurable random variable, denoted $P(U|\mathcal{G})$, for which
-
-        $$
-        P(U \cap V) = \int_V P(U|\mathcal{G}) \, dP,
-        $$
-
-        for all $V \in \mathcal{G}$. The conditional probability is unique up to almost sure equality.
-
         """
+        from .._utils.function_helpers import sig_alg_func_to_measurable_func
         from .._utils.utils import to_df
         from ..functions.measurable_vector import MeasurableVector
         from ..measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,
         )
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from ..spaces.domain import Domain
         from ..spaces.set import Set
 
         if not isinstance(condition, SigmaAlgebra | Set | MeasurableVector):
             raise TypeError(
-                "'condition' must be a SigmaAlgebra, MeasurableSet, or MeasurableVector instance."
+                "condition must be a SigmaAlgebra, Set, or MeasurableVector instance."
             )
 
-        if isinstance(condition, Set):
-            condition = SigmaAlgebra.from_set(condition)
-        elif isinstance(condition, MeasurableVector):
-            condition = SigmaAlgebra.from_function(condition)
+        condition_name = condition.name
+        if isinstance(condition, Set | MeasurableVector):
+            condition = condition.generated_sig_alg
+
         super = self.sig_alg
 
         if not condition <= super:
             raise ValueError(
-                "The 'condition' sigma-algebra must be a sub-sigma-algebra of the probability measure's sigma-algebra."
+                "The conditioning sigma-algebra must be a sub-sigma-algebra of the sigma-algebra of theprobability measure."
             )
 
-        super_data = to_df(super.data, "_super")
-        sub_data = to_df(condition.data, "_sub")
+        restricted_self = self | condition
 
-        mapping = pd.concat([super_data, sub_data], axis=1).drop_duplicates(
-            list(super_data.columns)
-        )
-
-        # TODO: check merge logic — possibly change to `on`?
-        mapping = pd.merge(
-            left=mapping,
-            right=self.data,
-            left_on=list(super_data.columns),
-            right_index=True,
-        )
-
-        mapping["super_atom_probs"] = mapping.groupby(
-            by=list(super_data.columns), sort=False
-        )["probability"].transform(sum)
-        mapping["sub_atom_probs"] = mapping.groupby(
-            by=list(sub_data.columns), sort=False
-        )["probability"].transform(sum)
-
-        mapping["probability"] = mapping["super_atom_probs"] / mapping["sub_atom_probs"]
-
-        mapping = mapping.drop_duplicates(list(super_data.columns))[
-            list(super_data.columns) + list(sub_data.columns) + ["probability"]
-        ].set_index(list(sub_data.columns) + list(super_data.columns))
-
-        sub_variable_names = [
-            (name + conditioning_suffix if name in super.variable_names else name)
-            for name in condition.variable_names
-        ]
-        mapping.index.names = sub_variable_names + super.variable_names
-
-        sub_atom_space_copy = condition.atom_space.copy()
-        sub_atom_space_copy.variable_names = sub_variable_names
-        domain = Domain.cartesian_product([sub_atom_space_copy, super.atom_space]).sort(
-            ascending=True
-        )
-
-        mapping = (
-            mapping.reindex(domain.data)
-            .squeeze(axis=1)
-            .fillna(0.0)
-            .rename("probability")
-        )
-
-        non_null_sub_atom_IDs = mapping.groupby(sub_variable_names).apply(
-            lambda grp: grp.sum() > 1e-8
-        )
-        mapping = mapping[non_null_sub_atom_IDs.reindex(mapping.index)]
-
-        parameter_domain = Domain(
-            non_null_sub_atom_IDs[non_null_sub_atom_IDs].index, name=condition.name
-        )
+        if set(condition.variable_names) & set(super.variable_names):
+            raise ValueError(
+                "The variable names of the underlying sigma-algebra and the given sigma-algebra must be completely disjoint."
+            )
 
         if name is None:
-            if condition.name.startswith("sigma(") and condition.name.endswith(")"):
-                name = f"{self.name}(?|{condition.name[6:-1]})"
-            else:
-                name = f"{self.name}(?|{condition.name})"
+            name = f"{self.name}(-|{condition_name})"
 
-        return ParametrizedProbabilityMeasure.from_domains(
-            measure_domain=super,
-            parameter_domain=parameter_domain,
-            mapping=mapping,
-            name=name,
+        super_atom_space = super.atom_space.data.to_frame()
+
+        restricted_self_data = to_df(restricted_self.data).copy()
+        restricted_self_data.index.names = condition.variable_names
+
+        atom_data = to_df(super.down_lattice.get_atom_data(condition))
+        atom_data.columns = condition.variable_names
+
+        cross_data = pd.merge(
+            left=restricted_self_data.reset_index(), right=super_atom_space, how="cross"
         )
+
+        self_and_sub_data = pd.merge(
+            left=self.data.reset_index(), right=atom_data.reset_index()
+        )
+
+        prob_data = pd.merge(
+            left=self_and_sub_data, right=restricted_self_data.reset_index()
+        )
+        prob_data["probs"] = prob_data[self.name] / prob_data[restricted_self.name]
+        prob_data = prob_data[
+            condition.variable_names + super.variable_names + ["probs"]
+        ]
+
+        data = pd.merge(left=cross_data, right=prob_data, how="outer").set_index(
+            condition.variable_names + super.variable_names
+        )
+
+        mask = data["probs"].isna() & (data[restricted_self.name] < 1e-10)
+        data.loc[mask, "probs"] = 1 / super.num_atoms
+        data = data.fillna(0.0, inplace=True)["probs"].sort_index()
+
+        if descend:
+            data = sig_alg_func_to_measurable_func(
+                self_data=data.reorder_levels(
+                    super.variable_names + condition.variable_names
+                ),
+                sig_alg_data=condition.data,
+                parameter_names=super.variable_names,
+            )
+
+            data = data.reorder_levels(
+                super.domain.variable_names + super.variable_names
+            ).sort_index()
+
+            return ParametrizedProbabilityMeasure._from_validated(
+                data=data.rename(name),
+                sig_alg=super,
+                kind="param_probability",
+                complete_domain_name=f"{super.domain.name} x {super.name}",
+                parameter_domain_name=super.domain.name,
+                parameter_names=super.domain.variable_names,
+                name=name,
+            )
+
+        else:
+            return ParametrizedProbabilityMeasure._from_validated(
+                data=data.rename(name),
+                sig_alg=super,
+                kind="param_probability",
+                complete_domain_name=f"{super.name} x {super.name}",
+                parameter_domain_name=super.name,
+                parameter_names=condition.variable_names,
+                name=name,
+            )
 
     def derivative(
         self,

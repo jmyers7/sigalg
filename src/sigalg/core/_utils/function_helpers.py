@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 def sig_alg_func_to_measurable_func(
     self_data: PandasLike,
     sig_alg_data: PandasLike,
-    parameter_names: list[Hashable],
+    parameter_names: list[Hashable] | None = None,
 ) -> PandasLike:
     """Convert (parametrized) function data defined on atom identifiers of a sigma-algebra into (parametrized) function data defined on the measurable domain.
 
@@ -23,33 +23,33 @@ def sig_alg_func_to_measurable_func(
 
     Examples
     --------
-    >>> import pandas as pd
+    >>> import sigalg as sa
     >>> from sigalg.core._utils import sig_alg_func_to_measurable_func
 
-    Create data for a 2-dimensional sigma-algebra over a 2-dimensional domain.
+    Generate a function with 2-dimensional outputs defined on the atom space of a sigma-algebra with 2-dimensional atom identifiers.
 
-    >>> domain_data = pd.MultiIndex.from_tuples(
-    ...     [("a", "b"), ("c", "d"), ("e", "f"), ("g", "h")], names=["x_0", "x_1"]
+    >>> X = sa.Domain(
+    ...     [("a", "b"), ("c", "d"), ("e", "f"), ("g", "h")], variable_names=["x_0", "x_1"]
     ... )
-    >>> sig_alg_data = pd.DataFrame({"u_0": [0, 0, 1, 2], "u_1": [1, 1, 2, 3]}, index=domain_data)
-    >>> print(sig_alg_data)  # doctest: +NORMALIZE_WHITESPACE
-             u_0  u_1
+    >>> F = sa.SigmaAlgebra(domain=X, mapping=dict(zip(X, [(0, 1), (0, 1), (1, 2), (2, 3)])))
+    >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
+    Sigma algebra 'F':
+    i        0  1
     x_0 x_1
-    a   b      0    1
-    c   d      0    1
-    e   f      1    2
-    g   h      2    3
-
-    Create data for a 2-dimensional vector defined on sigma-algebra identifiers.
-
-    >>> self_data = pd.DataFrame(
-    ...     [(3, 4), (5, 6), (7, 8)],
-    ...     index=pd.MultiIndex.from_tuples([(0, 1), (1, 2), (2, 3)], names=["u_0", "u_1"]),
-    ...     columns=pd.Index([1, 2], name="i"),
+    a   b    0  1
+    c   d    0  1
+    e   f    1  2
+    g   h    2  3
+    >>> I = sa.Index([1, 2])
+    >>> f = sa.Function(
+    ...     domain=F.atom_space,
+    ...     mapping=dict(zip(F.atom_space, [(3, 4), (5, 6), (7, 8)])),
+    ...     index=I,
     ... )
-    >>> print(self_data)  # doctest: +NORMALIZE_WHITESPACE
+    >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+    Function 'f':
     i        1  2
-    u_0 u_1
+    F_0 F_1
     0   1    3  4
     1   2    5  6
     2   3    7  8
@@ -57,9 +57,8 @@ def sig_alg_func_to_measurable_func(
     Convert to the data of a measurable vector on the domain.
 
     >>> data = sig_alg_func_to_measurable_func(
-    ...     self_data=self_data,
-    ...     sig_alg_data=sig_alg_data,
-    ...     parameter_names=[],
+    ...     self_data=f.data,
+    ...     sig_alg_data=F.data,
     ... )
     >>> print(data)  # doctest: +NORMALIZE_WHITESPACE
     i        1  2
@@ -69,49 +68,51 @@ def sig_alg_func_to_measurable_func(
     e   f    5  6
     g   h    7  8
 
-    Create data for a parametrized function defined on sigma-algebra identifiers.
+    Create a parametrized function defined on the atom space of the sigma-algebra.
 
-    >>> param_sig_alg_space = pd.MultiIndex.from_tuples(
-    ...     [
-    ...         (0, 0, 0, 1),
-    ...         (0, 0, 1, 2),
-    ...         (0, 0, 2, 3),
-    ...         (0, 1, 0, 1),
-    ...         (0, 1, 1, 2),
-    ...         (0, 1, 2, 3),
-    ...         (1, 0, 0, 1),
-    ...         (1, 0, 1, 2),
-    ...         (1, 0, 2, 3),
-    ...         (1, 1, 0, 1),
-    ...         (1, 1, 1, 2),
-    ...         (1, 1, 2, 3),
-    ...     ],
-    ...     names=["theta_0", "theta_1", "u_0", "u_1"],
+    >>> Theta = sa.Domain.cartesian_power(
+    ...     [0, 1], n=2, variable_names=["theta_0", "theta_1"], name="Theta"
     ... )
-    >>> self_data = pd.Series(
-    ...     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], index=param_sig_alg_space
+    >>> g = sa.Function(
+    ...     domain=Theta @ F.atom_space,
+    ...     mapping={
+    ...         (0, 0, 0, 1): 1,
+    ...         (0, 0, 1, 2): 2,
+    ...         (0, 0, 2, 3): 3,
+    ...         (0, 1, 0, 1): 4,
+    ...         (0, 1, 1, 2): 5,
+    ...         (0, 1, 2, 3): 6,
+    ...         (1, 0, 0, 1): 7,
+    ...         (1, 0, 1, 2): 8,
+    ...         (1, 0, 2, 3): 9,
+    ...         (1, 1, 0, 1): 10,
+    ...         (1, 1, 1, 2): 11,
+    ...         (1, 1, 2, 3): 12,
+    ...     },
+    ...     name="g",
     ... )
-    >>> print(self_data)  # doctest: +NORMALIZE_WHITESPACE
-    theta_0  theta_1  u_0  u_1
-    0        0        0    1       1
-                      1    2       2
-                      2    3       3
-             1        0    1       4
-                      1    2       5
-                      2    3       6
-    1        0        0    1       7
-                      1    2       8
-                      2    3       9
-             1        0    1      10
-                      1    2      11
-                      2    3      12
-    dtype: int64
+    >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+    Function 'g':
+                              g
+    theta_0 theta_1 F_0 F_1
+    0       0       0   1     1
+                    1   2     2
+                    2   3     3
+            1       0   1     4
+                    1   2     5
+                    2   3     6
+    1       0       0   1     7
+                    1   2     8
+                    2   3     9
+            1       0   1    10
+                    1   2    11
+                    2   3    12
 
     Convert to the data of a parametrized measurable function on the domain.
 
     >>> data = sig_alg_func_to_measurable_func(
-    ...     self_data=self_data,
-    ...     sig_alg_data=sig_alg_data,
+    ...     self_data=g.data,
+    ...     sig_alg_data=F.data,
     ...     parameter_names=["theta_0", "theta_1"],
     ... )
     >>> print(data)  # doctest: +NORMALIZE_WHITESPACE
@@ -138,13 +139,20 @@ def sig_alg_func_to_measurable_func(
 
     from .utils import add_subscript, to_df
 
+    if parameter_names is None:
+        parameter_names = []
+
     sig_alg_data = to_df(sig_alg_data)
     self_data = to_df(self_data)
-    sig_alg_variable_names = list(sig_alg_data.columns)
+    self_index = self_data.columns
+
+    sig_alg_variable_names = [
+        name for name in self_data.index.names if name not in parameter_names
+    ]
     domain_variable_names = sig_alg_data.index.names
-    function_index = self_data.columns
 
     sig_alg_data.columns = add_subscript(sig_alg_variable_names, "ID")
+
     self_data.index.names = add_subscript(parameter_names, "param") + add_subscript(
         sig_alg_variable_names, "ID"
     )
@@ -152,16 +160,15 @@ def sig_alg_func_to_measurable_func(
     data = (
         pd.merge(left=sig_alg_data.reset_index(), right=self_data.reset_index())
         .set_index(add_subscript(parameter_names, "param") + domain_variable_names)[
-            function_index
+            self_index
         ]
         .sort_index()
         .squeeze(axis=1)
     )
-
     data.index.names = parameter_names + domain_variable_names
 
     if isinstance(data, pd.DataFrame):
-        data.columns = function_index
+        data.columns = self_index
     else:
         data.name = None
 
@@ -240,94 +247,83 @@ def compose_funcs(inner_data: PandasLike, outer_data: PandasLike) -> PandasLike:
     return data
 
 
-def compute_atom_data(self_data: PandasLike, sig_alg_data: PandasLike) -> PandasLike:
-    """Compute the atom outputs of a (parametrized) measurable function/vector.
+def compute_expectation(
+    rv_atom_data: PandasLike,
+    given_data: PandasLike,
+    given_variable_names: list[Hashable],
+    atom_data: PandasLike,
+    measure_data: pd.Series,
+    measure_data_on_given: pd.Series,
+) -> PandasLike:
+    """Compute the data for a conditional expectation.
 
     Examples
     --------
-    >>> import pandas as pd
-    >>> from sigalg.core._utils import compute_atom_data
-
-    Define data for a parametrized domain.
-
-    >>> parametrized_domain_data = pd.MultiIndex.from_product(
-    ...     [[0, 1], [0, 1, 2]], names=["theta", "x"]
+    >>> import numpy as np
+    >>> import sigalg as sa
+    >>> from sigalg.core._utils import compute_expectation
+    >>> rng = np.random.default_rng(42)
+    >>> Omega = sa.SampleSpace.from_sequence(size=10)
+    >>> F = sa.SigmaAlgebra.from_rand(domain=Omega, num_atoms=5, random_state=rng)
+    >>> G = sa.SigmaAlgebra.from_rand(super=F, num_atoms=3, random_state=rng, name="G")
+    >>> P = sa.ProbabilityMeasure.from_rand(domain=F, num_null_atoms=2, random_state=rng)
+    >>> X = sa.RandomVariable.from_rand(
+    ...     domain=Omega, sig_alg=F, measure=P, diff_values=1, random_state=rng
     ... )
-
-    Define data for a parametrized measurable function.
-
-    >>> self_data = pd.Series([1, 2, 2, 0, -3, -3], index=parametrized_domain_data, name="f")
-    >>> print(self_data)  # doctest: +NORMALIZE_WHITESPACE
-    theta  x
-    0      0    1
-           1    2
-           2    2
-    1      0    0
-           1   -3
-           2   -3
-    Name: f, dtype: int64
-
-    Define data for a sigma-algebra.
-
-    >>> sig_alg_data = pd.Series([0, 1, 2], index=pd.Index([0, 1, 2], name="x"), name="u")
-    >>> print(sig_alg_data)  # doctest: +NORMALIZE_WHITESPACE
-    x
-    0    0
-    1    1
-    2    2
-    Name: u, dtype: int64
-
-    Compute the parametrized atom data.
-
-    >>> print(compute_atom_data(self_data=self_data, sig_alg_data=sig_alg_data))  # doctest: +NORMALIZE_WHITESPACE
-    theta  u
-    0      0    1
-           1    2
-           2    2
-    1      0    0
-           1   -3
-           2   -3
-    Name: f, dtype: int64
+    >>> exp = compute_expectation(
+    ...     rv_atom_data=X.atom_data(),
+    ...     given_data=G.data,
+    ...     given_variable_names=G.variable_names,
+    ...     atom_data=G.up_lattice.get_atom_data(F),
+    ...     measure_data=P.data,
+    ...     measure_data_on_given=(P | G).data,
+    ... )
+    >>> print(exp)  # doctest: +NORMALIZE_WHITESPACE
+    s
+    0    4.0
+    1    4.0
+    2    1.0
+    3    4.0
+    4    6.0
+    5    6.0
+    6    4.0
+    7    4.0
+    8    4.0
+    9    4.0
+    dtype: float64
     """
     import pandas as pd
 
-    from .utils import to_df
+    from .utils import add_subscript, to_df
 
-    if isinstance(self_data, pd.Series):
-        original_name = self_data.name
-    else:
-        original_cols = self_data.columns
+    rv_atom_data = to_df(rv_atom_data)
+    rv_cols = list(rv_atom_data.columns)
 
-    self_data = to_df(self_data)
-    sig_alg_data = to_df(sig_alg_data)
+    atom_data = to_df(atom_data)
+    sig_alg_cols = add_subscript(given_variable_names, "ID")
+    atom_data.columns = sig_alg_cols
 
-    parameter_names = [
-        name for name in self_data.index.names if name not in sig_alg_data.index.names
-    ]
+    measure_data_on_given = measure_data_on_given.rename("measure")
+    measure_data_on_given.index.names = sig_alg_cols
 
-    if parameter_names:
-        atom_data = (
-            pd.merge(
-                left=self_data, right=sig_alg_data, left_index=True, right_index=True
-            )
-            .groupby(level=parameter_names)
-            .apply(lambda g: g.drop_duplicates().droplevel(parameter_names))
-            .set_index(keys=list(sig_alg_data.columns), append=True)
-            .droplevel(list(sig_alg_data.index.names))
-            .squeeze(axis=1)
-        )
+    given_data = to_df(given_data)
+    given_data.columns = sig_alg_cols
 
-    else:
-        atom_data = (
-            pd.concat([self_data, sig_alg_data], axis=1)
-            .drop_duplicates()
-            .set_index(list(sig_alg_data.columns))
-            .squeeze(axis=1)
-        )
+    rv_times_prob = rv_atom_data.multiply(measure_data, axis=0)
+    combined_data = pd.concat([rv_times_prob, atom_data], axis=1)
 
-    if isinstance(atom_data, pd.Series):
-        atom_data.name = original_name
-    else:
-        atom_data.columns = original_cols
+    merged_data = pd.merge(
+        left=combined_data, right=measure_data_on_given.reset_index()
+    )
+    merged_data[rv_cols] = (
+        merged_data[rv_cols].divide(merged_data["measure"], axis=0).fillna(0.0)
+    )
+    merged_data.drop(columns="measure", inplace=True)
+    merged_data = merged_data.groupby(sig_alg_cols).sum()
 
-    return atom_data
+    merged_data.index.names = given_variable_names
+
+    return sig_alg_func_to_measurable_func(
+        self_data=merged_data,
+        sig_alg_data=given_data,
+    )

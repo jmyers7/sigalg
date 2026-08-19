@@ -709,7 +709,7 @@ class SigmaAlgebra:
             sig_alg_data.name = name
 
         if function.index is not None:
-            variable_names = [f"{function.name}_{i}" for i in function.index]
+            variable_names = list(function.component_names.values())
         else:
             variable_names = [function.name]
 
@@ -2238,11 +2238,18 @@ class SigmaAlgebra:
             `True` if the set is measurable with respect to this sigma-algebra, `False` otherwise.
         """
         from ..functions.function import Function
+        from ..spaces.set import Set
 
         if isinstance(candidate, Function):
             return self in candidate.lattice
-        else:
+
+        elif isinstance(candidate, Set | list):
             return self.is_measurable(candidate)
+
+        else:
+            raise TypeError(
+                "candidate must be a Set instance, a list of points in the domain, or a Function instance."
+            )
 
     # --------------------- sequence methods --------------------- #
 

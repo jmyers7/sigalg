@@ -24,8 +24,7 @@ if TYPE_CHECKING:
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.domain import Domain
     from ..spaces.set import Set
-    from .measurable_function import MeasurableFunction
-    from .parametrized_measurable_function import ParametrizedMeasurableFunction
+    from .measurable_vector import MeasurableVector
 
     PandasLike = pd.Series | pd.DataFrame
 
@@ -945,7 +944,7 @@ class Function:
             index_class = Index if index_kind == "Index" else Time
             data.columns.name = index_class._variable_names_prefix
 
-        return cls._from_validated(
+        result = cls._from_validated(
             data=data,
             kind="any",
             domain_kind=type(domain).__name__,
@@ -955,6 +954,13 @@ class Function:
             name=name,
             **kwargs,
         )
+
+        component_names_list = sum(
+            [factor.generated_sig_alg.variable_names for factor in factors], []
+        )
+        result.component_names = dict(zip(list(data.columns), component_names_list))
+
+        return result
 
     @classmethod
     def tensor_product(
@@ -2296,6 +2302,7 @@ class Function:
 
         elif len(args) == 0 and len(kwargs) > 0:
             if isinstance(self.data, PandasLike):
+                self.signature.bind_partial(**kwargs)
                 return self._call_from_pandas(**kwargs)
             else:
                 return self._call_from_callable(**kwargs)
@@ -3376,75 +3383,43 @@ class Function:
                 "The to_measure method is not implemented yet for functions without an explicit domain."
             )
 
-    def to_measurable_function(
+    def to_measurable_vector(
         self,
         sig_alg: SigmaAlgebra,
         measure: Measure | None = None,
         name: Hashable | None = None,
-    ) -> MeasurableFunction | ParametrizedMeasurableFunction:
+    ) -> MeasurableVector:
         """Pass."""
-        from .._utils.function_helpers import sig_alg_func_to_measurable_func
-        from ..measures.measure import Measure
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .measurable_function import MeasurableFunction
-        from .parametrized_measurable_function import ParametrizedMeasurableFunction
+        from ...validation.measurable_func_normalizer import MeasurableFuncNormalizer
+        from .measurable_vector import MeasurableVector
 
         if self.data is None:
             raise ValueError(
                 "Cannot convert a function to a measurable function if the data attribute is empty."
             )
-        if not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be an instance of SigmaAlgebra.")
-        if measure is not None:
-            if not isinstance(measure, Measure):
-                raise TypeError("If given, measure must be an instance of Measure.")
-            if measure.sig_alg != sig_alg:
-                raise ValueError(
-                    "If given, the sigma-algebra of measure must be the same as the sig_alg parameter."
-                )
 
-        domain = sig_alg.domain
+        w = MeasurableFuncNormalizer(
+            domain=self.domain,
+            sig_alg=sig_alg,
+            measure=measure,
+        )
 
-        if name is None:
-            name = self.name
+        sig_alg = w.sig_alg
+        measure = w.measure
 
-        if not set(sig_alg.variable_names) <= set(self.variable_names):
+        if self not in sig_alg:
             raise ValueError(
-                "The variable names of the sigma-algebra are not contained in the variable names of the function."
+                "The function is not measurable with respect to the given sigma-algebra."
             )
 
-        parameter_names = [
-            name for name in self.variable_names if name not in sig_alg.variable_names
-        ]
-
-        if set(domain.variable_names) & set(parameter_names):
-            raise ValueError(
-                "There is an overlap between the domain variable names and the parameter names."
-            )
-
-        mapping = sig_alg_func_to_measurable_func(
-            self_data=self.data,
-            sig_alg_data=sig_alg.data,
-            parameter_names=parameter_names,
-            output_name=self.output_name,
-        ).rename(name)
-
-        if not parameter_names:
-            return MeasurableFunction(
-                domain=domain,
-                sig_alg=sig_alg,
-                measure=measure,
-                mapping=mapping,
-                name=name,
-            )
-        else:
-            return ParametrizedMeasurableFunction.from_domains(
-                mapping=mapping,
-                name=name,
-                measurable_domain=domain,
-                sig_alg=sig_alg,
-                measure=measure,
-            )
+        return MeasurableVector._from_validated(
+            data=self.data,
+            sig_alg=sig_alg,
+            measure=measure,
+            index_kind=type(self.index) if self.index is not None else "Index",
+            index_name=self.index.name if self.index is not None else None,
+            name=self.name,
+        )
 
     def with_variable_names(self, variable_names: list[Hashable]) -> Function:
         """Return a new instance of the function with updated variable names."""

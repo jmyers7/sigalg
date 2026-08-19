@@ -780,6 +780,13 @@ class Index:
         """
         return iter(self.data)
 
+    def to_kwargs(self) -> list[dict]:
+        """Pass."""
+        if self.dimension == 1:
+            return [dict(zip(self.variable_names, [point])) for point in self]
+        else:
+            return [dict(zip(self.variable_names, point)) for point in self]
+
     # --------------------- equality --------------------- #
 
     def __eq__(self, other: Index) -> bool:

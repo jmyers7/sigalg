@@ -841,10 +841,16 @@ class Operators:
             )
         if subset is not None and not isinstance(subset, Set):
             raise TypeError("If given, the subset must be a Set instance.")
-        if measure is not None and measure.sig_alg != function.sig_alg:
-            raise ValueError(
-                "If given, measure must be defined on the sigma-algebra of the measurable vector."
-            )
+        # HACK: This is a placeholder hack till I write a restrict_to method for parametrized measures
+        if measure is not None:
+            if function.sig_alg == measure.sig_alg:
+                pass
+            elif function.sig_alg <= measure.sig_alg:
+                measure = measure | function.sig_alg
+            else:
+                raise ValueError(
+                    "If given, measure must be defined on the sigma-algebra of the measurable vector."
+                )
         if measure is None:
             if function.measure is None:
                 raise TypeError(
@@ -1333,7 +1339,9 @@ class Operators:
 
         then we define the *conditional expectation* to be the $d$-dimensional vector whose entries are the separate conditional expectations $E(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
         """
-        from .._utils.utils import add_subscript, to_df
+        # from .._utils.function_helpers import sig_alg_func_to_measurable_func
+        # from .._utils.utils import add_subscript, to_df
+        from .._utils.function_helpers import compute_expectation
         from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .random_vector import RandomVector
@@ -1366,9 +1374,12 @@ class Operators:
                 index_name=None,
                 name="T",
             )
+
             measure = ProbabilityMeasure._from_validated(
                 data=pd.Series(
-                    1.0, index=pd.Index([0], name="T"), name=f"{measure.name}|T"
+                    1.0,
+                    index=pd.Index([0], name="T"),
+                    name=f"{measure.name}|T",
                 ),
                 kind="probability",
                 sig_alg=sig_alg,
@@ -1384,33 +1395,13 @@ class Operators:
                 name=name,
             )
 
-        rv_data = to_df(rv.atom_data())
-        rv_cols = list(rv_data.columns)
-
-        atom_data = to_df(given.up_lattice.get_atom_data(rv.sig_alg)).copy()
-        sig_alg_cols = add_subscript(given.variable_names, "ID")
-        atom_data.columns = sig_alg_cols
-
-        measure_data = (measure | given).data.rename("measure")
-        measure_data.index.names = sig_alg_cols
-
-        given_data = to_df(given.data)
-        given_data.columns = sig_alg_cols
-
-        rv_times_prob = rv_data.multiply(measure.data, axis=0)
-        combined_data = pd.concat([rv_times_prob, atom_data], axis=1)
-
-        merged_data = pd.merge(left=combined_data, right=measure_data.reset_index())
-        merged_data[rv_cols] = (
-            merged_data[rv_cols].divide(merged_data["measure"], axis=0).fillna(0.0)
-        )
-        merged_data.drop(columns="measure", inplace=True)
-        merged_data = merged_data.groupby(sig_alg_cols).sum()
-
-        data = (
-            pd.merge(left=given_data.reset_index(), right=merged_data.reset_index())
-            .set_index(rv.domain.variable_names)[rv_cols]
-            .squeeze(axis=1)
+        data = compute_expectation(
+            rv_atom_data=rv.atom_data(),
+            given_data=given.data,
+            given_variable_names=given.variable_names,
+            atom_data=given.up_lattice.get_atom_data(rv.sig_alg),
+            measure_data=measure.data,
+            measure_data_on_given=(measure | given).data,
         )
 
         if name is None:

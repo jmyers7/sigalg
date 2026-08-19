@@ -14,8 +14,6 @@ from .parametrized_measure import ParametrizedMeasure
 if TYPE_CHECKING:
     from scipy.stats import rv_discrete
 
-    from ...typing.mapping_like import MappingLike
-    from ...typing.measure_domain import MeasureDomain
     from ..functions.parametrized_measurable_function import (
         ParametrizedMeasurableFunction,
     )

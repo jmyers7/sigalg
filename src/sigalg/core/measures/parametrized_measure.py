@@ -767,6 +767,8 @@ class ParametrizedMeasure(Function):
         1   2                           0
         2   3                           7
         """
+        import pandas as pd
+
         from ..spaces.set import Set
         from .measure import Measure
         from .parametrized_probability_measure import ParametrizedProbabilityMeasure
@@ -916,9 +918,15 @@ class ParametrizedMeasure(Function):
         else:
             try:
                 result = super().__call__(**kwargs)
-                if not isinstance(result, Real):
-                    result.data.name = result.name
+
+                if hasattr(result, "data"):
+                    if isinstance(result.data, pd.Series) and result.data.empty:
+                        return 0.0
+                    else:
+                        result.data.name = result.name
+
                 return result
+
             except Exception as e:
                 raise ValueError(
                     "Error while evaluating the parametrized measure on the given arguments."
