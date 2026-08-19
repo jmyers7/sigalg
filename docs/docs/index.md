@@ -21,8 +21,8 @@ hide:
 <div markdown>
 
 <header class="hero-header">
-  <img src="assets/sigalg-light.svg" class="hero-logo hero-logo--light" alt="SigAlg">
-  <img src="assets/sigalg-dark.svg" class="hero-logo hero-logo--dark" alt="SigAlg">
+  <img src="assets/sigalg-light-no-logo.svg" class="hero-logo hero-logo--light" alt="SigAlg">
+  <img src="assets/sigalg-dark-no-logo.svg" class="hero-logo hero-logo--dark" alt="SigAlg">
 </header>
 
 SigAlg is a Python library for measure-theoretic probability: build probability spaces from sample spaces, $\sigma$-algebras, and probability measures, define random variables and stochastic processes, and compute derived objects (e.g., conditional expectations, checks for martingales).

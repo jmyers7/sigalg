@@ -81,12 +81,12 @@
 
 [data-md-color-scheme="default"] .md-header__button.md-logo img,
 [data-md-color-scheme="default"] .md-nav__button.md-logo img {
-  content: url('../assets/sigalg-light.svg');
+  content: url('../assets/sigalg-light-no-logo.svg');
 }
 
 [data-md-color-scheme="slate"] .md-header__button.md-logo img,
 [data-md-color-scheme="slate"] .md-nav__button.md-logo img {
-  content: url('../assets/sigalg-dark.svg');
+  content: url('../assets/sigalg-dark-no-logo.svg');
 }
 
 /* =============================================================================
@@ -132,7 +132,7 @@
 }
 
 .hero-logo {
-  width: 20rem;
+  width: 15rem;
   height: auto;
   display: block;
   margin: 0 auto;

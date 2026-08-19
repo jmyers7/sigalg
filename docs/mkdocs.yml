@@ -4,7 +4,7 @@ site_url: https://johnmyers-phd.com/sigalg/
 
 theme:
   name: material
-  favicon: assets/favicon.svg
+  favicon: assets/favicon-sa.svg
   logo: assets/sigalg-dark.svg
   features:
     - navigation.tabs
@@ -39,7 +39,7 @@ theme:
 nav:
   - Home: index.md
   - Getting Started: getting_started/index.md
-  - Dictionary & Tutorials: dictionary-tutorials/index.md
+  # - Dictionary & Tutorials: dictionary-tutorials/index.md
   - API Reference:
     - Overview: api/index.md
     - Core objects: api/modules/core.md
