@@ -1,10 +1,11 @@
-site_name: SigAlg
+site_name: sigalg
 site_description: Measure-Theoretic Probability in Python
 site_url: https://johnmyers-phd.com/sigalg/
 
 theme:
   name: material
-  favicon: assets/favicon-1.png
+  favicon: assets/favicon-sa.svg
+  logo: assets/sigalg-dark.svg
   features:
     - navigation.tabs
     - navigation.sections
@@ -13,15 +14,24 @@ theme:
     - toc.integrate
     - toc.follow
     - content.code.annotate
-  palette: 
-    - scheme: slate
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
       toggle:
         icon: material/weather-sunny
-        name: Switch to light mode
-    - scheme: default
+        # icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
       toggle:
         icon: material/weather-night
-        name: Switch to dark mode
+        # icon: material/brightness-4
+        name: Switch to system preference
+    
 
   icon:
     repo: fontawesome/brands/git
@@ -29,7 +39,7 @@ theme:
 nav:
   - Home: index.md
   - Getting Started: getting_started/index.md
-  - Code Snippets: code_snippets/index.md
+  # - Dictionary & Tutorials: dictionary-tutorials/index.md
   - API Reference:
       - Overview: api/index.md
       - Core: api/core.md
@@ -59,6 +69,9 @@ markdown_extensions:
   - md_in_html
   - attr_list
   - admonition
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.arithmatex:
       generic: true
   - pymdownx.highlight

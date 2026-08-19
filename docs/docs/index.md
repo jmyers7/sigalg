@@ -1,44 +1,18 @@
 ---
-title: SigAlg
+title: home
 hide:
   - navigation
   - toc
 ---
 
 <style>
-    .md-content__inner > h1:first-child {
-        display: none !important;
-    }
+  .md-header__button.md-logo,
+  .md-header__title {
+    visibility: hidden;
+  }
 
-    .md-content__inner {
-        padding-top: 0 !important;
-        margin-top: 0 !important;
-    }
-
-    .hero-header h1 {
-        font-size: 5.5rem;
-        font-weight: 800;
-        letter-spacing: -0.01em;
-        margin-bottom: -0.5rem;
-        font-style: italic;
-        line-height: 1;
-        color: var(--md-default-fg-color);
-    }
-  
-    .hero-header .accent {
-        color: #ff0080;
-    }
-
-    .hero-header {
-        margin-bottom: 2rem;
-        border-left: 4px solid #ff0080;
-        padding-left: 2rem;
-    }
-
-    .hero-header p {
-        color: var(--md-default-fg-color);
-        font-size: 0.8rem;
-        font-style: italic;
+  .md-grid {
+    margin-top: 0 !important;
     }
 </style>
 
@@ -47,8 +21,8 @@ hide:
 <div markdown>
 
 <header class="hero-header">
-  <h1>sig<span class="accent">alg</span></h1>
-  <p>Measure-Theoretic Probability in Python</p>
+  <img src="assets/sigalg-light-no-logo.svg" class="hero-logo hero-logo--light" alt="SigAlg">
+  <img src="assets/sigalg-dark-no-logo.svg" class="hero-logo hero-logo--dark" alt="SigAlg">
 </header>
 
 SigAlg is a Python library for measure-theoretic probability: build probability spaces from sample spaces, $\sigma$-algebras, and probability measures, define random variables and stochastic processes, and compute derived objects (e.g., conditional expectations, checks for martingales).
@@ -65,7 +39,9 @@ Unlike most probabilistic computing libraries that treat probabilities primarily
 - **Exact and Monte Carlo** — Support for Monte Carlo simulation, discrete approximations to continuous-time objects, and exhaustive exact enumeration.
 - **Integration with scientific Python** — NumPy/Pandas interoperability; visualization via Matplotlib/Plotly; probability distributions via SciPy.
 
-All the above is implemented according to SigAlg's core design philosophy of a focus on mathematical fidelity and accuracy, not just black-box simulation and speed. SigAlg is meant to be a different kind of library—an interface between abstract mathematics and concrete code that complements the rest of the Python ecosystem. [Get Started →](getting_started/index.md)
+All the above is implemented according to SigAlg's core design philosophy of a focus on mathematical fidelity and accuracy, not just black-box simulation and speed. SigAlg is meant to be a different kind of library—an interface between abstract mathematics and concrete code that complements the rest of the Python ecosystem.
+
+[Get Started →](getting_started/index.md)
 
 </div>
 
