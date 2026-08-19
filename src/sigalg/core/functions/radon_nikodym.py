@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -10,6 +9,8 @@ import pandas as pd
 from .measurable_function import MeasurableFunction
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from ..measures.measure import Measure
 
 
@@ -46,15 +47,15 @@ class RadonNikodym(MeasurableFunction):
     >>> dP_dC = RadonNikodym.from_measures(P, C)
     >>> print(dP_dC)  # doctest: +NORMALIZE_WHITESPACE
     Radon-Nikodym derivative 'dP_dC':
-            dP_dC
-    sample
-    0         0.2
-    1         0.8
-    2         0.0
+       dP_dC
+    s
+    0    0.2
+    1    0.8
+    2    0.0
 
     Define a random variable and check that its expectation with respect to the probability measure is equal to the integral of the product of the random variable and the Radon-Nikodym derivative with respect to the counting measure. (This is a special case of one of the change-of-measure formulas given in the Notes section.)
 
-    >>> X = MeasurableFunction.from_randnorm(
+    >>> X = MeasurableFunction.from_rand(
     ...     domain=Omega,
     ...     name="X",
     ...     random_state=42,
@@ -156,15 +157,15 @@ class RadonNikodym(MeasurableFunction):
         >>> dP_dC = RadonNikodym.from_measures(P, C)
         >>> print(dP_dC)  # doctest: +NORMALIZE_WHITESPACE
         Radon-Nikodym derivative 'dP_dC':
-                dP_dC
-        sample
-        0         0.2
-        1         0.8
-        2         0.0
+           dP_dC
+        s
+        0    0.2
+        1    0.8
+        2    0.0
 
         Define a random variable and check that its expectation with respect to the probability measure is equal to the integral of the product of the random variable and the Radon-Nikodym derivative with respect to the counting measure. (This is a special case of one of the change-of-measure formulas given in the Notes section.)
 
-        >>> X = MeasurableFunction.from_randnorm(
+        >>> X = MeasurableFunction.from_rand(
         ...     domain=Omega,
         ...     name="X",
         ...     random_state=42,
@@ -199,8 +200,8 @@ class RadonNikodym(MeasurableFunction):
         \int_X f \, d\nu = \int_X f \frac{d\nu}{d\mu} \, d\mu.
         $$
         """
-        from ..measures.measure import Measure
         from .._utils.utils import to_df
+        from ..measures.measure import Measure
 
         if not isinstance(measure, Measure) or not isinstance(base_measure, Measure):
             raise TypeError(

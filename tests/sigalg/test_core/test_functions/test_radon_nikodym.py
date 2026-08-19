@@ -1,5 +1,4 @@
 import numpy as np
-
 from sigalg.core import (
     ProbabilityMeasure,
     RadonNikodym,
@@ -36,16 +35,14 @@ class TestMathematicalInvariants:
             name="Q",
         )
         dQ_dP = RadonNikodym.from_measures(measure=Q, base_measure=P)
-        X = RandomVariable.from_randnorm(
+        X = RandomVariable.from_rand(
             domain=Omega,
             sig_alg=F,
             measure=P,
             random_state=42,
         )
 
-        assert np.allclose(
-            X.integrate(measure=Q), (X * dQ_dP).integrate(measure=P)
-        )
+        assert np.allclose(X.integrate(measure=Q), (X * dQ_dP).integrate(measure=P))
 
     def test_radon_nikodym_derivatives_and_conditional_measures(self):
         """Test the relationship between Radon-Nikodym derivatives and conditional measures."""

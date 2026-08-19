@@ -1221,19 +1221,22 @@ class MeasurableVector(Function, OperatorsMethods):
 
         from ..measures.probability_measure import ProbabilityMeasure
         from .measurable_function import MeasurableFunction
+        from .radon_nikodym import RadonNikodym
         from .random_variable import RandomVariable
         from .random_vector import RandomVector
 
         if self.dimension == 1:
-            if isinstance(self.measure, ProbabilityMeasure):
+            if isinstance(self, RadonNikodym):
+                pass
+
+            elif isinstance(self.measure, ProbabilityMeasure):
                 self.__class__ = RandomVariable
+
             else:
                 self.__class__ = MeasurableFunction
-            self.data = (
-                self.data.squeeze(axis=1)
-                if isinstance(self.data, pd.DataFrame)
-                else self.data
-            )
+
+            if isinstance(self.data, pd.DataFrame):
+                self.data = self.data.squeeze(axis=1)
 
         elif isinstance(self.measure, ProbabilityMeasure):
             self.__class__ = RandomVector
