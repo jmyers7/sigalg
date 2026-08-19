@@ -3578,20 +3578,39 @@ class Function:
         """
         import pandas as pd
 
-        from .._utils import align_index, pandas_all_equal
+        from .._utils.utils import to_df
 
         if isinstance(other, Function):
             if self.domain is None or other.domain is None:
                 raise ValueError(
-                    "Cannot compare functions when one (or both) domains are not defined."
+                    "Cannot compare two functions whose domains are not defined."
                 )
 
-            try:
-                other_data = align_index(other.data, by=self.data.index)
-            except ValueError:
+            if set(self.domain.variable_names) != set(other.domain.variable_names):
+                return False
+            if self.dimension != other.dimension:
+                return False
+            if self.index is not None and list(self.index) != list(other.index):
                 return False
 
-            return pandas_all_equal(self.data, other_data, check_series_names=False)
+            self_data = to_df(self.data, "_self")
+            other_data = to_df(other.data, "_other")
+
+            test_data = pd.merge(
+                left=self_data.reset_index(),
+                right=other_data.reset_index(),
+                how="outer",
+            )
+
+            if test_data.isna().any().any():
+                return False
+
+            self_data = test_data[list(self_data.columns)]
+            self_data.columns = pd.RangeIndex(self.dimension)
+            other_data = test_data[list(other_data.columns)]
+            other_data.columns = pd.RangeIndex(self.dimension)
+
+            return bool((self_data == other_data).all().all())
 
         elif isinstance(other, Hashable | tuple | pd.Series):
             return self.get_inverse_image(value=other)
