@@ -424,8 +424,6 @@ class TestConditional:
                 P.conditional(event=A, given=G).integrate(subset=B),
             )
 
-
-class TestGiven:
     def test_cond_exp_is_integral(self):
         """Test that a conditional expectation is equal to an integral against a conditional probability meassure."""
         prob_space = ProbabilitySpace.from_rand(
@@ -442,7 +440,7 @@ class TestGiven:
         G = SigmaAlgebra.from_rand(super=F, num_atoms=3, random_state=42, name="G")
         expectation = Operators.expectation(X, G)
         integral = Operators.integrate(
-            X, measure=P.given(G, descend=True)
+            X, measure=P.conditional(G, ascend=True)
         ).to_measurable_vector(sig_alg=G)
 
         assert P.equal_almost_surely(expectation, integral)
@@ -501,7 +499,7 @@ class TestGiven:
             },
             name="Y",
         )
-        conditional = P.given(Y) >> X
+        conditional = P.conditional(Y) >> X
         quotient = (P >> (X | Y)) / (P >> Y)
 
         assert all(
@@ -688,3 +686,97 @@ class TestEqualAlmostSurely:
         )
 
         assert not P.equal_almost_surely(U, W)
+
+
+class TestDerivative:
+    def test_change_of_variables(self):
+        """Test the change-of-variables formula for Radon-Nikodym derivatives."""
+        Omega = SampleSpace.from_sequence(size=10)
+        F = SigmaAlgebra.from_rand(
+            num_atoms=3,
+            domain=Omega,
+            random_state=42,
+        )
+        P = ProbabilityMeasure(
+            domain=F,
+            mapping={
+                0: 0.2,
+                1: 0.8,
+                2: 0.0,
+            },
+        )
+        Q = ProbabilityMeasure(
+            domain=F,
+            mapping={
+                0: 0.9,
+                1: 0.1,
+                2: 0.0,
+            },
+            name="Q",
+        )
+        dQ_dP = Q.derivative(P)
+        X = RandomVariable.from_rand(
+            domain=Omega,
+            sig_alg=F,
+            measure=P,
+            random_state=42,
+        )
+
+        assert np.allclose(X.integrate(measure=Q), (X * dQ_dP).integrate(measure=P))
+
+    def test_radon_nikodym_derivatives_and_conditional_measures(self):
+        """Test the relationship between Radon-Nikodym derivatives and conditional measures."""
+        Omega = SampleSpace.from_sequence(size=10)
+        F = SigmaAlgebra.from_rand(
+            num_atoms=3,
+            domain=Omega,
+            random_state=42,
+        )
+        P = ProbabilityMeasure(
+            domain=F,
+            mapping={
+                0: 0.2,
+                1: 0.8,
+                2: 0.0,
+            },
+        )
+        Q = ProbabilityMeasure(
+            domain=F,
+            mapping={
+                0: 0.9,
+                1: 0.1,
+                2: 0.0,
+            },
+            name="Q",
+        )
+        dQ_dP = Q.derivative(P)
+        for A in F.atoms:
+            assert dQ_dP.integrate(subset=A) == Q(A)
+
+    def test_conditional_distribution_radon_nikodym_formula(self):
+        """Test the formula for the Radon-Nikodym derivative of a conditional distribution."""
+        Omega = SampleSpace.from_sequence(size=50)
+        F = SigmaAlgebra.from_rand(
+            num_atoms=23,
+            domain=Omega,
+            random_state=42,
+            variable_names=["A_i"],
+        )
+        G = SigmaAlgebra.from_rand(
+            num_atoms=12,
+            super=F,
+            random_state=42,
+            name="G",
+            variable_names=["B_i"],
+        )
+        P = ProbabilityMeasure.from_rand(
+            domain=F,
+            num_null_atoms=4,
+            random_state=42,
+        )
+
+        for i, B in G.atom_id_to_atom.items():
+            if P(B) > 1e-8:
+                Q = P.conditional(G, name="Q")(B_i=i)
+                dQ_dP = Q.derivative(P)
+                assert P.equal_almost_surely(dQ_dP, B.indicator / P(B))

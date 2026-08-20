@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from functools import cached_property
 from numbers import Real
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from .function import Function
 
@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
     from ...typing.mapping_like import MappingLike
+    from ..indices.index import Index
     from ..measures.measure import Measure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.domain import Domain
@@ -324,6 +325,7 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
         parameter_domain_name: Hashable | None,
         parameter_names: list[Hashable],
         name: Hashable,
+        **kwargs,
     ) -> ParametrizedMeasurableFunction:
         from ..measures.probability_measure import ProbabilityMeasure
         from .parametrized_random_variable import ParametrizedRandomVariable
@@ -1175,3 +1177,82 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
             return self.__repr__()
         else:
             return f"{type(self)._str_name} '{self.name}': empty"
+
+    # --------------------- arithmetic operations --------------------- #
+
+    def _apply_binary_operation(
+        self,
+        other: Function | Real,
+        operation: Callable,
+        op_symbol: str,
+        reverse: bool = False,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+    ) -> Function:
+        """Pass."""
+        from .measurable_function import MeasurableFunction
+
+        if isinstance(other, Real):
+            sig_alg = self.sig_alg
+            measure = self.measure
+            complete_domain_name = None
+            parameter_domain_name = None
+            parameter_names = None
+
+        elif isinstance(other, MeasurableFunction):
+            if self.sig_alg <= other.sig_alg:
+                sig_alg = other.sig_alg
+
+            elif self.sig_alg > other.sig_alg:
+                sig_alg = self.sig_alg
+
+            else:
+                raise ValueError(
+                    f"Cannot {op_symbol} measurable functions on incompatible measurable spaces."
+                )
+
+            measure = MeasurableFunction._get_max_measure([self, other])
+            complete_domain_name = self.domain.name
+            parameter_domain_name = self.parameter_domain_name
+            parameter_names = self.parameter_names
+            other = ParametrizedMeasurableFunction._from_validated(
+                data=other.data,
+                sig_alg=sig_alg,
+                measure=measure,
+                complete_domain_name=complete_domain_name,
+                parameter_domain_name=parameter_domain_name,
+                parameter_names=parameter_names,
+                name=other.name,
+            )
+
+        elif isinstance(other, ParametrizedMeasurableFunction):
+            raise NotImplementedError(
+                "Arithmetic between two ParametrizedMeasurableFunction instances is not implemented yet."
+            )
+
+        # TODO: implement arithmetic!
+        else:
+            raise NotImplementedError(
+                f"Arithmetic not implemented between ParametrizedMeasurableFunction and {type(other).__name__}."
+            )
+
+        return Function._apply_binary_operation(
+            self=self,
+            other=other,
+            operation=operation,
+            op_symbol=op_symbol,
+            reverse=reverse,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            sig_alg=sig_alg,
+            measure=measure,
+            complete_domain_name=complete_domain_name,
+            parameter_domain_name=parameter_domain_name,
+            parameter_names=parameter_names,
+        )

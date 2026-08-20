@@ -6,9 +6,6 @@ import inspect
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
-import numpy as np
-import pandas as pd
-
 from .parametrized_measure import ParametrizedMeasure
 
 if TYPE_CHECKING:
@@ -216,7 +213,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
     # --------------------- probability methods --------------------- #
 
-    # TODO: input validation
+    # TODO: input validation, check for absolute continuity
     def derivative(
         self,
         base_measure: Measure | None = None,
@@ -302,20 +299,14 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
         >>> print(P.derivative(mu))  # doctest: +NORMALIZE_WHITESPACE
         Parametrized measurable function 'dP_dmu':
-                     dP_dmu
-        theta omega
-        0     0       0.300
-              1       0.300
-              2       0.250
-              3       0.250
-              4       0.050
-              5       0.050
-        1     0       0.000
-              1       0.000
-              2       0.050
-              3       0.050
-              4       0.225
-              5       0.225
+        theta     0      1
+        omega
+        0      0.30  0.000
+        1      0.30  0.000
+        2      0.25  0.050
+        3      0.25  0.050
+        4      0.05  0.225
+        5      0.05  0.225
 
         Check that the Radon-Nikodym derivative `P.derivative(mu)` has the defining property of a Radon-Nikodym derivative.
 
@@ -368,80 +359,48 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
         Condition the measure on `X`, creating an instance of `ParametrizedProbabilityMeasure`.
 
-        >>> print(Q.given(X))  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized probability measure 'Q(?|X)':
-                 probability
-        X omega
-        1 0         0.000000
-          1         1.000000
-          2         0.000000
-          3         0.000000
-          4         0.000000
-          5         0.000000
-        2 0         0.000000
-          1         0.000000
-          2         0.333333
-          3         0.666667
-          4         0.000000
-          5         0.000000
-        3 0         0.000000
-          1         0.000000
-          2         0.000000
-          3         0.000000
-          4         0.307692
-          5         0.692308
+        >>> print(Q.conditional(X))  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'Q(-|X)':
+        X        1         2         3
+        omega
+        0      0.0  0.000000  0.000000
+        1      1.0  0.000000  0.000000
+        2      0.0  0.333333  0.000000
+        3      0.0  0.666667  0.000000
+        4      0.0  0.000000  0.307692
+        5      0.0  0.000000  0.692308
 
         Notice that the parameters of this measure are the values of `X`. Notice also that this is a parametrized probability measure on the original sample space. We push it forward along the random variable `Y`.
 
-        >>> print(Q.given(X) >> Y)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized probability measure 'Q(?|X)_Y':
-             probability
-        X Y
-        1 2     0.000000
-          3     1.000000
-          4     0.000000
-          5     0.000000
-          7     0.000000
-        2 2     0.000000
-          3     0.000000
-          4     0.333333
-          5     0.000000
-          7     0.666667
-        3 2     0.307692
-          3     0.000000
-          4     0.000000
-          5     0.692308
-          7     0.000000
+        >>> print(Q.conditional(X) >> Y)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'Q(-|X)_Y':
+        X    1         2         3
+        Y
+        2  0.0  0.000000  0.307692
+        3  1.0  0.000000  0.000000
+        4  0.0  0.333333  0.000000
+        5  0.0  0.000000  0.692308
+        7  0.0  0.666667  0.000000
 
         Notice now that it is a parametrized probability measure on the range of `Y`. If we apply the `derivative` method without an explict `measure` parameter, it defaults to the counting measure and we obtain the conditional probability mass function of `Y` given `X`.
 
-        >>> print((Q.given(X) >> Y).derivative())  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized measurable function 'dQ(?|X)_Y_dC':
-             dQ(?|X)_Y_dC
-        X Y
-        1 2      0.000000
-          3      1.000000
-          4      0.000000
-          5      0.000000
-          7      0.000000
-        2 2      0.000000
-          3      0.000000
-          4      0.333333
-          5      0.000000
-          7      0.666667
-        3 2      0.307692
-          3      0.000000
-          4      0.000000
-          5      0.692308
-          7      0.000000
+        >>> print((Q.conditional(X) >> Y).derivative())  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measurable function 'dQ(-|X)_Y_dC':
+        X    1         2         3
+        Y
+        2  0.0  0.000000  0.307692
+        3  1.0  0.000000  0.000000
+        4  0.0  0.333333  0.000000
+        5  0.0  0.000000  0.692308
+        7  0.0  0.666667  0.000000
 
         Notice the subtle (but meaningful) difference between this last printout and the one before: One is an instance of `ParametrizedProbabilityMeasure`, while the other is an instance of `ParametrizedMeasurableFunction`. These are different things!
 
         Finally, we verify that integrating the conditional probability mass function yields conditional probability.
 
         >>> all(
-        ...     (Q.given(X) >> Y)(A) == integrate((Q.given(X) >> Y).derivative(), A)
-        ...     for A in Y.range.sig_alg
+        ...     (Q.conditional(X) >> Y)([y]) == integrate((Q.conditional(X) >> Y).derivative(), [y])
+        ...     for y in Y.range
         ... )
         True
 
@@ -474,7 +433,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
         is a Radon-Nikodym derivative of $P(\theta, -)$ with respect to $\mu$, for each $\theta\in \Theta$. The measure $\mu$ is called the *base measure*.
         """
-        from .._utils.function_helpers import ascend_from_atom_space
+        from .._utils.function_helpers import compute_radon_nikodym
         from ..functions.parametrized_measurable_function import (
             ParametrizedMeasurableFunction,
         )
@@ -485,27 +444,19 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         if name is None:
             name = f"d{self.name}_d{base_measure.name}"
 
-        measure_data = pd.merge(
-            left=self.data.rename("num"),
-            right=base_measure.data.rename("den"),
-            left_index=True,
-            right_index=True,
-        )
-        derivative_data = (
-            (measure_data["num"] / measure_data["den"]).fillna(0.0).rename("derivative")
-        )
-
-        mapping = ascend_from_atom_space(
-            self_data=derivative_data,
+        data = compute_radon_nikodym(
+            measure_data=self.data,
+            base_measure_data=base_measure.data,
             sig_alg_data=self.sig_alg.data,
             parameter_names=self.parameter_names,
-            output_name="derivative",
-        ).rename(name)
+        )
 
-        return ParametrizedMeasurableFunction.from_domains(
-            measurable_domain=self.sig_alg.domain,
+        return ParametrizedMeasurableFunction._from_validated(
+            data=data,
             sig_alg=self.sig_alg,
-            mapping=mapping,
             measure=base_measure,
+            complete_domain_name=f"{self.parameter_domain_name} x {self.sig_alg.domain.name}",
+            parameter_domain_name=self.parameter_domain_name,
+            parameter_names=self.parameter_names,
             name=name,
         )

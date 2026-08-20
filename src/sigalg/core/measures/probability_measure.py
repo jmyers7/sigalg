@@ -637,6 +637,7 @@ class ProbabilityMeasure(Measure):
         ...     Measure,
         ...     Operators,
         ...     ProbabilityMeasure,
+        ...     RandomVariable,
         ...     SampleSpace,
         ...     Set,
         ...     SigmaAlgebra,
@@ -763,23 +764,23 @@ class ProbabilityMeasure(Measure):
 
         As we saw above, in SigAlg, the conditional derivative (with default `return_type='param'`) is an instance of `ParametrizedMeasurableFunction`, where the parameters are the atom identifiers of `G`. Conceptually, one should think of the conditional derivative as a family of derivatives, one for each atom identifier.
 
-        Multiplication of a `RandomVariable` instance against an instance of `ParametrizedMeasurableFunction` is defined in SigAlg as long as both are defined on the same sample space. The multiplication is the usual function multiplication, parameter by parameter, and yields an instance of `ParametrizedRandomVariable` since the `measure` attribute of the product is inherited from `X`.
+        Multiplication of a `RandomVariable` instance against an instance of `ParametrizedMeasurableFunction` is defined in SigAlg as long as both are defined on the same sample space. The multiplication is the usual function multiplication, parameter by parameter, and yields an instance of `ParametrizedMeasurableFunction`.
 
         >>> X * P.derivative(mu, G)
+        ParametrizedMeasurableFunction(parameters=(G), measurable_vars=(s), domain=Omega, sig_alg=F, measure=None, name=(X * dP_dmu))
 
-
-        Think of a `ParametrizedRandomVariable` as a family of random variables, one for each parameter. It is possible to pass such an instance into the `integrate` operator. The result is a `Function` whose values are the integrals of the random variables, parameter by parameter.
+        Think of a `ParametrizedMeasurableFunction` as a family of measurable functions, one for each parameter. It is possible to pass such an instance into the `integrate` operator. The result is a `Function` whose values are the integrals of the random variables, parameter by parameter.
 
         >>> integrate(X * P.derivative(mu, G), measure=mu)
-        Function(parameters=(u), domain=G, output_name=integral, name=int (X*dP_dmu) dmu)
+        Function(parameters=(G), domain=G, name=int (X * dP_dmu) dmu)
 
-        This is a function on the atom identifiers of the sigma-algebra `G`. It naturally defines a measurable function on the sample space by sending each sample point to the atom containing it, and then mapping the atom identifier according to the function. SigAlg has a method to produce measurable functions from functions defined on atom identifiers.
+        This is a function on the atom identifiers of the sigma-algebra `G`. As above, it naturally "ascends" to a function on the sample space, which we obtain using the `to_measurable_vector` method with `ascend=True`.
 
-        >>> measurable = integrate(X * P.derivative(mu, G), measure=mu).to_measurable_function(sig_alg=G)
+        >>> measurable = integrate(X * P.derivative(mu, G), measure=mu).to_measurable_vector(sig_alg=G, ascend=True)
         >>> measurable
-        MeasurableFunction(domain=Omega, sig_alg=G, name=int (X*dP_dmu) dmu)
+        MeasurableFunction(parameters=(s), domain=Omega, sig_alg=G, name=int (X * dP_dmu) dmu)
 
-        To recap: `measurable` represents a function on the sample space whose value on a sample point is the integral of `X` against the probability measure obtained from `P.derivative(mu, G)` evaluated at the atom identifier containing that sample point. If the reader now looks at the Notes section below, they'll see that `measure` is supposed to be the conditional expectation of `X` given `G` (at least up to a `P`-null set). We check this:
+        To recap: `measurable` represents a function on the sample space whose value on a sample point is the integral of `X` against the probability measure obtained from `P.derivative(mu, G)` evaluated at the atom identifier containing that sample point. If the reader now looks at the Notes section below, they'll see that `measure` is supposed to be the conditional expectation of `X` given `G` (almost surely).
 
         >>> E = Operators.expectation
         >>> np.allclose(E(X, G), measurable)
@@ -833,6 +834,9 @@ class ProbabilityMeasure(Measure):
         from ..functions.parametrized_measurable_function import (
             ParametrizedMeasurableFunction,
         )
+
+        if base_measure is None:
+            base_measure = Measure.counting(self.sig_alg.domain)
 
         if name is None:
             name = name = f"d{self.name}_d{base_measure.name}"

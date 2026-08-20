@@ -637,6 +637,7 @@ class Operators:
         function: MeasurableVector | ParametrizedMeasurableFunction,
         subset: Set | None = None,
         measure: Measure | ParametrizedMeasure | None = None,
+        subset_name: list[Hashable] | None = None,
     ) -> Real | pd.Series | Function:
         r"""Compute the Lebesgue integral of a measurable vector with respect to a measure over an (optional) set.
 
@@ -840,9 +841,11 @@ class Operators:
                 "Cannot integrate a measurable vector of dimension > 1 against a parametrized measure."
             )
         if subset is not None and not isinstance(subset, Set):
-            raise TypeError("If given, the subset must be a Set instance.")
-        # HACK: This is a placeholder hack till I write a restrict_to method for parametrized measures
+            subset = Set(
+                indices=subset, domain=function.sig_alg.domain, name=subset_name
+            )
         if measure is not None:
+            # HACK: This is a placeholder hack till I write a restrict_to method for parametrized measures
             if function.sig_alg == measure.sig_alg:
                 pass
             elif function.sig_alg <= measure.sig_alg:
@@ -865,11 +868,6 @@ class Operators:
 
         if subset is None:
             name = f"int {function.name} d{measure.name}"
-            # subset = Set._from_validated(
-            #     data=function.domain.data,
-            #     domain=function.domain,
-            #     name=function.domain.name,
-            # )
             function_times_indicator = function.atom_data()
 
         else:

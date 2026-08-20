@@ -6,6 +6,7 @@ import copy
 import inspect
 from collections.abc import Callable, Hashable, Iterator
 from functools import cached_property
+from itertools import combinations
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
@@ -792,7 +793,7 @@ class Function:
         >>> X = Domain.from_sequence(size=4)
         >>> f = Function.from_rand(
         ...     domain=X,
-        ...     dim=3,
+        ...     index=[0, 1, 2],
         ...     max_value=2,
         ...     random_state=42,
         ... )
@@ -806,14 +807,14 @@ class Function:
         3       0  1  1
         >>> g = Function.from_rand(
         ...     domain=X,
-        ...     dim=2,
+        ...     index=[3, 4],
         ...     max_value=2,
         ...     random_state=42,
         ...     name="g",
         ... )
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
         Function 'g':
-        i       0  1
+        i       3  4
         x
         0       0  1
         1       1  0
@@ -832,11 +833,6 @@ class Function:
         2  0  1  0  0  1
         3  0  1  1  0  1
 
-        The user will notice that if no `Index` is passed to the `concatenate` method, a default one is automatically created. However, the `componenent_names` attribute tracks the origin of the components of the concatenation.
-
-        >>> fg.component_names
-        {0: 'f_0', 1: 'f_1', 2: 'f_2', 3: 'g_0', 4: 'g_1'}
-
         The same concatenation may be constructed using the `|` operator.
 
         >>> print(f | g)  # doctest: +NORMALIZE_WHITESPACE
@@ -847,6 +843,24 @@ class Function:
         1  0  0  1  1  0
         2  0  1  0  0  1
         3  0  1  1  0  1
+
+        We may also concatenate with a 1-dimensional function. Note that the name of the function is used as the index value.
+
+        >>> h = Function.from_rand(
+        ...     domain=X,
+        ...     dim=1,
+        ...     max_value=2,
+        ...     random_state=42,
+        ...     name="h",
+        ... )
+        >>> print(f | g | h)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'fgh':
+        i  0  1  2  3  4  h
+        x
+        0  0  1  1  0  1  0
+        1  0  0  1  1  0  1
+        2  0  1  0  0  1  1
+        3  0  1  1  0  1  0
         """
         import pandas as pd
 
@@ -877,10 +891,30 @@ class Function:
         index_kind = v.index_kind
         index_name = v.index_name
 
+        indices = [
+            set(factor.index) if factor.dimension > 1 else {factor.name}
+            for factor in factors
+        ]
+
+        index_variable_names = sum(
+            [factor.index.variable_names for factor in factors if factor.dimension > 1],
+            [],
+        )
+
+        if len(set(index_variable_names)) > 1:
+            raise ValueError(
+                "The variable names of the indicies of the factors in the concatenation must be identical."
+            )
+
+        if any(len(idx1 & idx2) >= 1 for idx1, idx2 in combinations(indices, 2)):
+            raise ValueError(
+                "The indices of the factors in the concatenation must be pairwise disjoint."
+            )
+
         if name is None:
             name = "".join(factor.name for factor in factors)
 
-        data = pd.concat([factor.data for factor in factors], axis=1, ignore_index=True)
+        data = pd.concat([factor.data for factor in factors], axis=1)
 
         if index is not None:
             data.columns = index.data

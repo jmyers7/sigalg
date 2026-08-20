@@ -338,8 +338,12 @@ def compute_radon_nikodym(
     measure_data: pd.Series,
     base_measure_data: pd.Series,
     sig_alg_data: pd.Series | pd.DataFrame,
+    parameter_names: list[Hashable] | None = None,
 ) -> pd.Series:
     """Pass."""
     data = (measure_data / base_measure_data).fillna(0.0)
+    data = measure_data.divide(base_measure_data, axis=0).fillna(0.0)
     data.name = None
-    return ascend_from_atom_space(self_data=data, sig_alg_data=sig_alg_data)
+    return ascend_from_atom_space(
+        self_data=data, sig_alg_data=sig_alg_data, parameter_names=parameter_names
+    )

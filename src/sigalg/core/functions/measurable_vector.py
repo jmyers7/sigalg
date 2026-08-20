@@ -724,8 +724,6 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Examples
         --------
-        Generate a measure space.
-
         >>> from sigalg.core import (
         ...     Domain,
         ...     Measure,
@@ -736,6 +734,9 @@ class MeasurableVector(Function, OperatorsMethods):
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
+
+        Generate a measure space.
+
         >>> X = Domain.from_sequence(size=4)
         >>> F = SigmaAlgebra.from_rand(
         ...     domain=X,
@@ -750,7 +751,7 @@ class MeasurableVector(Function, OperatorsMethods):
         ...     domain=X,
         ...     sig_alg=F,
         ...     measure=mu,
-        ...     dim=3,
+        ...     index=[0, 1, 2],
         ...     max_value=2,
         ...     random_state=42,
         ... )
@@ -765,14 +766,14 @@ class MeasurableVector(Function, OperatorsMethods):
         >>> g = MeasurableVector.from_rand(
         ...     domain=X,
         ...     sig_alg=F,
-        ...     dim=2,
+        ...     index=[3, 4],
         ...     max_value=2,
         ...     random_state=42,
         ...     name="g",
         ... )
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'g':
-        i       0  1
+        i       3  4
         x
         0       0  1
         1       1  0
@@ -797,11 +798,6 @@ class MeasurableVector(Function, OperatorsMethods):
         1     2
         0     1
         2     3
-
-        The `component_names` attribute of the concatenation tracks the origin of each of the components of the concatenation.
-
-        >>> fg.component_names
-        {0: 'f_0', 1: 'f_1', 2: 'f_2', 3: 'g_0', 4: 'g_1'}
 
         Together with the `pushforward` method, the `concatenation` method is SigAlg's mechanism for generating the joint distributions of random variables. We demonstrate.
 
@@ -1203,15 +1199,11 @@ class MeasurableVector(Function, OperatorsMethods):
 
         from ..measures.probability_measure import ProbabilityMeasure
         from .measurable_function import MeasurableFunction
-        from .radon_nikodym import RadonNikodym
         from .random_variable import RandomVariable
         from .random_vector import RandomVector
 
         if self.dimension == 1:
-            if isinstance(self, RadonNikodym):
-                pass
-
-            elif isinstance(self.measure, ProbabilityMeasure):
+            if isinstance(self.measure, ProbabilityMeasure):
                 self.__class__ = RandomVariable
 
             else:
@@ -1260,9 +1252,7 @@ class MeasurableVector(Function, OperatorsMethods):
                 if max_measure.is_restriction_of(measure):
                     max_measure = measure
                 elif not measure.is_restriction_of(max_measure):
-                    raise ValueError(
-                        "All measurable vectors must have consistent measures."
-                    )
+                    return None
 
             return max_measure
 
@@ -2100,17 +2090,22 @@ class MeasurableVector(Function, OperatorsMethods):
         >>> (f**g).measure_space
         MeasureSpace(domain=X, sig_alg=F, measure=mu)
         """
+        from .parametrized_measurable_function import ParametrizedMeasurableFunction
+
         if isinstance(other, Real):
-            super_sig_alg = self.sig_alg
+            sig_alg = self.sig_alg
             measure = self.measure
+            complete_domain_name = None
+            parameter_domain_name = None
+            parameter_names = None
             self_promoted = self
 
         elif isinstance(other, MeasurableVector):
             if self.sig_alg <= other.sig_alg:
-                super_sig_alg = other.sig_alg
+                sig_alg = other.sig_alg
 
             elif self.sig_alg > other.sig_alg:
-                super_sig_alg = self.sig_alg
+                sig_alg = self.sig_alg
 
             else:
                 raise ValueError(
@@ -2118,18 +2113,53 @@ class MeasurableVector(Function, OperatorsMethods):
                 )
 
             measure = self._get_max_measure([self, other])
+            complete_domain_name = None
+            parameter_domain_name = None
+            parameter_names = None
             self_promoted = self
+
+        elif isinstance(other, ParametrizedMeasurableFunction):
+            if self.sig_alg <= other.sig_alg:
+                sig_alg = other.sig_alg
+
+            elif self.sig_alg > other.sig_alg:
+                sig_alg = self.sig_alg
+
+            else:
+                raise ValueError(
+                    f"Cannot {op_symbol} measurable functions on incompatible measurable spaces."
+                )
+
+            measure = self._get_max_measure([self, other])
+            complete_domain_name = other.domain.name
+            parameter_domain_name = other.parameter_domain_name
+            parameter_names = other.parameter_names
+            self_promoted = ParametrizedMeasurableFunction._from_validated(
+                data=self.data,
+                sig_alg=sig_alg,
+                measure=measure,
+                complete_domain_name=complete_domain_name,
+                parameter_domain_name=parameter_domain_name,
+                parameter_names=parameter_names,
+                name=self.name,
+            )
 
         elif isinstance(other, Function):
             if self.sig_alg in other.lattice:
-                super_sig_alg = self.sig_alg
+                sig_alg = self.sig_alg
                 measure = self.measure
+                complete_domain_name = None
+                parameter_domain_name = None
+                parameter_names = None
                 self_promoted = self
 
             else:
-                self_promoted = self.to_function()
-                super_sig_alg = None
+                sig_alg = None
                 measure = None
+                complete_domain_name = None
+                parameter_domain_name = None
+                parameter_names = None
+                self_promoted = self.to_function()
 
         else:
             raise NotImplementedError(
@@ -2147,6 +2177,9 @@ class MeasurableVector(Function, OperatorsMethods):
             index_kind=index_kind,
             index_name=index_name,
             name=name,
-            sig_alg=super_sig_alg,
+            sig_alg=sig_alg,
             measure=measure,
+            complete_domain_name=complete_domain_name,
+            parameter_domain_name=parameter_domain_name,
+            parameter_names=parameter_names,
         )

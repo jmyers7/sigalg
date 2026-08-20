@@ -7,7 +7,6 @@ from .functions import (
     Operators,
     ParametrizedMeasurableFunction,
     ParametrizedRandomVariable,
-    RadonNikodym,
     RandomVariable,
     RandomVector,
 )
@@ -57,6 +56,5 @@ __all__ = [
     "Lattice",
     "Operators",
     "L2",
-    "RadonNikodym",
     "Measure",
 ]
