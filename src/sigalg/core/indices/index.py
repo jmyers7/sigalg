@@ -296,6 +296,7 @@ class Index:
         factors: list[IndexLike | Index],
         variable_names: list[Hashable] | None = None,
         name: Hashable | None = None,
+        **kwargs,
     ) -> Index:
         """Create an index from the Cartesian product of a list of indices.
 
@@ -435,7 +436,7 @@ class Index:
 
         data = pd.MultiIndex.from_tuples(flattened_indices)
 
-        return cls(indices=data, name=name, variable_names=variable_names)
+        return cls(indices=data, name=name, variable_names=variable_names, **kwargs)
 
     def __matmul__(self, other: IndexLike | Index) -> Index:
         """Get the Cartesian product of this `Index` instance with another.

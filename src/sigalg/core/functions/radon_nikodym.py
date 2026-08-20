@@ -220,7 +220,7 @@ class RadonNikodym(MeasurableFunction):
         if tol <= 0:
             raise ValueError("'tol' must be positive.")
 
-        if not measure << base_measure:
+        if not measure.is_absolutely_continuous(base_measure, tol=tol):
             raise ValueError(
                 "The measure is not absolutely continuous with respect to the base measure."
             )

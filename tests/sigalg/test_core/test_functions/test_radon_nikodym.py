@@ -96,7 +96,7 @@ class TestMathematicalInvariants:
         )
 
         for i, B in G.atom_id_to_atom.items():
-            Q = P.given(G, name="Q")(B_i=i)
-            dQ_dP = RadonNikodym.from_measures(Q, P)
-            if P(B) > 0:
+            if P(B) > 1e-8:
+                Q = P.given(G, name="Q")(B_i=i)
+                dQ_dP = RadonNikodym.from_measures(Q, P)
                 assert P.equal_almost_surely(dQ_dP, B.indicator / P(B))

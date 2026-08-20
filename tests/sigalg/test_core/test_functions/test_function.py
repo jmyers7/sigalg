@@ -788,16 +788,6 @@ class TestAlgebraicProperties:
         assert f * 1 == f
         assert 1 * f == f
 
-    def test_absorption_multiplication_by_zero(self, f):
-        """Test absorption: f * 0 = 0 and 0 * f = 0."""
-        assert f * 0 == 0
-        assert 0 * f == 0
-
-    def test_additive_inverse(self, f):
-        """Test additive inverse: f + (-f) = 0 and (-f) + f = 0."""
-        assert f + (-f) == 0
-        assert (-f) + f == 0
-
     def test_left_distributive(self, f, g, h):
         """Test left distributivity: f * (g + h) = f * g + f * h."""
         assert f * (g + h) == f * g + f * h

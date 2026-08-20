@@ -6,7 +6,6 @@ import copy
 import inspect
 from collections.abc import Callable, Hashable, Iterator
 from functools import cached_property
-from itertools import combinations
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
@@ -786,16 +785,15 @@ class Function:
 
         Examples
         --------
-        >>> from sigalg.core import Domain, Index, Function
+        >>> from sigalg.core import Domain, Function
 
-        Generate two functions with disjoint indices.
+        Generate two functions.
 
         >>> X = Domain.from_sequence(size=4)
-        >>> I = Index([0, 1, 2])
         >>> f = Function.from_rand(
         ...     domain=X,
+        ...     dim=3,
         ...     max_value=2,
-        ...     index=I,
         ...     random_state=42,
         ... )
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
@@ -806,17 +804,16 @@ class Function:
         1       0  0  1
         2       0  1  0
         3       0  1  1
-        >>> J = Index([3, 4], name="J")
         >>> g = Function.from_rand(
         ...     domain=X,
-        ...     index=J,
+        ...     dim=2,
         ...     max_value=2,
         ...     random_state=42,
         ...     name="g",
         ... )
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
         Function 'g':
-        i       3  4
+        i       0  1
         x
         0       0  1
         1       1  0
@@ -835,47 +832,21 @@ class Function:
         2  0  1  0  0  1
         3  0  1  1  0  1
 
-        Generate a measurable function with 1-dimensional outputs
+        The user will notice that if no `Index` is passed to the `concatenate` method, a default one is automatically created. However, the `componenent_names` attribute tracks the origin of the components of the concatenation.
 
-        >>> h = Function.from_rand(
-        ...     domain=X,
-        ...     dim=1,
-        ...     max_value=2,
-        ...     random_state=42,
-        ...     name="h",
-        ... )
-        >>> print(h)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'h':
-                h
-        x
-        0       0
-        1       1
-        2       1
-        3       0
+        >>> fg.component_names
+        {0: 'f_0', 1: 'f_1', 2: 'f_2', 3: 'g_0', 4: 'g_1'}
 
-        Concatenate all the functions, along with a scalar.
+        The same concatenation may be constructed using the `|` operator.
 
-        >>> fh2g = f | h | 2 | g
-        >>> print(fh2g)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'fh2g':
-        i  0  1  2  3  4  5  6
-        x
-        0  0  1  1  0  2  0  1
-        1  0  0  1  1  2  1  0
-        2  0  1  0  1  2  0  1
-        3  0  1  1  0  2  0  1
-
-        Form a concatenation with a custom index and name.
-
-        >>> k = Function.concatenate([0, h, f], index=[0, 1, 2, 3, 4], name="k")
-        >>> print(k)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'k':
+        >>> print(f | g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'fg':
         i  0  1  2  3  4
         x
-        0  0  0  0  1  1
-        1  0  1  0  0  1
-        2  0  1  0  1  0
-        3  0  0  0  1  1
+        0  0  1  1  0  1
+        1  0  0  1  1  0
+        2  0  1  0  0  1
+        3  0  1  1  0  1
         """
         import pandas as pd
 
@@ -883,15 +854,12 @@ class Function:
         from ..indices.index import Index
         from ..indices.time import Time
 
-        if not isinstance(factors, list):
-            raise TypeError(
-                "factors must be a list of instances of Function and scalars."
-            )
-        actual_funcs = [func for func in factors if isinstance(func, Function)]
-        if not actual_funcs:
-            raise ValueError("There must be at least one function in factors.")
-        domain = actual_funcs[0].domain
-        if any(func.domain != domain for func in actual_funcs):
+        if not isinstance(factors, list) or not all(
+            isinstance(factor, Function) for factor in factors
+        ):
+            raise TypeError("factors must be a list of Function instances.")
+        domain = factors[0].domain
+        if any(factor.domain != domain for factor in factors):
             raise ValueError(
                 "All Function instances must be defined on the same domain."
             )
@@ -909,34 +877,10 @@ class Function:
         index_kind = v.index_kind
         index_name = v.index_name
 
-        try:
-            factor_data = [
-                pd.Series(func, index=domain.data, name=func)
-                if not isinstance(func, Function)
-                else func.data
-                for func in factors
-            ]
-        except TypeError as e:
-            raise TypeError(
-                "Cannot form constant functions from the non-Function factors."
-            ) from e
-
-        indices = [
-            set(data.index) if isinstance(data, pd.DataFrame) else {data.name}
-            for data in factor_data
-        ]
-
-        ignore_index = any(
-            len(idx1 & idx2) >= 1 for idx1, idx2 in combinations(indices, 2)
-        )
-
         if name is None:
-            name = "".join(
-                func.name if isinstance(func, Function) else str(func)
-                for func in factors
-            )
+            name = "".join(factor.name for factor in factors)
 
-        data = pd.concat(factor_data, axis=1, ignore_index=ignore_index)
+        data = pd.concat([factor.data for factor in factors], axis=1, ignore_index=True)
 
         if index is not None:
             data.columns = index.data
@@ -2787,11 +2731,11 @@ class Function:
         By leaving the parameter to `atom_data` as its default `None`, it computes the unique values of the parametrized measurable function on each of the atoms of the underlying sigma-algebra (accessed through the `sig_alg` attribute).
 
         >>> print(f.atom_data())  # doctest: +NORMALIZE_WHITESPACE
-        theta  0  1
+        theta  0    1
         F
-        0      1  0
-        1      2 -3
-        2      2 -3
+        0      1    0
+        1      2   -3
+        2      2   -3
 
         Note that the function is also measurable with respect to the following finer sigma-algebra.
 
@@ -2811,11 +2755,11 @@ class Function:
         We may thus pass `G` into the `atom_data` method to get the unique values of the function on each of the atoms of `G`.
 
         >>> print(f.atom_data(G))  # doctest: +NORMALIZE_WHITESPACE
-        theta  0  1
+        theta  0    1
         G
-        0      1  0
-        1      2 -3
-        2      2 -3
+        0      1    0
+        1      2   -3
+        2      2   -3
 
         """
         if self.data is not None:
@@ -3387,39 +3331,75 @@ class Function:
         self,
         sig_alg: SigmaAlgebra,
         measure: Measure | None = None,
+        ascend: bool = False,
+        parameter_names: list[Hashable] | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
         """Pass."""
         from ...validation.measurable_func_normalizer import MeasurableFuncNormalizer
+        from .._utils.function_helpers import ascend_from_atom_space
         from .measurable_vector import MeasurableVector
+        from .parametrized_measurable_function import ParametrizedMeasurableFunction
 
         if self.data is None:
             raise ValueError(
                 "Cannot convert a function to a measurable function if the data attribute is empty."
             )
 
-        w = MeasurableFuncNormalizer(
-            domain=self.domain,
-            sig_alg=sig_alg,
-            measure=measure,
-        )
+        if name is None:
+            name = self.name
 
-        sig_alg = w.sig_alg
-        measure = w.measure
-
-        if self not in sig_alg:
-            raise ValueError(
-                "The function is not measurable with respect to the given sigma-algebra."
+        if ascend:
+            data = ascend_from_atom_space(
+                self_data=self.data,
+                sig_alg_data=sig_alg.data,
+                parameter_names=parameter_names,
             )
 
-        return MeasurableVector._from_validated(
-            data=self.data,
-            sig_alg=sig_alg,
-            measure=measure,
-            index_kind=type(self.index) if self.index is not None else "Index",
-            index_name=self.index.name if self.index is not None else None,
-            name=self.name,
-        )
+            if parameter_names is None:
+                return MeasurableVector._from_validated(
+                    data=data,
+                    sig_alg=sig_alg,
+                    measure=measure,
+                    index_kind=type(self.index) if self.index is not None else "Index",
+                    index_name=self.index.name if self.index is not None else None,
+                    name=name,
+                )
+
+            else:
+                return ParametrizedMeasurableFunction._from_validated(
+                    data=data,
+                    sig_alg=sig_alg,
+                    measure=measure,
+                    complete_domain_name="temp",
+                    parameter_domain_name="temp",
+                    parameter_names=parameter_names,
+                    name=name,
+                )
+
+        else:
+            w = MeasurableFuncNormalizer(
+                domain=self.domain,
+                sig_alg=sig_alg,
+                measure=measure,
+            )
+
+            sig_alg = w.sig_alg
+            measure = w.measure
+
+            if self not in sig_alg:
+                raise ValueError(
+                    "The function is not measurable with respect to the given sigma-algebra."
+                )
+
+            return MeasurableVector._from_validated(
+                data=self.data,
+                sig_alg=sig_alg,
+                measure=measure,
+                index_kind=type(self.index) if self.index is not None else "Index",
+                index_name=self.index.name if self.index is not None else None,
+                name=name,
+            )
 
     def with_variable_names(self, variable_names: list[Hashable]) -> Function:
         """Return a new instance of the function with updated variable names."""

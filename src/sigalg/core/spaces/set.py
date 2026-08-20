@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from functools import cached_property
+from itertools import product
 from numbers import Real
 from typing import TYPE_CHECKING
 
@@ -69,6 +70,27 @@ class Set(Index):
         measurable_set.domain = domain
         measurable_set.name = name
         return measurable_set
+
+    @classmethod
+    def cartesian_product(
+        cls,
+        factors: list[Set],
+        name: Hashable | None = None,
+    ) -> Index:
+        """Pass."""
+        from .._utils.utils import flatten
+
+        domain = type(factors[0].domain).cartesian_product(
+            [factor.domain for factor in factors]
+        )
+
+        if name is None:
+            name = " x ".join([str(factor.name) for factor in factors])
+
+        product_indices = list(product(*factors))
+        flattened_indices = [flatten(t) for t in product_indices]
+
+        return cls(indices=flattened_indices, domain=domain, name=name)
 
     # --------------------- properties --------------------- #
 

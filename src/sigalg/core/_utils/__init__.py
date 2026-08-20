@@ -1,10 +1,13 @@
 from .function_helpers import (
+    ascend_from_atom_space,
     compose_funcs,
     compute_expectation,
-    sig_alg_func_to_measurable_func,
 )
 from .index_helpers import align_index
-from .measure_helpers import get_measure_of_set
+from .measure_helpers import (
+    compute_conditional_prob_measure,
+    reindex_measure,
+)
 from .utils import (
     add_subscript,
     add_suffix,
@@ -25,7 +28,8 @@ __all__ = [
     "flatten",
     "subscript_var_names",
     "to_df",
-    "sig_alg_func_to_measurable_func",
+    "ascend_from_atom_space",
     "remove_subscript",
-    "get_measure_of_set",
+    "reindex_measure",
+    "compute_conditional_prob_measure",
 ]

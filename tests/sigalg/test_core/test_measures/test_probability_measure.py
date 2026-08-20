@@ -441,9 +441,9 @@ class TestGiven:
         F = prob_space.sig_alg
         G = SigmaAlgebra.from_rand(super=F, num_atoms=3, random_state=42, name="G")
         expectation = Operators.expectation(X, G)
-        integral = Operators.integrate(X, measure=P.given(G)).to_measurable_vector(
-            sig_alg=G
-        )
+        integral = Operators.integrate(
+            X, measure=P.given(G, descend=True)
+        ).to_measurable_vector(sig_alg=G)
 
         assert P.equal_almost_surely(expectation, integral)
 

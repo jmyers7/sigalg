@@ -474,7 +474,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
         is a Radon-Nikodym derivative of $P(\theta, -)$ with respect to $\mu$, for each $\theta\in \Theta$. The measure $\mu$ is called the *base measure*.
         """
-        from .._utils.function_helpers import sig_alg_func_to_measurable_func
+        from .._utils.function_helpers import ascend_from_atom_space
         from ..functions.parametrized_measurable_function import (
             ParametrizedMeasurableFunction,
         )
@@ -495,7 +495,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
             (measure_data["num"] / measure_data["den"]).fillna(0.0).rename("derivative")
         )
 
-        mapping = sig_alg_func_to_measurable_func(
+        mapping = ascend_from_atom_space(
             self_data=derivative_data,
             sig_alg_data=self.sig_alg.data,
             parameter_names=self.parameter_names,

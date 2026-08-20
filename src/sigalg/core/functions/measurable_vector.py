@@ -584,7 +584,7 @@ class MeasurableVector(Function, OperatorsMethods):
 
         from ...validation.domain_index_validator import DomainIndexValidator
         from ...validation.measurable_func_normalizer import MeasurableFuncNormalizer
-        from .._utils.function_helpers import sig_alg_func_to_measurable_func
+        from .._utils.function_helpers import ascend_from_atom_space
         from ..indices.index import Index
         from ..indices.time import Time
         from ..measures.probability_measure import ProbabilityMeasure
@@ -663,7 +663,7 @@ class MeasurableVector(Function, OperatorsMethods):
             sig_alg_data = pd.DataFrame(
                 arr, index=sub_sig_alg.atom_space.data, columns=index.data
             )
-            data = sig_alg_func_to_measurable_func(
+            data = ascend_from_atom_space(
                 self_data=sig_alg_data,
                 sig_alg_data=sub_sig_alg.data,
                 parameter_names=[],
@@ -728,10 +728,12 @@ class MeasurableVector(Function, OperatorsMethods):
 
         >>> from sigalg.core import (
         ...     Domain,
-        ...     Index,
         ...     Measure,
         ...     MeasurableFunction,
         ...     MeasurableVector,
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
         >>> X = Domain.from_sequence(size=4)
@@ -742,15 +744,14 @@ class MeasurableVector(Function, OperatorsMethods):
         ... )
         >>> mu = Measure(domain=F, mapping={0: 1, 1: 2, 2: 3})
 
-        Generate two measurable vectors with disjoint indices. One has a measure, the other does not.
+        Generate two measurable vectors. One has a measure, the other does not.
 
-        >>> I = Index([0, 1, 2])
         >>> f = MeasurableVector.from_rand(
         ...     domain=X,
         ...     sig_alg=F,
         ...     measure=mu,
+        ...     dim=3,
         ...     max_value=2,
-        ...     index=I,
         ...     random_state=42,
         ... )
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
@@ -761,18 +762,17 @@ class MeasurableVector(Function, OperatorsMethods):
         1       0  0  1
         2       0  1  1
         3       0  1  0
-        >>> J = Index([3, 4], name="J")
         >>> g = MeasurableVector.from_rand(
         ...     domain=X,
         ...     sig_alg=F,
-        ...     index=J,
+        ...     dim=2,
         ...     max_value=2,
         ...     random_state=42,
         ...     name="g",
         ... )
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'g':
-        i       3  4
+        i       0  1
         x
         0       0  1
         1       1  0
@@ -798,48 +798,30 @@ class MeasurableVector(Function, OperatorsMethods):
         0     1
         2     3
 
-        Generate a measurable function.
+        The `component_names` attribute of the concatenation tracks the origin of each of the components of the concatenation.
 
-        >>> h = MeasurableFunction.from_rand(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     dim=1,
-        ...     max_value=2,
-        ...     random_state=42,
-        ...     name="h",
-        ... )
-        >>> print(h)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'h':
-                h
-        x
-        0       0
-        1       1
-        2       0
-        3       1
+        >>> fg.component_names
+        {0: 'f_0', 1: 'f_1', 2: 'f_2', 3: 'g_0', 4: 'g_1'}
 
-        Concatenate measurable functions and vectors, along with scalars using the `|` operator.
+        Together with the `pushforward` method, the `concatenation` method is SigAlg's mechanism for generating the joint distributions of random variables. We demonstrate.
 
-        >>> fh2Y = f | h | 2 | g
-        >>> print(fh2Y)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'fh2g':
-        i       0  1  2  3  4  5  6
-        x
-        0       0  1  1  0  2  0  1
-        1       0  0  1  1  2  1  0
-        2       0  1  1  0  2  0  1
-        3       0  1  0  1  2  0  1
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> P = ProbabilityMeasure(domain=Omega, mapping=dict(zip(Omega, [0.1, 0.2, 0.3, 0.4])))
+        >>> X = RandomVariable(domain=Omega, measure=P, mapping=dict(zip(Omega, [1, 1, 0, 1])))
+        >>> Y = RandomVariable(domain=Omega, measure=P, mapping=dict(zip(Omega, [1, 1, 1, 0])), name="Y")
 
-        From a concatenation with a custom index and name.
+        The joint distribution of the two random variables comes by pushing the measure `P` forward along the random vector `X | Y`.
 
-        >>> k = MeasurableVector.concatenate([0, h, f], index=[0, 1, 2, 3, 4], name="k")
-        >>> print(k)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'k':
-        i       0  1  2  3  4
-        x
-        0       0  0  0  1  1
-        1       0  1  0  0  1
-        2       0  0  0  1  1
-        3       0  1  0  1  0
+        >>> joint = P >> (X | Y)
+        >>> joint
+        ProbabilityMeasure(domain=XY_range, sig_alg=R, name=P_XY)
+        >>> print(joint)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P_XY':
+             P_XY
+        X Y
+        0 1   0.3
+        1 0   0.4
+          1   0.3
         """
         actual_funcs = [func for func in factors if isinstance(func, Function)]
         measure = cls._get_max_measure(actual_funcs)

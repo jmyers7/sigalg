@@ -64,7 +64,7 @@ class Operators:
         >>> f = MeasurableVector.from_identity(domain=X)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f':
-        index                 0  1  2
+        i                     0  1  2
         flip_0 flip_1 flip_2
         0      0      0       0  0  0
                       1       0  0  1
@@ -865,18 +865,18 @@ class Operators:
 
         if subset is None:
             name = f"int {function.name} d{measure.name}"
-            subset = Set._from_validated(
-                data=function.domain.data,
-                domain=function.domain,
-                name=function.domain.name,
-            )
+            # subset = Set._from_validated(
+            #     data=function.domain.data,
+            #     domain=function.domain,
+            #     name=function.domain.name,
+            # )
+            function_times_indicator = function.atom_data()
 
         else:
             name = f"int_{subset.name} {function.name} d{measure.name}"
-
-        function_times_indicator = function.atom_data().multiply(
-            subset.lattice.get_atom_data(function.sig_alg), axis=0
-        )
+            function_times_indicator = function.atom_data().multiply(
+                subset.lattice.get_atom_data(function.sig_alg), axis=0
+            )
 
         if isinstance(function, MeasurableFunction) and isinstance(
             measure, ParametrizedMeasure
@@ -2203,7 +2203,7 @@ class OperatorsMethods:
         >>> f = MeasurableVector.from_identity(domain=X)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f':
-        index                 0  1  2
+        i                     0  1  2
         flip_0 flip_1 flip_2
         0      0      0       0  0  0
                       1       0  0  1

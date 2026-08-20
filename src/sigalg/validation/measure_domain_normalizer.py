@@ -19,12 +19,14 @@ class MeasureDomainNormalizer(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    measure_domain: MeasureDomain
+    measure_domain: MeasureDomain | None
     kind: Literal["measure", "probability"] = "measure"
 
     @property
     def domain(self) -> Domain | None:  # noqa: D102
-        return self.measure_domain.atom_space
+        return (
+            self.measure_domain.atom_space if self.measure_domain is not None else None
+        )
 
     @property
     def sig_alg(self) -> SigmaAlgebra | None:  # noqa: D102

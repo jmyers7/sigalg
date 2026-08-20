@@ -555,8 +555,8 @@ class Measure(Function):
 
     def equal_almost_everywhere(
         self,
-        first: MeasurableVector,
-        second: MeasurableVector,
+        first: Function,
+        second: Function,
         tol: float = 1e-8,
         rtol: float = 1e-5,
         atol: float = 1e-8,
@@ -577,13 +577,6 @@ class Measure(Function):
             The relative tolerance for `np.isclose` when comparing the measurable vectors.
         atol : float, default=1e-8
             The absolute tolerance for `np.isclose` when comparing the measurable vectors.
-
-        Raises
-        ------
-        TypeError
-            If `first` or `second` are not `MeasurableVector` instances.
-        ValueError
-            If `first` or `second` are not measurable with respect to the sigma-algebra of this measure, or if they have different dimensions.
 
         Returns
         -------
@@ -680,12 +673,11 @@ class Measure(Function):
         $$
         """
         from .._utils.utils import to_df
-        from ..functions.measurable_vector import MeasurableVector
 
-        if not isinstance(first, MeasurableVector) or not isinstance(
-            second, MeasurableVector
-        ):
-            raise TypeError("first and second must be MeasurableVector instances.")
+        if first not in self.sig_alg or second not in self.sig_alg:
+            raise ValueError(
+                "Both functions must be measurable with respect to the sigma-algebra of the measure."
+            )
         if first.dimension != second.dimension:
             raise ValueError("The measurable vectors must have the same dimension.")
         if not first.is_measurable(self.sig_alg) or not second.is_measurable(
@@ -891,6 +883,20 @@ class Measure(Function):
                 name=name,
             )
 
+    def is_absolutely_continuous(
+        self, base_measure: Measure, tol: float = 1e-8
+    ) -> bool:
+        """Pass."""
+        if self.sig_alg != base_measure.sig_alg:
+            raise ValueError(
+                "Only measures with the same sigma-algebra may be compared for absolute continuity."
+            )
+
+        self_data = (self | base_measure.sig_alg).data.reindex(base_measure.data.index)
+        base_data = base_measure.data
+
+        return bool(((base_data > tol) | (self_data < tol)).all())
+
     def __contains__(self, sig_alg: SigmaAlgebra) -> bool:
         """Pass."""
         if self.sig_alg is not None:
@@ -1004,7 +1010,7 @@ class Measure(Function):
     # TODO: add docstring
     def __lshift__(self, other: Measure):
         """Pass."""
-        return bool(((other.data > 1e-8) | (self.data < 1e-8)).all())
+        return self.is_absolutely_continuous(other)
 
     # --------------------- data access methods --------------------- #
 
@@ -1088,7 +1094,7 @@ class Measure(Function):
         1        2
         0        4
         """
-        from .._utils.measure_helpers import get_measure_of_set
+        from .._utils.utils import to_df
         from ..spaces.set import Set
 
         measurable_set = None
@@ -1115,11 +1121,16 @@ class Measure(Function):
             )
 
         if measurable_set is not None:
-            return get_measure_of_set(
-                indicator_data=measurable_set.indicator_data,
-                sig_alg_data=self.sig_alg.data,
-                measure_data=self.data,
+            sig_alg_data = to_df(self.sig_alg.data)
+
+            indicator_atom_data = (
+                pd.concat([sig_alg_data, measurable_set.indicator_data], axis=1)
+                .drop_duplicates()
+                .set_index(list(sig_alg_data.columns))
+                .squeeze(axis=1)
             )
+            return (self.data * indicator_atom_data).sum().astype(Real)
+
         else:
             result = super().__call__(**kwargs)
 

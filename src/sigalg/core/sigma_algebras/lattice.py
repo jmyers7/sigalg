@@ -288,6 +288,8 @@ class Lattice:
         from .sigma_algebra import SigmaAlgebra
 
         if not isinstance(sig_alg, SigmaAlgebra) or sig_alg.domain != self.base.domain:
+            print(sig_alg)
+            print(self.base)
             raise ValueError(
                 "sig_alg must be an instance of SigmaAlgebra with the same domain as the base of the lattice."
             )

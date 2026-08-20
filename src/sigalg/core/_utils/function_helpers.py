@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     PandasLike = pd.Series | pd.DataFrame
 
 
-def sig_alg_func_to_measurable_func(
+def ascend_from_atom_space(
     self_data: PandasLike,
     sig_alg_data: PandasLike,
     parameter_names: list[Hashable] | None = None,
@@ -153,9 +153,10 @@ def sig_alg_func_to_measurable_func(
 
     sig_alg_data.columns = add_subscript(sig_alg_variable_names, "ID")
 
-    self_data.index.names = add_subscript(parameter_names, "param") + add_subscript(
-        sig_alg_variable_names, "ID"
-    )
+    self_data.index.names = [
+        f"{name}_param" if name in parameter_names else f"{name}_ID"
+        for name in self_data.index.names
+    ]
 
     data = (
         pd.merge(left=sig_alg_data.reset_index(), right=self_data.reset_index())
@@ -165,7 +166,11 @@ def sig_alg_func_to_measurable_func(
         .sort_index()
         .squeeze(axis=1)
     )
-    data.index.names = parameter_names + domain_variable_names
+
+    data.index.names = [
+        f"{name}_0" if name in domain_variable_names else name
+        for name in parameter_names
+    ] + domain_variable_names
 
     if isinstance(data, pd.DataFrame):
         data.columns = self_index
@@ -323,7 +328,18 @@ def compute_expectation(
 
     merged_data.index.names = given_variable_names
 
-    return sig_alg_func_to_measurable_func(
+    return ascend_from_atom_space(
         self_data=merged_data,
         sig_alg_data=given_data,
     )
+
+
+def compute_radon_nikodym(
+    measure_data: pd.Series,
+    base_measure_data: pd.Series,
+    sig_alg_data: pd.Series | pd.DataFrame,
+) -> pd.Series:
+    """Pass."""
+    data = (measure_data / base_measure_data).fillna(0.0)
+    data.name = None
+    return ascend_from_atom_space(self_data=data, sig_alg_data=sig_alg_data)
