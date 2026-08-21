@@ -421,7 +421,7 @@ class TestConditional:
         for A, B in product(F.atoms, G.atoms):
             assert np.allclose(
                 P(A & B),
-                P.conditional(event=A, given=G).integrate(subset=B),
+                P.conditional(subset=A, given=G).integrate(subset=B),
             )
 
     def test_cond_exp_is_integral(self):

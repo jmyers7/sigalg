@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Hashable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from .parametrized_measure import ParametrizedMeasure
 
@@ -213,11 +213,11 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
     # --------------------- probability methods --------------------- #
 
-    # TODO: input validation, check for absolute continuity
     def derivative(
         self,
         base_measure: Measure | None = None,
         name: Hashable | None = None,
+        tol: float = 1e-8,
     ) -> ParametrizedMeasurableFunction:
         r"""Compute the Radon-Nikodym derivative with respect to a base measure.
 
@@ -433,7 +433,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
         is a Radon-Nikodym derivative of $P(\theta, -)$ with respect to $\mu$, for each $\theta\in \Theta$. The measure $\mu$ is called the *base measure*.
         """
-        from .._utils.function_helpers import compute_radon_nikodym
+        from .._utils.measure_helpers import compute_radon_nikodym
         from ..functions.parametrized_measurable_function import (
             ParametrizedMeasurableFunction,
         )
@@ -441,11 +441,12 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
         if base_measure is None:
             base_measure = Measure.counting(self.sig_alg.domain)
+
         if name is None:
             name = f"d{self.name}_d{base_measure.name}"
 
         data = compute_radon_nikodym(
-            measure_data=self.data,
+            self_data=self.data,
             base_measure_data=base_measure.data,
             sig_alg_data=self.sig_alg.data,
             parameter_names=self.parameter_names,
@@ -455,6 +456,56 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
             data=data,
             sig_alg=self.sig_alg,
             measure=base_measure,
+            complete_domain_name=f"{self.parameter_domain_name} x {self.sig_alg.domain.name}",
+            parameter_domain_name=self.parameter_domain_name,
+            parameter_names=self.parameter_names,
+            name=name,
+        )
+
+    def surprisal(
+        self,
+        base_measure: Measure | None = None,
+        base: Literal["e", "2", "10"] = "e",
+        name: Hashable | None = None,
+        tol: float = 1e-8,
+    ) -> ParametrizedMeasurableFunction:
+        """Pass."""
+        import numpy as np
+
+        from .._utils.measure_helpers import compute_radon_nikodym
+        from ..functions.parametrized_measurable_function import (
+            ParametrizedMeasurableFunction,
+        )
+        from ..measures.measure import Measure
+
+        if base_measure is None:
+            base_measure = Measure.counting(self.sig_alg.domain)
+
+        if name is None:
+            name = f"s({self.name}; {base_measure.name})"
+
+        data = compute_radon_nikodym(
+            self_data=self.data,
+            base_measure_data=base_measure.data,
+            sig_alg_data=self.sig_alg.data,
+            parameter_names=self.parameter_names,
+        )
+
+        if base == "e":
+            log = np.log
+        elif base == "2":
+            log = np.log2
+        else:
+            log = np.log10
+
+        with np.errstate(divide="ignore"):
+            data = -log(data)
+        data = data.mask(np.isinf(data), 0)
+
+        return ParametrizedMeasurableFunction._from_validated(
+            data=data,
+            sig_alg=self.sig_alg,
+            measure=None,
             complete_domain_name=f"{self.parameter_domain_name} x {self.sig_alg.domain.name}",
             parameter_domain_name=self.parameter_domain_name,
             parameter_names=self.parameter_names,

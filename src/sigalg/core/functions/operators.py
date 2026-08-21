@@ -840,10 +840,12 @@ class Operators:
             raise TypeError(
                 "Cannot integrate a measurable vector of dimension > 1 against a parametrized measure."
             )
+
         if subset is not None and not isinstance(subset, Set):
             subset = Set(
                 indices=subset, domain=function.sig_alg.domain, name=subset_name
             )
+
         if measure is not None:
             # HACK: This is a placeholder hack till I write a restrict_to method for parametrized measures
             if function.sig_alg == measure.sig_alg:
@@ -854,6 +856,7 @@ class Operators:
                 raise ValueError(
                     "If given, measure must be defined on the sigma-algebra of the measurable vector."
                 )
+
         if measure is None:
             if function.measure is None:
                 raise TypeError(
@@ -861,6 +864,7 @@ class Operators:
                 )
             else:
                 measure = function.measure
+
         if subset is not None and subset not in function.sig_alg:
             raise ValueError(
                 "If given, the subset must be in the sigma-algebra of the measurable vector."

@@ -6,7 +6,7 @@ from .function_helpers import (
 from .index_helpers import align_index
 from .measure_helpers import (
     compute_conditional_prob_measure,
-    reindex_measure,
+    compute_radon_nikodym,
 )
 from .utils import (
     add_subscript,
@@ -30,6 +30,6 @@ __all__ = [
     "to_df",
     "ascend_from_atom_space",
     "remove_subscript",
-    "reindex_measure",
+    "compute_radon_nikodym",
     "compute_conditional_prob_measure",
 ]

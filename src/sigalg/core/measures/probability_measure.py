@@ -4,14 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-import numpy as np
-import pandas as pd
-
 from .measure import Measure
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
     from numbers import Real
+
+    import numpy as np
 
     from ...typing.mapping_like import MappingLike
     from ...typing.measure_domain import MeasureDomain
@@ -310,6 +309,9 @@ class ProbabilityMeasure(Measure):
         2   0.260000
         0   0.246667
         """
+        import numpy as np
+        import pandas as pd
+
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.domain import Domain
         from ..spaces.measure_space import MeasureSpace
@@ -360,7 +362,7 @@ class ProbabilityMeasure(Measure):
     def conditional(
         self,
         given: SigmaAlgebra | Set | MeasurableVector,
-        event: Set | None = None,
+        subset: Set | None = None,
         name: Hashable | None = None,
         ascend: bool = False,
     ) -> RandomVariable | ParametrizedProbabilityMeasure:
@@ -436,12 +438,12 @@ class ProbabilityMeasure(Measure):
         ...     name="G",
         ... )
 
-        We first compute the conditional probability with an explit `event` parameter, returning an instance of `RandomVariable`.
+        We first compute the conditional probability with an explit `subset` parameter, returning an instance of `RandomVariable`.
 
         >>> U = Set([1, 2, 3], domain=Omega, name="U")
-        >>> P.conditional(given=G, event=U)
+        >>> P.conditional(given=G, subset=U)
         RandomVariable(parameters=(s), domain=Omega, sig_alg=G, measure=P|G, name=P(U|G))
-        >>> print(P.conditional(given=G, event=U))  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(P.conditional(given=G, subset=U))  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'P(U|G)':
            P(U|G)
         s
@@ -461,7 +463,7 @@ class ProbabilityMeasure(Measure):
         >>> P(U & B_1) / P(B_1)
         1.0
 
-        If the `event` parameter of the `conditional` method is left as its default value `None`, then the method will return an instance of `ParametrizedProbabilityMeasure`.
+        If the `subset` parameter of the `conditional` method is left as its default value `None`, then the method will return an instance of `ParametrizedProbabilityMeasure`.
 
         >>> P.conditional(given=G)
         ParametrizedProbabilityMeasure(parameters=(G), domain_vars=(F), sig_alg=F, name=P(-|G))
@@ -477,7 +479,7 @@ class ProbabilityMeasure(Measure):
 
         Notice that the parameter space for the measure is the set of atom identifiers of the sub-sigma-algebra `G`. The null atom of `G` has identifier `2` (the third column). The mathematical theory does not place any restrictions on the probability distribution given a null atom, just as long as it is *some* valid distribution. The default in SigAlg is to create the uniform one.
 
-        We may call the parametrized measure on the event `U` from above.
+        We may call the parametrized measure on the subset `U` from above.
 
         >>> print(P.conditional(given=G)(U))  # doctest: +NORMALIZE_WHITESPACE
         Function 'P(-|G)(U)':
@@ -487,7 +489,7 @@ class ProbabilityMeasure(Measure):
         1       1.00
         2       0.40
 
-        Notice the difference between `P.conditional(given=G, event=U)` from above and this last printout of `P.conditional(given=G)(U)`. The former is a random variable defined on the sample space `Omega`, while the latter is a function defined on the set of atom identifiers of `G`. We may "ascend" the latter to a function on the sample space by calling the `to_measurable_vector` method with the `ascend` parameter set to `True`. (Essentially, we are "broadcasting" the values of the function from the atom identifiers to the entire sample space).
+        Notice the difference between `P.conditional(given=G, subset=U)` from above and this last printout of `P.conditional(given=G)(U)`. The former is a random variable defined on the sample space `Omega`, while the latter is a function defined on the set of atom identifiers of `G`. We may "ascend" the latter to a function on the sample space by calling the `to_measurable_vector` method with the `ascend` parameter set to `True`. (Essentially, we are "broadcasting" the values of the function from the atom identifiers to the entire sample space).
 
         >>> print(P.conditional(given=G)(U).to_measurable_vector(G, ascend=True))  # doctest: +NORMALIZE_WHITESPACE
         Measurable function 'P(-|G)(U)':
@@ -501,7 +503,7 @@ class ProbabilityMeasure(Measure):
         5       0.40
         6       0.40
 
-        To recap, we have created the same instance of `RandomVariable` in two ways (at least up to almost-sure equality). In the first, we passed an explicit parameter `event=U` into the `conditional` method, directly creating an instance of `RandomVariable`. In the second, we left the `event` parameter as its default value `None`, which created an instance of `ParametrizedProbabilityMeasure`. We called this measure on `U`, which created a function on the atom identifiers of the conditioning sigma-algebra. "Ascending" from its atom identifers created a `RandomVariable` that coincided with the first (again, at least up to almost-sure equality).
+        To recap, we have created the same instance of `RandomVariable` in two ways (at least up to almost-sure equality). In the first, we passed an explicit parameter `subset=U` into the `conditional` method, directly creating an instance of `RandomVariable`. In the second, we left the `subset` parameter as its default value `None`, which created an instance of `ParametrizedProbabilityMeasure`. We called this measure on `U`, which created a function on the atom identifiers of the conditioning sigma-algebra. "Ascending" from its atom identifers created a `RandomVariable` that coincided with the first (again, at least up to almost-sure equality).
 
         Finally, we check that the conditional probability computed by SigAlg has its defining "orthogonality" property. (See the Notes below.)
 
@@ -523,10 +525,10 @@ class ProbabilityMeasure(Measure):
             raise TypeError(
                 "condition must be a SigmaAlgebra, Set, or MeasurableVector instance."
             )
-        if event is not None:
-            if not isinstance(event, Set):
+        if subset is not None:
+            if not isinstance(subset, Set):
                 raise TypeError("If given, event must be an Set instance.")
-            if event.domain != self.sig_alg.domain:
+            if subset.domain != self.sig_alg.domain:
                 raise ValueError(
                     "If given, the domain of the event must match the domain of the sigma-algebra of the probability meaasure."
                 )
@@ -545,11 +547,11 @@ class ProbabilityMeasure(Measure):
                 "The variable names of the underlying sigma-algebra and the given sigma-algebra must be completely disjoint."
             )
 
-        if event is not None:
+        if subset is not None:
             restricted_measure = self | given
 
             data = compute_expectation(
-                rv_atom_data=event.indicator_atom_data(self.sig_alg),
+                rv_atom_data=subset.indicator_atom_data(self.sig_alg),
                 given_data=given.data,
                 given_variable_names=given.variable_names,
                 atom_data=given.up_lattice.get_atom_data(self.sig_alg),
@@ -558,7 +560,7 @@ class ProbabilityMeasure(Measure):
             )
 
             if name is None:
-                name = f"P({event.name}|{given_name})"
+                name = f"P({subset.name}|{given_name})"
 
             return RandomVariable._from_validated(
                 data=data.rename(name),
@@ -574,8 +576,8 @@ class ProbabilityMeasure(Measure):
                 name = f"{self.name}(-|{given_name})"
 
             data = compute_conditional_prob_measure(
-                measure_data=self.data,
-                restricted_measure_data=(self | given).data,
+                self_data=self.data,
+                restricted_self_data=(self | given).data,
                 atom_data=self.sig_alg.down_lattice.get_atom_data(given),
                 given_data=given.data,
                 given_variable_names=given.variable_names,
@@ -608,9 +610,10 @@ class ProbabilityMeasure(Measure):
     def derivative(
         self,
         base_measure: Measure | None = None,
-        given: SigmaAlgebra | MeasurableVector | None = None,
+        given: SigmaAlgebra | MeasurableVector | Set | None = None,
         return_type: Literal["param", "non_param"] = "param",
         name: Hashable | None = None,
+        tol: float = 1e-8,
     ) -> MeasurableFunction | ParametrizedMeasurableFunction:
         r"""Compute the Radon-Nikodym derivative with respect to a base measure, optionally conditioned on a sigma-algebra.
 
@@ -633,6 +636,7 @@ class ProbabilityMeasure(Measure):
         Examples
         --------
         >>> from itertools import product
+        >>> import numpy as np
         >>> from sigalg.core import (
         ...     Measure,
         ...     Operators,
@@ -675,7 +679,7 @@ class ProbabilityMeasure(Measure):
         ...         1: 2,
         ...         2: 3,
         ...         3: 4,
-        ...         4: 0,
+        ...         4: 0,  # null atom
         ...     },
         ... )
 
@@ -721,9 +725,9 @@ class ProbabilityMeasure(Measure):
         Conditional derivatives may be computed with one of two different values for the `return_type` parameter. The first is `return_type='param'`, which is the default and returns an instance of `ParametrizedMeasurableFunction`.
 
         >>> P.derivative(mu, G, return_type="param")
-        ParametrizedMeasurableFunction(parameters=(G), measurable_vars=(s), domain=Omega, sig_alg=F, measure=mu, name=dP_dmu)
+        ParametrizedMeasurableFunction(parameters=(G), measurable_vars=(s), domain=Omega, sig_alg=F, measure=mu, name=dP(-|G)_dmu)
         >>> print(P.derivative(mu, G))  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized measurable function 'dP_dmu':
+        Parametrized measurable function 'dP(-|G)_dmu':
         G      0         1    2
         s
         0  0.250  0.000000  0.0
@@ -737,7 +741,7 @@ class ProbabilityMeasure(Measure):
         Note that the parameter space for the function is the set of atom identifiers of the conditioning sigma-algebra `G`. We may "ascend" from a function on the atom identifiers to a function on the entire sample space. (Effectively, this is "broadcasting" from the atom identifiers to all values.) This would yield a function defined on the Cartesian product of the sample space, and this function is returned when we set `return_type='non_param'`.
 
         >>> P.derivative(mu, G, return_type="non_param")
-        MeasurableFunction(parameters=(s_0, s_1), domain=Omega x Omega, sig_alg=F x F, measure=mu x P, name=dP_dmu)
+        MeasurableFunction(parameters=(s_0, s_1), domain=Omega x Omega, sig_alg=F x F, measure=mu x P, name=dP(-|G)_dmu)
 
         This is the function that has the defining property of the conditional Radon-Nikodym derivative, as we may check. (See the Notes section below.)
 
@@ -767,18 +771,18 @@ class ProbabilityMeasure(Measure):
         Multiplication of a `RandomVariable` instance against an instance of `ParametrizedMeasurableFunction` is defined in SigAlg as long as both are defined on the same sample space. The multiplication is the usual function multiplication, parameter by parameter, and yields an instance of `ParametrizedMeasurableFunction`.
 
         >>> X * P.derivative(mu, G)
-        ParametrizedMeasurableFunction(parameters=(G), measurable_vars=(s), domain=Omega, sig_alg=F, measure=None, name=(X * dP_dmu))
+        ParametrizedMeasurableFunction(parameters=(G), measurable_vars=(s), domain=Omega, sig_alg=F, measure=None, name=(X * dP(-|G)_dmu))
 
         Think of a `ParametrizedMeasurableFunction` as a family of measurable functions, one for each parameter. It is possible to pass such an instance into the `integrate` operator. The result is a `Function` whose values are the integrals of the random variables, parameter by parameter.
 
         >>> integrate(X * P.derivative(mu, G), measure=mu)
-        Function(parameters=(G), domain=G, name=int (X * dP_dmu) dmu)
+        Function(parameters=(G), domain=G, name=int (X * dP(-|G)_dmu) dmu)
 
         This is a function on the atom identifiers of the sigma-algebra `G`. As above, it naturally "ascends" to a function on the sample space, which we obtain using the `to_measurable_vector` method with `ascend=True`.
 
         >>> measurable = integrate(X * P.derivative(mu, G), measure=mu).to_measurable_vector(sig_alg=G, ascend=True)
         >>> measurable
-        MeasurableFunction(parameters=(s), domain=Omega, sig_alg=G, name=int (X * dP_dmu) dmu)
+        MeasurableFunction(parameters=(s), domain=Omega, sig_alg=G, name=int (X * dP(-|G)_dmu) dmu)
 
         To recap: `measurable` represents a function on the sample space whose value on a sample point is the integral of `X` against the probability measure obtained from `P.derivative(mu, G)` evaluated at the atom identifier containing that sample point. If the reader now looks at the Notes section below, they'll see that `measure` is supposed to be the conditional expectation of `X` given `G` (almost surely).
 
@@ -824,30 +828,46 @@ class ProbabilityMeasure(Measure):
 
         as well.
         """
-        from .._utils.function_helpers import (
-            ascend_from_atom_space,
-            compute_radon_nikodym,
-        )
-        from .._utils.measure_helpers import compute_conditional_prob_measure
+        from .._utils.measure_helpers import compute_radon_nikodym
         from ..functions.measurable_function import MeasurableFunction
         from ..functions.measurable_vector import MeasurableVector
         from ..functions.parametrized_measurable_function import (
             ParametrizedMeasurableFunction,
         )
+        from ..spaces.set import Set
+
+        if not self.is_absolutely_continuous(base_measure, tol=tol):
+            raise ValueError(
+                "The given measure is not absolutely continuous with respect to the base measure."
+            )
 
         if base_measure is None:
             base_measure = Measure.counting(self.sig_alg.domain)
 
-        if name is None:
-            name = name = f"d{self.name}_d{base_measure.name}"
+        if given is not None:
+            given_name = given.name
+            if name is None:
+                name = f"d{self.name}(-|{given_name})_d{base_measure.name}"
+            if isinstance(given, Set | MeasurableVector):
+                given = given.generated_sig_alg
+
+        elif name is None:
+            name = f"d{self.name}_d{base_measure.name}"
+
+        data = compute_radon_nikodym(
+            self_data=self.data,
+            base_measure_data=base_measure.data,
+            sig_alg_data=self.sig_alg.data,
+            given_data=given.data if given is not None else None,
+            given_variable_names=given.variable_names if given is not None else None,
+            atom_data=self.sig_alg.down_lattice.get_atom_data(given)
+            if given is not None
+            else None,
+            restricted_self_data=(self | given).data if given is not None else None,
+            return_type=return_type,
+        )
 
         if given is None:
-            data = compute_radon_nikodym(
-                measure_data=self.data,
-                base_measure_data=base_measure.data,
-                sig_alg_data=self.sig_alg.data,
-            )
-
             return MeasurableFunction._from_validated(
                 data=data.rename(name),
                 sig_alg=self.sig_alg,
@@ -858,37 +878,6 @@ class ProbabilityMeasure(Measure):
             )
 
         else:
-            given_name = given.name
-            if isinstance(given, MeasurableVector):
-                given = given.generated_sig_alg
-
-            conditional_data = compute_conditional_prob_measure(
-                measure_data=self.data,
-                restricted_measure_data=(self | given).data,
-                atom_data=self.sig_alg.down_lattice.get_atom_data(given),
-                given_data=given.data,
-                given_variable_names=given.variable_names,
-                return_raw_data=True,
-            )
-
-            conditional_data["derivative"] = conditional_data["probs"].divide(
-                base_measure.data, axis=0
-            )
-
-            mask = conditional_data["derivative"].isna() & (
-                conditional_data["restricted_probs"] < 1e-10
-            )
-            conditional_data.loc[mask, "derivative"] = 0.0
-            derivative_data = conditional_data.fillna(0.0, inplace=True)[
-                "derivative"
-            ].sort_index()
-
-            data = ascend_from_atom_space(
-                self_data=derivative_data,
-                sig_alg_data=self.sig_alg.data,
-                parameter_names=given.variable_names,
-            )
-
             if return_type == "param":
                 return ParametrizedMeasurableFunction._from_validated(
                     data=data,
@@ -901,12 +890,6 @@ class ProbabilityMeasure(Measure):
                 )
 
             else:
-                data = ascend_from_atom_space(
-                    self_data=data,
-                    sig_alg_data=given.data,
-                    parameter_names=self.sig_alg.domain.variable_names,
-                )
-
                 product_measure = Measure.tensor_product([base_measure, self])
                 data.index.names = product_measure.sig_alg.domain.variable_names
 
@@ -923,8 +906,9 @@ class ProbabilityMeasure(Measure):
         self,
         base_measure: Measure,
         given: SigmaAlgebra | RandomVector | None = None,
-        tol: float = 1e-8,
+        base: Literal["e", "2", "10"] = "e",
         name: Hashable | None = None,
+        tol: float = 1e-8,
     ) -> MeasurableFunction:
         """Compute the surprisal of the probability measure with respect to a base measure, optionally conditioned on a sigma-algebra or random vector.
 
@@ -946,9 +930,16 @@ class ProbabilityMeasure(Measure):
         surprisal : MeasurableFunction
             A measurable function representing the surprisal of the probability measure with respect to the base measure, optionally conditioned on the given sigma-algebra or random vector.
         """
-        from .._utils.utils import to_df
+        import numpy as np
+
+        from .._utils.measure_helpers import compute_radon_nikodym
         from ..functions.measurable_function import MeasurableFunction
+        from ..functions.measurable_vector import MeasurableVector
+        from ..functions.parametrized_measurable_function import (
+            ParametrizedMeasurableFunction,
+        )
         from ..measures.measure import Measure
+        from ..spaces.set import Set
 
         if not isinstance(base_measure, Measure):
             raise TypeError("The base measure must be an instance of Measure.")
@@ -960,47 +951,71 @@ class ProbabilityMeasure(Measure):
             raise ValueError(
                 "The probability measure and the base measure must be defined on the same sigma-algebra."
             )
-        if not isinstance(tol, float):
-            raise TypeError("'tol' must be a float.")
-        if tol <= 0:
-            raise ValueError("'tol' must be positive.")
+        if not isinstance(tol, float) or tol <= 0:
+            raise TypeError("tol must be a positive float.")
 
-        if not ((base_measure.data >= tol) | (self.data < tol)).all():
+        if not self.is_absolutely_continuous(base_measure, tol=tol):
             raise ValueError(
-                "The probability measure is not absolutely continuous with respect to the base measure."
+                "The given measure is not absolutely continuous with respect to the base measure."
             )
 
-        rn_der = (self.data / base_measure.data).fillna(0.0).rename("derivative")
+        if base_measure is None:
+            base_measure = Measure.counting(self.sig_alg.domain)
 
-        with np.errstate(divide="ignore"):
-            s = -np.log(rn_der)
-        s = s.mask(np.isinf(s), 0).rename("surprisal")
+        if given is not None:
+            given_name = given.name
+            if name is None:
+                name = f"s({self.name}|{given_name}; {base_measure.name})"
+            if isinstance(given, Set | MeasurableVector):
+                given = given.generated_sig_alg
 
-        sig_alg_data = to_df(base_measure.sig_alg.data)
+        elif name is None:
+            name = f"s({self.name}; {base_measure.name})"
 
-        # TODO: check merge logic — possibly change to `on`?
-        mapping = pd.merge(
-            left=base_measure.sig_alg.data,
-            right=s,
-            left_on=list(sig_alg_data.columns),
-            right_index=True,
-        )["surprisal"]
-
-        if name is None:
-            name = f"s({self.name}, {base_measure.name})"
-
-        return MeasurableFunction(
-            measure=self,
-            mapping=mapping.rename(name),
-            name=name,
+        data = compute_radon_nikodym(
+            self_data=self.data,
+            base_measure_data=base_measure.data,
+            sig_alg_data=self.sig_alg.data,
+            given_data=given.data if given is not None else None,
+            given_variable_names=given.variable_names if given is not None else None,
+            atom_data=self.sig_alg.down_lattice.get_atom_data(given)
+            if given is not None
+            else None,
+            restricted_self_data=(self | given).data if given is not None else None,
+            return_type="param",
         )
 
-    @staticmethod
-    def _to_tuple(x):
-        if isinstance(x, tuple):
-            return x
+        if base == "e":
+            log = np.log
+        elif base == "2":
+            log = np.log2
         else:
-            return (x,)
+            log = np.log10
+
+        with np.errstate(divide="ignore"):
+            data = -log(data)
+        data = data.mask(np.isinf(data), 0)
+
+        if given is None:
+            return MeasurableFunction._from_validated(
+                data=data,
+                sig_alg=self.sig_alg,
+                measure=self,
+                index_kind="Index",
+                index_name=None,
+                name=name,
+            )
+
+        else:
+            return ParametrizedMeasurableFunction._from_validated(
+                data=data,
+                sig_alg=self.sig_alg,
+                measure=self,
+                complete_domain_name=f"{given_name} x {self.sig_alg.domain.name}",
+                parameter_domain_name=given_name,
+                parameter_names=given.variable_names,
+                name=name,
+            )
 
     def are_independent(
         self,
