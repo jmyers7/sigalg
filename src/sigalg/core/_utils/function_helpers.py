@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
+    from numbers import Real
 
     import pandas as pd
 
@@ -335,3 +336,32 @@ def compute_expectation(
         self_data=merged_data,
         sig_alg_data=given_data,
     )
+
+# TODO: write docstring
+def compute_integral(
+    function_atom_data: pd.Series | pd.DataFrame,
+    measure_data: pd.Series,
+    indicator_data: pd.Series | None = None,
+    function_parameter_names: list[Hashable] | None = None,
+    measure_parameter_names: list[Hashable] | None = None,
+) -> Real | pd.Series:
+    """Pass."""
+    if indicator_data is None:
+        function_times_indicator = function_atom_data
+    else:
+        function_times_indicator = function_atom_data.multiply(indicator_data, axis=0)
+
+    if measure_parameter_names is not None:
+        data = (
+            measure_data.unstack(level=measure_parameter_names)
+            .multiply(function_times_indicator, axis=0)
+            .sum(axis=0)
+        )
+
+    elif function_parameter_names is not None and measure_parameter_names is None:
+        data = function_times_indicator.multiply(measure_data, axis=0).sum(axis=0)
+
+    else:
+        data = function_times_indicator.multiply(measure_data, axis=0).sum()
+
+    return data

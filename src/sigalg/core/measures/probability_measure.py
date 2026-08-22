@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
 from .measure import Measure
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
-    from numbers import Real
 
     import numpy as np
 
@@ -836,6 +836,13 @@ class ProbabilityMeasure(Measure):
         )
         from ..spaces.set import Set
 
+        if given is not None and (
+            set(given.variable_names) & set(self.sig_alg.variable_names)
+        ):
+            raise ValueError(
+                "The variable names of the underlying sigma-algebra and the given sigma-algebra must be completely disjoint."
+            )
+
         if not self.is_absolutely_continuous(base_measure, tol=tol):
             raise ValueError(
                 "The given measure is not absolutely continuous with respect to the base measure."
@@ -890,7 +897,7 @@ class ProbabilityMeasure(Measure):
                 )
 
             else:
-                product_measure = Measure.tensor_product([base_measure, self])
+                product_measure = Measure.tensor_product([base_measure, self | given])
                 data.index.names = product_measure.sig_alg.domain.variable_names
 
                 return MeasurableFunction._from_validated(
@@ -909,7 +916,7 @@ class ProbabilityMeasure(Measure):
         base: Literal["e", "2", "10"] = "e",
         name: Hashable | None = None,
         tol: float = 1e-8,
-    ) -> MeasurableFunction:
+    ) -> MeasurableFunction | ParametrizedMeasurableFunction:
         """Compute the surprisal of the probability measure with respect to a base measure, optionally conditioned on a sigma-algebra or random vector.
 
         See the Notes section below for the mathematical details.
@@ -930,9 +937,7 @@ class ProbabilityMeasure(Measure):
         surprisal : MeasurableFunction
             A measurable function representing the surprisal of the probability measure with respect to the base measure, optionally conditioned on the given sigma-algebra or random vector.
         """
-        import numpy as np
-
-        from .._utils.measure_helpers import compute_radon_nikodym
+        from .._utils.measure_helpers import compute_surprisal
         from ..functions.measurable_function import MeasurableFunction
         from ..functions.measurable_vector import MeasurableVector
         from ..functions.parametrized_measurable_function import (
@@ -972,7 +977,7 @@ class ProbabilityMeasure(Measure):
         elif name is None:
             name = f"s({self.name}; {base_measure.name})"
 
-        data = compute_radon_nikodym(
+        data = compute_surprisal(
             self_data=self.data,
             base_measure_data=base_measure.data,
             sig_alg_data=self.sig_alg.data,
@@ -982,19 +987,8 @@ class ProbabilityMeasure(Measure):
             if given is not None
             else None,
             restricted_self_data=(self | given).data if given is not None else None,
-            return_type="param",
+            base=base,
         )
-
-        if base == "e":
-            log = np.log
-        elif base == "2":
-            log = np.log2
-        else:
-            log = np.log10
-
-        with np.errstate(divide="ignore"):
-            data = -log(data)
-        data = data.mask(np.isinf(data), 0)
 
         if given is None:
             return MeasurableFunction._from_validated(
@@ -1016,6 +1010,78 @@ class ProbabilityMeasure(Measure):
                 parameter_names=given.variable_names,
                 name=name,
             )
+
+    def entropy(
+        self,
+        base_measure: Measure,
+        given: SigmaAlgebra | RandomVector | None = None,
+        base: Literal["e", "2", "10"] = "e",
+        name: Hashable | None = None,
+        tol: float = 1e-8,
+    ) -> Real | MeasurableFunction:
+        """Pass."""
+        import pandas as pd
+
+        from .._utils.function_helpers import ascend_from_atom_space, compute_integral
+        from ..functions.measurable_function import MeasurableFunction
+        from ..functions.measurable_vector import MeasurableVector
+        from ..spaces.set import Set
+
+        if not isinstance(base_measure, Measure):
+            raise TypeError("The base measure must be an instance of Measure.")
+        if self.data is None or base_measure.data is None:
+            raise ValueError(
+                "The probability measure and the base measure must have their 'data' attributes set."
+            )
+        if self.sig_alg != base_measure.sig_alg:
+            raise ValueError(
+                "The probability measure and the base measure must be defined on the same sigma-algebra."
+            )
+        if not isinstance(tol, float) or tol <= 0:
+            raise TypeError("tol must be a positive float.")
+
+        if not self.is_absolutely_continuous(base_measure, tol=tol):
+            raise ValueError(
+                "The given measure is not absolutely continuous with respect to the base measure."
+            )
+
+        if base_measure is None:
+            base_measure = Measure.counting(self.sig_alg.domain)
+
+        if given is not None:
+            given_name = given.name
+            if name is None:
+                name = f"H({self.name}|{given_name}; {base_measure.name})"
+            if isinstance(given, Set | MeasurableVector):
+                given = given.generated_sig_alg
+
+        elif name is None:
+            name = f"H({self.name}; {base_measure.name})"
+
+        surprisal = self.surprisal(base_measure=base_measure, given=given, base=base)
+
+        data = compute_integral(
+            function_atom_data=surprisal.atom_data(),
+            measure_data=surprisal.measure.data,
+            indicator_data=None,
+            function_parameter_names=None,
+            measure_parameter_names=None,
+        )
+
+        if isinstance(data, pd.Series):
+            data = ascend_from_atom_space(self_data=data, sig_alg_data=given.data)
+
+            return MeasurableFunction._from_validated(
+                data=data,
+                sig_alg=given,
+                measure=self | given,
+                index_kind="Index",
+                index_name=None,
+                name=name,
+            )
+
+        else:
+            return data.astype(Real)
 
     def are_independent(
         self,

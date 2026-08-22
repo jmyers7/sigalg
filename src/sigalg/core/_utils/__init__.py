@@ -2,11 +2,13 @@ from .function_helpers import (
     ascend_from_atom_space,
     compose_funcs,
     compute_expectation,
+    compute_integral,
 )
 from .index_helpers import align_index
 from .measure_helpers import (
     compute_conditional_prob_measure,
     compute_radon_nikodym,
+    compute_surprisal,
 )
 from .utils import (
     add_subscript,
@@ -32,4 +34,6 @@ __all__ = [
     "remove_subscript",
     "compute_radon_nikodym",
     "compute_conditional_prob_measure",
+    "compute_integral",
+    "compute_surprisal",
 ]

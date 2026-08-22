@@ -814,6 +814,7 @@ class Operators:
 
         then we define the *Lebesgue integral* of $f$ over $U$ to be the $d$-dimensional vector whose entries are the separate Lebesgue integrals $\int_U f_j \, d\mu$, for $j=1,2,\ldots,d$.
         """
+        from .._utils.function_helpers import compute_integral
         from ..measures.measure import Measure
         from ..measures.parametrized_measure import ParametrizedMeasure
         from ..spaces.set import Set
@@ -872,25 +873,24 @@ class Operators:
 
         if subset is None:
             name = f"int {function.name} d{measure.name}"
-            function_times_indicator = function.atom_data()
-
         else:
             name = f"int_{subset.name} {function.name} d{measure.name}"
-            function_times_indicator = function.atom_data().multiply(
-                subset.lattice.get_atom_data(function.sig_alg), axis=0
-            )
+
+        data = compute_integral(
+            function_atom_data=function.atom_data(),
+            measure_data=measure.data,
+            indicator_data=subset.lattice.get_atom_data(function.sig_alg)
+            if subset is not None
+            else None,
+            function_parameter_names=getattr(function, "parameter_names", None),
+            measure_parameter_names=getattr(measure, "parameter_names", None),
+        )
 
         if isinstance(function, MeasurableFunction) and isinstance(
             measure, ParametrizedMeasure
         ):
-            data = (
-                measure.data.unstack(level=measure.parameter_names)
-                .multiply(function_times_indicator, axis=0)
-                .sum(axis=0)
-            ).rename(name)
-
             return Function._from_validated(
-                data=data,
+                data=data.rename(name),
                 kind="any",
                 domain_kind="Domain",
                 domain_name=measure.parameter_domain_name,
@@ -902,14 +902,8 @@ class Operators:
         elif isinstance(function, ParametrizedMeasurableFunction) and isinstance(
             measure, Measure
         ):
-            data = (
-                function_times_indicator.multiply(measure.data, axis=0)
-                .sum(axis=0)
-                .rename(name)
-            )
-
             return Function._from_validated(
-                data=data,
+                data=data.rename(name),
                 kind="any",
                 domain_kind="Domain",
                 domain_name=function.parameter_domain_name,
@@ -921,17 +915,8 @@ class Operators:
         elif isinstance(function, ParametrizedMeasurableFunction) and isinstance(
             measure, ParametrizedMeasure
         ):
-            data = (
-                (
-                    function_times_indicator
-                    * measure.data.unstack(level=measure.parameter_names)
-                )
-                .sum(axis=0)
-                .rename(name)
-            )
-
             return Function._from_validated(
-                data=data,
+                data=data.rename(name),
                 kind="any",
                 domain_kind="Domain",
                 domain_name=function.parameter_domain_name,
@@ -941,12 +926,78 @@ class Operators:
             )
 
         elif isinstance(function, MeasurableVector) and isinstance(measure, Measure):
-            integral = function_times_indicator.multiply(measure.data, axis=0).sum()
-
-            if isinstance(integral, pd.Series):
-                return integral.rename(name)
+            if isinstance(data, pd.Series):
+                return data.rename(name)
             else:
-                return integral.astype(Real)
+                return data.astype(Real)
+
+        # if isinstance(function, MeasurableFunction) and isinstance(
+        #     measure, ParametrizedMeasure
+        # ):
+        #     data = (
+        #         measure.data.unstack(level=measure.parameter_names)
+        #         .multiply(function_times_indicator, axis=0)
+        #         .sum(axis=0)
+        #     ).rename(name)
+
+        #     return Function._from_validated(
+        #         data=data,
+        #         kind="any",
+        #         domain_kind="Domain",
+        #         domain_name=measure.parameter_domain_name,
+        #         index_kind="Index",
+        #         index_name=None,
+        #         name=name,
+        #     )
+
+        # elif isinstance(function, ParametrizedMeasurableFunction) and isinstance(
+        #     measure, Measure
+        # ):
+        #     data = (
+        #         function_times_indicator.multiply(measure.data, axis=0)
+        #         .sum(axis=0)
+        #         .rename(name)
+        #     )
+
+        #     return Function._from_validated(
+        #         data=data,
+        #         kind="any",
+        #         domain_kind="Domain",
+        #         domain_name=function.parameter_domain_name,
+        #         index_kind="Index",
+        #         index_name=None,
+        #         name=name,
+        #     )
+
+        # elif isinstance(function, ParametrizedMeasurableFunction) and isinstance(
+        #     measure, ParametrizedMeasure
+        # ):
+        #     data = (
+        #         (
+        #             function_times_indicator
+        #             * measure.data.unstack(level=measure.parameter_names)
+        #         )
+        #         .sum(axis=0)
+        #         .rename(name)
+        #     )
+
+        #     return Function._from_validated(
+        #         data=data,
+        #         kind="any",
+        #         domain_kind="Domain",
+        #         domain_name=function.parameter_domain_name,
+        #         index_kind="Index",
+        #         index_name=None,
+        #         name=name,
+        #     )
+
+        # elif isinstance(function, MeasurableVector) and isinstance(measure, Measure):
+        #     integral = function_times_indicator.multiply(measure.data, axis=0).sum()
+
+        #     if isinstance(integral, pd.Series):
+        #         return integral.rename(name)
+        #     else:
+        #         return integral.astype(Real)
 
     @classmethod
     def pushforward(

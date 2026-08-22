@@ -470,9 +470,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         tol: float = 1e-8,
     ) -> ParametrizedMeasurableFunction:
         """Pass."""
-        import numpy as np
-
-        from .._utils.measure_helpers import compute_radon_nikodym
+        from .._utils.measure_helpers import compute_surprisal
         from ..functions.parametrized_measurable_function import (
             ParametrizedMeasurableFunction,
         )
@@ -484,23 +482,13 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         if name is None:
             name = f"s({self.name}; {base_measure.name})"
 
-        data = compute_radon_nikodym(
+        data = compute_surprisal(
             self_data=self.data,
             base_measure_data=base_measure.data,
             sig_alg_data=self.sig_alg.data,
             parameter_names=self.parameter_names,
+            base=base,
         )
-
-        if base == "e":
-            log = np.log
-        elif base == "2":
-            log = np.log2
-        else:
-            log = np.log10
-
-        with np.errstate(divide="ignore"):
-            data = -log(data)
-        data = data.mask(np.isinf(data), 0)
 
         return ParametrizedMeasurableFunction._from_validated(
             data=data,
@@ -511,3 +499,28 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
             parameter_names=self.parameter_names,
             name=name,
         )
+
+    def entropy(
+        self,
+        base_measure: Measure | None = None,
+        base: Literal["e", "2", "10"] = "e",
+        name: Hashable | None = None,
+        tol: float = 1e-8,
+    ) -> ParametrizedMeasurableFunction:
+        """Pass."""
+        from .._utils.function_helpers import compute_integral
+
+        if name is None:
+            name = f"H({self.name}; {base_measure.name})"
+
+        surprisal = self.surprisal(base_measure=base_measure, base=base)
+
+        data = compute_integral(
+            function_atom_data=surprisal.atom_data(),
+            measure_data=self.data,
+            indicator_data=None,
+            function_parameter_names=self.parameter_names,
+            measure_parameter_names=self.parameter_names,
+        )
+
+        return data

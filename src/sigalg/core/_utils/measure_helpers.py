@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
+    from numbers import Real
 
     import pandas as pd
 
@@ -131,3 +132,43 @@ def compute_radon_nikodym(
                 sig_alg_data=given_data,
                 parameter_names=sig_alg_data.index.names,
             )
+
+
+def compute_surprisal(
+    self_data: pd.Series,
+    base_measure_data: pd.Series,
+    sig_alg_data: pd.Series | pd.DataFrame,
+    parameter_names: list[Hashable] | None = None,
+    given_data: pd.Series | pd.DataFrame | None = None,
+    given_variable_names: list[Hashable] | None = None,
+    atom_data: pd.Series | pd.DataFrame | None = None,
+    restricted_self_data: pd.Series | None = None,
+    base: Literal["e", "2", "10"] = "e",
+) -> Real | pd.Series:
+    """Pass."""
+    import numpy as np
+
+    data = compute_radon_nikodym(
+        self_data=self_data,
+        base_measure_data=base_measure_data,
+        sig_alg_data=sig_alg_data,
+        parameter_names=parameter_names,
+        given_data=given_data,
+        given_variable_names=given_variable_names,
+        atom_data=atom_data,
+        restricted_self_data=restricted_self_data,
+        return_type="param",
+    )
+
+    if base == "e":
+        log = np.log
+    elif base == "2":
+        log = np.log2
+    else:
+        log = np.log10
+
+    with np.errstate(divide="ignore"):
+        data = -log(data)
+    data = data.mask(np.isinf(data), 0)
+
+    return data

@@ -448,6 +448,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .domain import Domain
         from .probability_space import ProbabilitySpace
+        from .sample_space import SampleSpace
 
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)
@@ -462,11 +463,14 @@ class MeasureSpace(SigmaAlgebraMethods):
             else np.random.default_rng(random_state)
         )
 
+        domain_class = Domain
+
         if cls is ProbabilitySpace or measure_distribution == "dirichlet":
             measure_name = measure_name if measure_name else "P"
             measure_distribution = "dirichlet"
+            domain_class = SampleSpace
 
-        domain = Domain.from_rand(
+        domain = domain_class.from_rand(
             size=domain_size,
             dim=domain_dim,
             sample_range=domain_range,

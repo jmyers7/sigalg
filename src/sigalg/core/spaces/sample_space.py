@@ -69,7 +69,7 @@ class SampleSpace(Domain):
     _default_name = "Omega"
     _repr_name = "SampleSpace"
     _str_name = "Sample space"
-    _variable_names_prefix = "s"
+    _variable_names_prefix = "omega"
 
     # --------------------- representation --------------------- #
 
