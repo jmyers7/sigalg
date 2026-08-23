@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     from .function import Function
     from .measurable_function import MeasurableFunction
     from .measurable_vector import MeasurableVector
-    from .parametrized_measurable_function import ParametrizedMeasurableFunction
     from .random_variable import RandomVariable
     from .random_vector import RandomVector
 
@@ -634,7 +633,7 @@ class Operators:
     @classmethod
     def integrate(
         cls,
-        function: MeasurableVector | ParametrizedMeasurableFunction,
+        function: Function,
         subset: Set | None = None,
         measure: Measure | ParametrizedMeasure | None = None,
         subset_name: list[Hashable] | None = None,
@@ -817,59 +816,66 @@ class Operators:
         from .._utils.function_helpers import compute_integral
         from ..measures.measure import Measure
         from ..measures.parametrized_measure import ParametrizedMeasure
+        from ..sigma_algebras.lattice import NonMeasurableError
         from ..spaces.set import Set
         from .function import Function
-        from .measurable_function import MeasurableFunction
-        from .measurable_vector import MeasurableVector
         from .parametrized_measurable_function import ParametrizedMeasurableFunction
 
-        if not isinstance(function, MeasurableVector | ParametrizedMeasurableFunction):
+        if not isinstance(function, Function):
             raise TypeError(
                 "function must be a MeasurableVector or ParametrizedMeasurableFunction instance."
             )
+
         if measure is not None and not isinstance(
             measure, Measure | ParametrizedMeasure
         ):
             raise TypeError(
                 "If given, measure must be a Measure or ParametrizedMeasure instance."
             )
-        if (
-            isinstance(function, MeasurableVector)
-            and function.dimension > 1
-            and isinstance(measure, ParametrizedMeasure)
-        ):
+
+        if function.dimension > 1 and isinstance(measure, ParametrizedMeasure):
             raise TypeError(
-                "Cannot integrate a measurable vector of dimension > 1 against a parametrized measure."
+                "Cannot integrate a function with outputs of dimension > 1 against a parametrized measure."
             )
 
-        if subset is not None and not isinstance(subset, Set):
-            subset = Set(
-                indices=subset, domain=function.sig_alg.domain, name=subset_name
-            )
+        if measure is None:
+            if hasattr(function, "measure"):
+                measure = function.measure
+            else:
+                raise ValueError(
+                    "The function does not carry a measure and the measure parameter of the integrate method is None."
+                )
 
-        if measure is not None:
-            # HACK: This is a placeholder hack till I write a restrict_to method for parametrized measures
-            if function.sig_alg == measure.sig_alg:
-                pass
-            elif function.sig_alg <= measure.sig_alg:
+        elif hasattr(function, "sig_alg"):
+            if function.sig_alg <= measure.sig_alg:
                 measure = measure | function.sig_alg
             else:
                 raise ValueError(
                     "If given, measure must be defined on the sigma-algebra of the measurable vector."
                 )
 
-        if measure is None:
-            if function.measure is None:
-                raise TypeError(
-                    "The measure of the measurable vector is None, please pass an explicit value for the measure parameter."
-                )
-            else:
-                measure = function.measure
+        try:
+            function_atom_data = function.atom_data(measure.sig_alg)
+        except NonMeasurableError as e:
+            raise NonMeasurableError(
+                "The function is not measurable with respect to the sigma-algebra carried by the measure."
+            ) from e
 
-        if subset is not None and subset not in function.sig_alg:
-            raise ValueError(
-                "If given, the subset must be in the sigma-algebra of the measurable vector."
+        if subset is not None and not isinstance(subset, Set):
+            subset = Set(
+                indices=subset, domain=measure.sig_alg.domain, name=subset_name
             )
+
+        if subset is not None and subset not in measure.sig_alg:
+            raise ValueError(
+                "If given, the subset must be in the sigma-algebra of the measure."
+            )
+
+        indicator_data = (
+            subset.lattice.get_atom_data(measure.sig_alg)
+            if subset is not None
+            else None
+        )
 
         if subset is None:
             name = f"int {function.name} d{measure.name}"
@@ -877,16 +883,25 @@ class Operators:
             name = f"int_{subset.name} {function.name} d{measure.name}"
 
         data = compute_integral(
-            function_atom_data=function.atom_data(),
+            function_atom_data=function_atom_data,
             measure_data=measure.data,
-            indicator_data=subset.lattice.get_atom_data(function.sig_alg)
-            if subset is not None
-            else None,
+            indicator_data=indicator_data,
             function_parameter_names=getattr(function, "parameter_names", None),
             measure_parameter_names=getattr(measure, "parameter_names", None),
         )
 
-        if isinstance(function, MeasurableFunction) and isinstance(
+        if isinstance(function, ParametrizedMeasurableFunction):
+            return Function._from_validated(
+                data=data.rename(name),
+                kind="any",
+                domain_kind="Domain",
+                domain_name=function.parameter_domain_name,
+                index_kind="Index",
+                index_name=None,
+                name=name,
+            )
+
+        elif isinstance(function, Function) and isinstance(
             measure, ParametrizedMeasure
         ):
             return Function._from_validated(
@@ -899,105 +914,11 @@ class Operators:
                 name=name,
             )
 
-        elif isinstance(function, ParametrizedMeasurableFunction) and isinstance(
-            measure, Measure
-        ):
-            return Function._from_validated(
-                data=data.rename(name),
-                kind="any",
-                domain_kind="Domain",
-                domain_name=function.parameter_domain_name,
-                index_kind="Index",
-                index_name=None,
-                name=name,
-            )
-
-        elif isinstance(function, ParametrizedMeasurableFunction) and isinstance(
-            measure, ParametrizedMeasure
-        ):
-            return Function._from_validated(
-                data=data.rename(name),
-                kind="any",
-                domain_kind="Domain",
-                domain_name=function.parameter_domain_name,
-                index_kind="Index",
-                index_name=None,
-                name=name,
-            )
-
-        elif isinstance(function, MeasurableVector) and isinstance(measure, Measure):
+        else:
             if isinstance(data, pd.Series):
                 return data.rename(name)
             else:
                 return data.astype(Real)
-
-        # if isinstance(function, MeasurableFunction) and isinstance(
-        #     measure, ParametrizedMeasure
-        # ):
-        #     data = (
-        #         measure.data.unstack(level=measure.parameter_names)
-        #         .multiply(function_times_indicator, axis=0)
-        #         .sum(axis=0)
-        #     ).rename(name)
-
-        #     return Function._from_validated(
-        #         data=data,
-        #         kind="any",
-        #         domain_kind="Domain",
-        #         domain_name=measure.parameter_domain_name,
-        #         index_kind="Index",
-        #         index_name=None,
-        #         name=name,
-        #     )
-
-        # elif isinstance(function, ParametrizedMeasurableFunction) and isinstance(
-        #     measure, Measure
-        # ):
-        #     data = (
-        #         function_times_indicator.multiply(measure.data, axis=0)
-        #         .sum(axis=0)
-        #         .rename(name)
-        #     )
-
-        #     return Function._from_validated(
-        #         data=data,
-        #         kind="any",
-        #         domain_kind="Domain",
-        #         domain_name=function.parameter_domain_name,
-        #         index_kind="Index",
-        #         index_name=None,
-        #         name=name,
-        #     )
-
-        # elif isinstance(function, ParametrizedMeasurableFunction) and isinstance(
-        #     measure, ParametrizedMeasure
-        # ):
-        #     data = (
-        #         (
-        #             function_times_indicator
-        #             * measure.data.unstack(level=measure.parameter_names)
-        #         )
-        #         .sum(axis=0)
-        #         .rename(name)
-        #     )
-
-        #     return Function._from_validated(
-        #         data=data,
-        #         kind="any",
-        #         domain_kind="Domain",
-        #         domain_name=function.parameter_domain_name,
-        #         index_kind="Index",
-        #         index_name=None,
-        #         name=name,
-        #     )
-
-        # elif isinstance(function, MeasurableVector) and isinstance(measure, Measure):
-        #     integral = function_times_indicator.multiply(measure.data, axis=0).sum()
-
-        #     if isinstance(integral, pd.Series):
-        #         return integral.rename(name)
-        #     else:
-        #         return integral.astype(Real)
 
     @classmethod
     def pushforward(

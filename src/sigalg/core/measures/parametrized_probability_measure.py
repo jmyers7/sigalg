@@ -499,28 +499,3 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
             parameter_names=self.parameter_names,
             name=name,
         )
-
-    def entropy(
-        self,
-        base_measure: Measure | None = None,
-        base: Literal["e", "2", "10"] = "e",
-        name: Hashable | None = None,
-        tol: float = 1e-8,
-    ) -> ParametrizedMeasurableFunction:
-        """Pass."""
-        from .._utils.function_helpers import compute_integral
-
-        if name is None:
-            name = f"H({self.name}; {base_measure.name})"
-
-        surprisal = self.surprisal(base_measure=base_measure, base=base)
-
-        data = compute_integral(
-            function_atom_data=surprisal.atom_data(),
-            measure_data=self.data,
-            indicator_data=None,
-            function_parameter_names=self.parameter_names,
-            measure_parameter_names=self.parameter_names,
-        )
-
-        return data

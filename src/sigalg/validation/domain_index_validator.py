@@ -71,7 +71,7 @@ class DomainIndexValidator(BaseModel):
     ...     index_name="Q",
     ... )
     >>> v
-    domain = SampleSpace(size=2, variable_names=['s'], name=S)
+    domain = SampleSpace(size=2, variable_names=['omega'], name=S)
     domain_kind = 'SampleSpace'
     domain_name = 'S'
     index = Time(start=0, stop=1, is_discrete=True, name=Q)
@@ -89,7 +89,7 @@ class DomainIndexValidator(BaseModel):
     ...     index_kind="Time",
     ... )
     >>> v
-    domain = SampleSpace(size=2, variable_names=['s'], name=Omega)
+    domain = SampleSpace(size=2, variable_names=['omega'], name=Omega)
     domain_kind = 'SampleSpace'
     domain_name = 'Omega'
     index = Time(start=0, stop=1, is_discrete=True, name=T)
@@ -156,6 +156,10 @@ class DomainIndexValidator(BaseModel):
             self.domain_name = self.domain.name
             self.domain_kind = type(self.domain).__name__
 
+        else:
+            domain_class = Domain if self.domain_kind == "Domain" else SampleSpace
+            self.domain_name = domain_class._default_name
+
         return self
 
     @model_validator(mode="after")
@@ -173,6 +177,10 @@ class DomainIndexValidator(BaseModel):
 
             self.index_name = self.index.name
             self.index_kind = type(self.index).__name__
+
+        else:
+            index_class = Index if self.index_kind == "Index" else Time
+            self.index_name = index_class._default_name
 
         return self
 

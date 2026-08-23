@@ -168,10 +168,12 @@ def ascend_from_atom_space(
         .squeeze(axis=1)
     )
 
-    data.index.names = [
+    parameter_names = [
         f"{name}_0" if name in domain_variable_names else name
         for name in parameter_names
-    ] + domain_variable_names
+    ]
+
+    data.index.names = parameter_names + domain_variable_names
 
     if isinstance(data, pd.DataFrame):
         data.columns = self_index
@@ -337,6 +339,7 @@ def compute_expectation(
         sig_alg_data=given_data,
     )
 
+
 # TODO: write docstring
 def compute_integral(
     function_atom_data: pd.Series | pd.DataFrame,
@@ -348,18 +351,24 @@ def compute_integral(
     """Pass."""
     if indicator_data is None:
         function_times_indicator = function_atom_data
+
     else:
         function_times_indicator = function_atom_data.multiply(indicator_data, axis=0)
 
-    if measure_parameter_names is not None:
+    if function_parameter_names is not None and measure_parameter_names is not None:
+        data = function_times_indicator.multiply(
+            measure_data.unstack(level=measure_parameter_names), axis=0
+        ).sum(axis=0)
+
+    elif function_parameter_names is not None and measure_parameter_names is None:
+        data = function_times_indicator.multiply(measure_data, axis=0).sum(axis=0)
+
+    elif function_parameter_names is None and measure_parameter_names is not None:
         data = (
             measure_data.unstack(level=measure_parameter_names)
             .multiply(function_times_indicator, axis=0)
             .sum(axis=0)
         )
-
-    elif function_parameter_names is not None and measure_parameter_names is None:
-        data = function_times_indicator.multiply(measure_data, axis=0).sum(axis=0)
 
     else:
         data = function_times_indicator.multiply(measure_data, axis=0).sum()

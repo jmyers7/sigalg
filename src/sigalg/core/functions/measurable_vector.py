@@ -902,17 +902,17 @@ class MeasurableVector(Function, OperatorsMethods):
         >>> product = MeasurableVector.cartesian_product([X, Y])
         >>> print(product)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X x Y':
-        i        0  1
-        s_0 s_1
-        0   0    1  2
-            1    1  3
-            2    1  3
-        1   0    1  2
-            1    1  3
-            2    1  3
-        2   0    0  2
-            1    0  3
-            2    0  3
+        i                0  1
+        omega_0 omega_1
+        0       0        1  2
+                1        1  3
+                2        1  3
+        1       0        1  2
+                1        1  3
+                2        1  3
+        2       0        0  2
+                1        0  3
+                2        0  3
 
         Print the measure space of the Cartesian product.
 
@@ -921,29 +921,29 @@ class MeasurableVector(Function, OperatorsMethods):
         ===============================================
         <BLANKLINE>
         * Domain 'Omega x Omega':
-         s_0  s_1
-           0    0
-           0    1
-           0    2
-           1    0
-           1    1
-           1    2
-           2    0
-           2    1
-           2    2
+         omega_0  omega_1
+               0        0
+               0        1
+               0        2
+               1        0
+               1        1
+               1        2
+               2        0
+               2        1
+               2        2
         <BLANKLINE>
         * Sigma algebra 'F x G':
-        i        0  1
-        s_0 s_1
-        0   0    0  0
-            1    0  1
-            2    0  1
-        1   0    0  0
-            1    0  1
-            2    0  1
-        2   0    1  0
-            1    1  1
-            2    1  1
+        i                0  1
+        omega_0 omega_1
+        0       0        0  0
+                1        0  1
+                2        0  1
+        1       0        0  0
+                1        0  1
+                2        0  1
+        2       0        1  0
+                1        1  1
+                2        1  1
         <BLANKLINE>
         * Probability measure 'P x Q':
              P x Q
@@ -957,17 +957,17 @@ class MeasurableVector(Function, OperatorsMethods):
 
         >>> print(X @ Y)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X x Y':
-        i        0  1
-        s_0 s_1
-        0   0    1  2
-            1    1  3
-            2    1  3
-        1   0    1  2
-            1    1  3
-            2    1  3
-        2   0    0  2
-            1    0  3
-            2    0  3
+        i                0  1
+        omega_0 omega_1
+        0       0        1  2
+                1        1  3
+                2        1  3
+        1       0        1  2
+                1        1  3
+                2        1  3
+        2       0        0  2
+                1        0  3
+                2        0  3
 
         Notes
         -----
@@ -1438,48 +1438,48 @@ class MeasurableVector(Function, OperatorsMethods):
         ... )
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        i  0  1
-        s
-        0  9  4
-        1  9  4
-        2  8  6
-        3  9  4
-        4  7  7
-        5  9  4
-        6  1  3
-        7  9  4
-        8  1  3
-        9  9  4
+        i      0  1
+        omega
+        0      9  4
+        1      9  4
+        2      8  6
+        3      9  4
+        4      7  7
+        5      9  4
+        6      1  3
+        7      9  4
+        8      1  3
+        9      9  4
         >>> print(X.measure_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, F, P)
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-         s
-         0
-         1
-         2
-         3
-         4
-         5
-         6
-         7
-         8
-         9
+         omega
+             0
+             1
+             2
+             3
+             4
+             5
+             6
+             7
+             8
+             9
         <BLANKLINE>
         * Sigma algebra 'F':
-           F
-        s
-        0  1
-        1  1
-        2  3
-        3  1
-        4  2
-        5  1
-        6  0
-        7  1
-        8  0
-        9  1
+              F
+        omega
+        0     1
+        1     1
+        2     3
+        3     1
+        4     2
+        5     1
+        6     0
+        7     1
+        8     0
+        9     1
         <BLANKLINE>
         * Probability measure 'P':
                   P
@@ -1509,18 +1509,18 @@ class MeasurableVector(Function, OperatorsMethods):
         ... )
         >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'Y':
-           Y
-        s
-        0  4
-        1  4
-        2  7
-        3  4
-        4  3
-        5  4
-        6  7
-        7  4
-        8  7
-        9  4
+               Y
+        omega
+        0      4
+        1      4
+        2      7
+        3      4
+        4      3
+        5      4
+        6      7
+        7      4
+        8      7
+        9      4
         >>> Y_sample = Y.sample(size=1_000, random_state=rng)
         >>> print(Y_sample.measure)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'C':

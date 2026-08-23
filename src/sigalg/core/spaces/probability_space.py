@@ -49,24 +49,24 @@ class ProbabilitySpace(MeasureSpace):
     ===============================
     <BLANKLINE>
     * Sample space 'Omega':
-     s
-     0
-     1
-     2
+     omega
+         0
+         1
+         2
     <BLANKLINE>
     * Sigma algebra 'R':
-         R
-    s
-    0    0
-    1    1
-    2    2
+           R
+    omega
+    0      0
+    1      1
+    2      2
     <BLANKLINE>
     * Probability measure 'U':
-                U
-    s
-    0    0.333333
-    1    0.333333
-    2    0.333333
+                  U
+    omega
+    0      0.333333
+    1      0.333333
+    2      0.333333
 
     Create a probability space with a custom sigma-algebra and probability measure.
 
@@ -91,17 +91,17 @@ class ProbabilitySpace(MeasureSpace):
     ===============================
     <BLANKLINE>
     * Sample space 'Omega':
-     s
-     0
-     1
-     2
+     omega
+         0
+         1
+         2
     <BLANKLINE>
     * Sigma algebra 'F':
-         F
-    s
-    0    0
-    1    1
-    2    1
+           F
+    omega
+    0      0
+    1      1
+    2      1
     <BLANKLINE>
     * Probability measure 'P':
             P
@@ -186,19 +186,19 @@ class ProbabilitySpace(MeasureSpace):
         ===============================
         <BLANKLINE>
         * Sample space 'A':
-         s
-         1
-         2
-         3
-         4
+         omega
+             1
+             2
+             3
+             4
         <BLANKLINE>
         * Sigma algebra 'F|A':
-           F|A
-        s
-        1    1
-        2    1
-        3    2
-        4    2
+               F|A
+        omega
+        1        1
+        2        1
+        3        2
+        4        2
         <BLANKLINE>
         * Probability measure 'P|A':
                    P|A

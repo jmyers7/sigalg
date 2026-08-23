@@ -100,7 +100,7 @@ class TestUniform:
         U = ProbabilityMeasure.uniform(domain=Omega)
         expected_data = pd.Series(
             [0.25, 0.25, 0.25, 0.25],
-            index=pd.Index(["a", "b", "c", "d"], name="s"),
+            index=pd.Index(["a", "b", "c", "d"], name="omega"),
             name="U",
         )
 
@@ -439,9 +439,7 @@ class TestConditional:
         F = prob_space.sig_alg
         G = SigmaAlgebra.from_rand(super=F, num_atoms=3, random_state=42, name="G")
         expectation = Operators.expectation(X, G)
-        integral = Operators.integrate(
-            X, measure=P.conditional(G, ascend=True)
-        ).to_measurable_vector(sig_alg=G)
+        integral = Operators.integrate(X, measure=P.conditional(G)).ascend(G)
 
         assert P.equal_almost_surely(expectation, integral)
 

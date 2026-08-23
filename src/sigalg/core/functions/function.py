@@ -252,12 +252,12 @@ class Function:
         >>> g = Function.from_numpy(arr=arr, name="g", domain_kind="SampleSpace")
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
         Function 'g':
-                  g
-        s_0 s_1
-        0   0     1
-            1     2
-        1   0     3
-            1     4
+                            g
+        omega_0 omega_1
+              0       0     1
+                      1     2
+              1       0     3
+                      1     4
         """
         import numpy as np
         import pandas as pd
@@ -2804,6 +2804,41 @@ class Function:
         else:
             return None
 
+    def ascend(
+        self, sig_alg: SigmaAlgebra, measure: Measure | None = None
+    ) -> MeasurableVector:
+        """Pass."""
+        import pandas as pd
+
+        from .._utils.utils import add_subscript, to_df
+        from .measurable_vector import MeasurableVector
+
+        self_data = to_df(self.data)
+        self_data.index.names = add_subscript(sig_alg.variable_names, "ID")
+        sig_alg_data = to_df(sig_alg.data).copy()
+        sig_alg_data.columns = add_subscript(sig_alg.variable_names, "ID")
+
+        data = (
+            pd.merge(left=sig_alg_data.reset_index(), right=self_data.reset_index())
+            .set_index(sig_alg.domain.variable_names)[list(self_data.columns)]
+            .squeeze(axis=1)
+        )
+
+        if isinstance(data, pd.Series):
+            data.name = self.name
+
+        return MeasurableVector._from_validated(
+            data=data,
+            sig_alg=sig_alg,
+            measure=measure,
+            index_kind=type(self.index).__name__ if self.index is not None else None,
+            index_name=self.index.name if self.index is not None else None,
+            name=self.name,
+        )
+
+    def descend(self, sig_alg: SigmaAlgebra) -> Function:
+        """Pass."""
+
     # --------------------- util methods --------------------- #
 
     def item(self) -> Hashable | pd.Series:
@@ -3365,15 +3400,11 @@ class Function:
         self,
         sig_alg: SigmaAlgebra,
         measure: Measure | None = None,
-        ascend: bool = False,
-        parameter_names: list[Hashable] | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
         """Pass."""
         from ...validation.measurable_func_normalizer import MeasurableFuncNormalizer
-        from .._utils.function_helpers import ascend_from_atom_space
         from .measurable_vector import MeasurableVector
-        from .parametrized_measurable_function import ParametrizedMeasurableFunction
 
         if self.data is None:
             raise ValueError(
@@ -3383,57 +3414,28 @@ class Function:
         if name is None:
             name = self.name
 
-        if ascend:
-            data = ascend_from_atom_space(
-                self_data=self.data,
-                sig_alg_data=sig_alg.data,
-                parameter_names=parameter_names,
+        w = MeasurableFuncNormalizer(
+            domain=self.domain,
+            sig_alg=sig_alg,
+            measure=measure,
+        )
+
+        sig_alg = w.sig_alg
+        measure = w.measure
+
+        if self not in sig_alg:
+            raise ValueError(
+                "The function is not measurable with respect to the given sigma-algebra."
             )
 
-            if parameter_names is None:
-                return MeasurableVector._from_validated(
-                    data=data,
-                    sig_alg=sig_alg,
-                    measure=measure,
-                    index_kind=type(self.index) if self.index is not None else "Index",
-                    index_name=self.index.name if self.index is not None else None,
-                    name=name,
-                )
-
-            else:
-                return ParametrizedMeasurableFunction._from_validated(
-                    data=data,
-                    sig_alg=sig_alg,
-                    measure=measure,
-                    complete_domain_name="temp",
-                    parameter_domain_name="temp",
-                    parameter_names=parameter_names,
-                    name=name,
-                )
-
-        else:
-            w = MeasurableFuncNormalizer(
-                domain=self.domain,
-                sig_alg=sig_alg,
-                measure=measure,
-            )
-
-            sig_alg = w.sig_alg
-            measure = w.measure
-
-            if self not in sig_alg:
-                raise ValueError(
-                    "The function is not measurable with respect to the given sigma-algebra."
-                )
-
-            return MeasurableVector._from_validated(
-                data=self.data,
-                sig_alg=sig_alg,
-                measure=measure,
-                index_kind=type(self.index) if self.index is not None else "Index",
-                index_name=self.index.name if self.index is not None else None,
-                name=name,
-            )
+        return MeasurableVector._from_validated(
+            data=self.data,
+            sig_alg=sig_alg,
+            measure=measure,
+            index_kind=type(self.index) if self.index is not None else "Index",
+            index_name=self.index.name if self.index is not None else None,
+            name=name,
+        )
 
     def with_variable_names(self, variable_names: list[Hashable]) -> Function:
         """Return a new instance of the function with updated variable names."""

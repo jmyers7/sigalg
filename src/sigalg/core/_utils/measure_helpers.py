@@ -14,15 +14,13 @@ def compute_conditional_prob_measure(
     self_data: pd.Series,
     restricted_self_data: pd.Series,
     atom_data: pd.Series | pd.DataFrame,
-    given_data: pd.Series | pd.DataFrame,
     given_variable_names: list[Hashable],
+    base_measure_data: pd.Series | None = None,
     return_raw_data: bool = False,
-    ascend: bool = False,
-):
+) -> pd.Series:
     """Pass."""
     import pandas as pd
 
-    from .function_helpers import ascend_from_atom_space
     from .utils import to_df
 
     restricted_measure_name = restricted_self_data.name
@@ -56,19 +54,21 @@ def compute_conditional_prob_measure(
         return data.rename(columns={restricted_measure_name: "restricted_probs"})
 
     mask = data["probs"].isna() & (data[restricted_measure_name] < 1e-10)
-    data.loc[mask, "probs"] = 1 / len(self_data)
-    data = data.fillna(0.0, inplace=True)["probs"].sort_index()
 
-    if ascend:
-        data = ascend_from_atom_space(
-            self_data=data.reorder_levels(self_data.index.names + given_variable_names),
-            sig_alg_data=given_data,
-            parameter_names=self_data.index.names,
+    if base_measure_data is not None:
+        default_dist = base_measure_data.where(
+            base_measure_data == 0, 1 / (base_measure_data != 0).sum()
         )
 
-        data = data.reorder_levels(
-            given_data.index.names + self_data.index.names
-        ).sort_index()
+        data.loc[mask, "probs"] = pd.merge(
+            left=data.loc[mask, "probs"].reset_index().drop(columns="probs"),
+            right=default_dist.rename("probs").reset_index(),
+        ).set_index(list(data.index.names))
+
+    else:
+        data.loc[mask, "probs"] = 1 / len(self_data)
+
+    data = data.fillna(0.0, inplace=True)["probs"].sort_index()
 
     return data
 
@@ -83,13 +83,11 @@ def compute_radon_nikodym(
     given_variable_names: list[Hashable] | None = None,
     atom_data: pd.Series | pd.DataFrame | None = None,
     restricted_self_data: pd.Series | None = None,
-    return_type: Literal["param", "non_param", None] = None,
 ) -> pd.Series:
     """Pass."""
     from .function_helpers import ascend_from_atom_space
 
     if given_data is None:
-        data = (self_data / base_measure_data).fillna(0.0)
         data = self_data.divide(base_measure_data, axis=0).fillna(0.0)
         data.name = None
         return ascend_from_atom_space(
@@ -101,21 +99,13 @@ def compute_radon_nikodym(
             self_data=self_data,
             restricted_self_data=restricted_self_data,
             atom_data=atom_data,
-            given_data=given_data,
             given_variable_names=given_variable_names,
-            return_raw_data=True,
-        )
-        conditional_data["derivative"] = conditional_data["probs"].divide(
-            base_measure_data, axis=0
+            base_measure_data=base_measure_data,
         )
 
-        mask = conditional_data["derivative"].isna() & (
-            conditional_data["restricted_probs"] < 1e-10
-        )
-        conditional_data.loc[mask, "derivative"] = 0.0
-        derivative_data = conditional_data.fillna(0.0, inplace=True)[
-            "derivative"
-        ].sort_index()
+        conditional_data = conditional_data.divide(base_measure_data, axis=0)
+
+        derivative_data = conditional_data.fillna(0.0, inplace=True).sort_index()
 
         data = ascend_from_atom_space(
             self_data=derivative_data,
@@ -123,15 +113,7 @@ def compute_radon_nikodym(
             parameter_names=given_variable_names,
         )
 
-        if return_type == "param":
-            return data
-
-        else:
-            return ascend_from_atom_space(
-                self_data=data,
-                sig_alg_data=given_data,
-                parameter_names=sig_alg_data.index.names,
-            )
+        return data
 
 
 def compute_surprisal(
@@ -157,7 +139,6 @@ def compute_surprisal(
         given_variable_names=given_variable_names,
         atom_data=atom_data,
         restricted_self_data=restricted_self_data,
-        return_type="param",
     )
 
     if base == "e":

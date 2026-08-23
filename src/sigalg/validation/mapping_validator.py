@@ -276,6 +276,8 @@ class MappingValidator(BaseModel):
     @model_validator(mode="after")
     def generate_domain(self) -> MappingValidator:
         """Generate domain variable names if `mapping` is a `pd.Series` or `pd.DataFrame` whose index has empty level names and `domain` is not provided."""
+        from ..core.spaces.domain import Domain
+        from ..core.spaces.sample_space import SampleSpace
         from .index_validator import IndexValidator
 
         if (
@@ -283,10 +285,8 @@ class MappingValidator(BaseModel):
             and set(self.mapping.index.names) == {None}
             and self.domain is None
         ):
-            if self.domain_kind == "Domain":
-                variable_names_prefix = "x"
-            elif self.domain_kind == "SampleSpace":
-                variable_names_prefix = "s"
+            domain_class = Domain if self.domain_kind == "Domain" else SampleSpace
+            variable_names_prefix = domain_class._variable_names_prefix
 
             self.mapping.index = IndexValidator(
                 indices=self.mapping.index,

@@ -851,7 +851,6 @@ class Measure(Function):
                 sig_alg=sig_alg,
                 name=name,
             )
-            return
 
         elif isinstance(obj, Set | list):
             subset = obj

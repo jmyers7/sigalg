@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from ..sigma_algebras.lattice import Lattice
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.domain import Domain
+    from ..spaces.set import Set
     from .measure import Measure
 
 
@@ -601,7 +602,58 @@ class ParametrizedMeasure(Function):
         else:
             return None
 
-    # --------------------- probability methods --------------------- #
+    # --------------------- methods --------------------- #
+
+    def restrict_to(
+        self,
+        obj: SigmaAlgebra | Set | list[Hashable],
+        normalize: bool = False,
+        subset_name: Hashable | None = "A",
+        name: Hashable | None = None,
+    ) -> Measure:
+        """Pass."""
+        import pandas as pd
+
+        from .._utils.utils import to_df
+
+        sig_alg = obj
+
+        # TODO: add fast path if pandas_all_equal
+        if sig_alg is self.sig_alg:
+            return self
+
+        if sig_alg not in self.lattice:
+            raise TypeError(
+                "If given obj is a sigma-algebra, it must be a sub-sigma-algebra of the sigma-algebra of the measure."
+            )
+
+        atom_data = to_df(self.lattice.get_atom_data(sig_alg), "_alg")
+        unstacked_self_data = self.data.unstack(level=self.parameter_names)
+
+        if name is None:
+            name = f"{self.name}|{sig_alg.name}"
+
+        data = (
+            pd.concat([atom_data, unstacked_self_data], axis=1)
+            .groupby(list(atom_data.columns))
+            .sum()
+        )
+        data.index.names = sig_alg.variable_names
+        data.columns = unstacked_self_data.columns
+        data = data.stack(level=data.columns.names)
+        data = data.reorder_levels(
+            unstacked_self_data.columns.names + sig_alg.variable_names
+        ).sort_index()
+
+        return type(self)._from_validated(
+            data=data,
+            sig_alg=sig_alg,
+            kind=self.kind,
+            complete_domain_name=f"{self.parameter_domain.name} x {sig_alg.name}",
+            parameter_domain_name=self.parameter_domain.name,
+            parameter_names=self.parameter_names,
+            name=name,
+        )
 
     def __rshift__(self, vec: MeasurableVector) -> ParametrizedMeasure:
         """Push forward the parametrized measure through a measurable vector.
@@ -621,6 +673,26 @@ class ParametrizedMeasure(Function):
         from ..functions.operators import Operators
 
         return Operators.pushforward(vec=vec, measure=self)
+
+    # --------------------- dunder operators --------------------- #
+
+    def __or__(
+        self,
+        obj: SigmaAlgebra | Set | list[Hashable],
+    ) -> ParametrizedMeasure:
+        """Restrict the measure to a sub-sigma-algebra.
+
+        Parameters
+        ----------
+        sig_alg : SigmaAlgebra
+            The sub-sigma-algebra to which to restrict the measure.
+
+        Returns
+        -------
+        measure : Measure
+            A new measure restricted to the new sigma-algebra.
+        """
+        return self.restrict_to(obj)
 
     # --------------------- data access methods --------------------- #
 

@@ -30,12 +30,12 @@ class TestConstructor:
     def test_single_dim_default_names(self):
         """Test constructor with single dimension and default names."""
         Omega = SampleSpace(["a", "b", "c"])
-        expected_data = pd.Index(["a", "b", "c"], name="s")
+        expected_data = pd.Index(["a", "b", "c"], name="omega")
 
         assert isinstance(Omega.data, pd.Index)
         assert not isinstance(Omega.data, pd.MultiIndex)
         assert Omega.name == "Omega"
-        assert Omega.variable_names == ["s"]
+        assert Omega.variable_names == ["omega"]
         assert Omega.dimension == 1
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
@@ -43,13 +43,13 @@ class TestConstructor:
         """Test constructor with multiple dimensions and default names."""
         S = SampleSpace(name="S", indices=[("a", 1), ("b", 2), ("c", 3)])
         expected_data = pd.MultiIndex.from_tuples(
-            [("a", 1), ("b", 2), ("c", 3)], names=["s_0", "s_1"]
+            [("a", 1), ("b", 2), ("c", 3)], names=["omega_0", "omega_1"]
         )
 
         assert isinstance(S.data, pd.Index)
         assert isinstance(S.data, pd.MultiIndex)
         assert S.name == "S"
-        assert S.variable_names == ["s_0", "s_1"]
+        assert S.variable_names == ["omega_0", "omega_1"]
         assert S.dimension == 2
         pd.testing.assert_index_equal(S.data, expected_data)
 
@@ -101,12 +101,12 @@ class TestConstructor:
     def test_empty_indices_with_default_data_name(self):
         """Test constructor with empty indices and default data_name."""
         S = SampleSpace(name="S", indices=[])
-        expected_data = pd.Index([], name="s")
+        expected_data = pd.Index([], name="omega")
 
         assert isinstance(S.data, pd.Index)
         assert not isinstance(S.data, pd.MultiIndex)
         assert S.name == "S"
-        assert S.variable_names == ["s"]
+        assert S.variable_names == ["omega"]
         assert S.dimension == 1
         pd.testing.assert_index_equal(S.data, expected_data)
 
@@ -126,10 +126,10 @@ class TestConstructor:
         """Test constructor with index and default parameters."""
         data = pd.Index([0, 1, 2])
         Omega = SampleSpace(indices=data)
-        expected_data = pd.Index([0, 1, 2], name="s")
+        expected_data = pd.Index([0, 1, 2], name="omega")
 
         assert Omega.name == "Omega"
-        assert Omega.variable_names == ["s"]
+        assert Omega.variable_names == ["omega"]
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
     def test_constructor_with_index_with_custom_parameters(self):
@@ -144,10 +144,10 @@ class TestConstructor:
     def test_from_sequence_with_default_parameters(self):
         """Test from_sequence method with default parameters."""
         Omega = SampleSpace().from_sequence(size=3)
-        expected_data = pd.Index([0, 1, 2], name="s")
+        expected_data = pd.Index([0, 1, 2], name="omega")
 
         assert Omega.name == "Omega"
-        assert Omega.variable_names == ["s"]
+        assert Omega.variable_names == ["omega"]
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
     def test_from_sequence_with_custom_parameters(self):

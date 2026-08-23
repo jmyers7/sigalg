@@ -65,25 +65,25 @@ class RandomVector(MeasurableVector):
     ... )
     >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
     Random vector 'X':
-    i  0  1
-    s
-    0  1  1
-    1  1  1
-    2  2  2
+    i      0  1
+    omega
+    0      1  1
+    1      1  1
+    2      2  2
     >>> print(X.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'R':
-       R
-    s
-    0  0
-    1  1
-    2  2
+          R
+    omega
+    0     0
+    1     1
+    2     2
     >>> print(X.measure)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'U':
-               U
-    s
-    0   0.333333
-    1   0.333333
-    2   0.333333
+                  U
+    omega
+    0      0.333333
+    1      0.333333
+    2      0.333333
 
     Generate a random vector on a pre-existing probability space.
 
@@ -114,11 +114,11 @@ class RandomVector(MeasurableVector):
     ... )
     >>> print(Z.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'F':
-       F
-    s
-    0  0
-    1  0
-    2  1
+          F
+    omega
+    0     0
+    1     0
+    2     1
     >>> print(Z.measure)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
              P

@@ -471,9 +471,9 @@ class Set(Index):
         >>> A = F.get_set([0])
         >>> print(A.complement()) # doctest: +NORMALIZE_WHITESPACE
         Set 'A complement':
-         s
-         1
-         2
+         omega
+             1
+             2
         """
         return ~self
 
@@ -499,8 +499,8 @@ class Set(Index):
         >>> B = F.get_set([1, 2], name="B")
         >>> print(A.intersection(B)) # doctest: +NORMALIZE_WHITESPACE
         Set 'A intersect B':
-         s
-         1
+         omega
+             1
         """
         return self & other
 
@@ -526,9 +526,9 @@ class Set(Index):
         >>> B = F.get_set([1], name="B")
         >>> print(A.union(B)) # doctest: +NORMALIZE_WHITESPACE
         Set 'A union B':
-         s
-         0
-         1
+         omega
+             0
+             1
         """
         return self | other
 
@@ -554,8 +554,8 @@ class Set(Index):
         >>> B = F.get_set([1, 2], name="B")
         >>> print(A.difference(B)) # doctest: +NORMALIZE_WHITESPACE
         Set 'A difference B':
-         s
-         0
+         omega
+             0
         """
         return self - other
 
@@ -839,9 +839,9 @@ class Set(Index):
         >>> A = F.get_set([0, 1])
         >>> print(A.to_sample_space()) # doctest: +NORMALIZE_WHITESPACE
         Sample space 'A':
-         s
-         0
-         1
+         omega
+             0
+             1
         """
         from .sample_space import SampleSpace
 

@@ -316,11 +316,11 @@ class SigmaAlgebra:
         >>> G = SigmaAlgebra.trivial(Omega1, name="G")
         >>> print(G)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
-           G
-        s
-        0  0
-        1  0
-        2  0
+               G
+        omega
+        0      0
+        1      0
+        2      0
         >>> print(G.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'G':
          G
@@ -985,35 +985,35 @@ class SigmaAlgebra:
         >>> F_3 = SigmaAlgebra.cartesian_power(F, 3)
         >>> print(F_3)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F ^ 3':
-        i            0  1  2  3  4  5
-        s_0 s_1 s_2
-        0   0   0    1  a  1  a  1  a
-                1    1  a  1  a  1  a
-                2    1  a  1  a  2  b
-            1   0    1  a  1  a  1  a
-                1    1  a  1  a  1  a
-                2    1  a  1  a  2  b
-            2   0    1  a  2  b  1  a
-                1    1  a  2  b  1  a
-                2    1  a  2  b  2  b
-        1   0   0    1  a  1  a  1  a
-                1    1  a  1  a  1  a
-                2    1  a  1  a  2  b
-            1   0    1  a  1  a  1  a
-                1    1  a  1  a  1  a
-                2    1  a  1  a  2  b
-            2   0    1  a  2  b  1  a
-                1    1  a  2  b  1  a
-                2    1  a  2  b  2  b
-        2   0   0    2  b  1  a  1  a
-                1    2  b  1  a  1  a
-                2    2  b  1  a  2  b
-            1   0    2  b  1  a  1  a
-                1    2  b  1  a  1  a
-                2    2  b  1  a  2  b
-            2   0    2  b  2  b  1  a
-                1    2  b  2  b  1  a
-                2    2  b  2  b  2  b
+        i                        0  1  2  3  4  5
+        omega_0 omega_1 omega_2
+        0       0       0        1  a  1  a  1  a
+                        1        1  a  1  a  1  a
+                        2        1  a  1  a  2  b
+                1       0        1  a  1  a  1  a
+                        1        1  a  1  a  1  a
+                        2        1  a  1  a  2  b
+                2       0        1  a  2  b  1  a
+                        1        1  a  2  b  1  a
+                        2        1  a  2  b  2  b
+        1       0       0        1  a  1  a  1  a
+                        1        1  a  1  a  1  a
+                        2        1  a  1  a  2  b
+                1       0        1  a  1  a  1  a
+                        1        1  a  1  a  1  a
+                        2        1  a  1  a  2  b
+                2       0        1  a  2  b  1  a
+                        1        1  a  2  b  1  a
+                        2        1  a  2  b  2  b
+        2       0       0        2  b  1  a  1  a
+                        1        2  b  1  a  1  a
+                        2        2  b  1  a  2  b
+                1       0        2  b  1  a  1  a
+                        1        2  b  1  a  1  a
+                        2        2  b  1  a  2  b
+                2       0        2  b  2  b  1  a
+                        1        2  b  2  b  1  a
+                        2        2  b  2  b  2  b
         >>> print(F_3.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'F ^ 3':
          F_0 F_1  F_2 F_3  F_4 F_5
@@ -1435,7 +1435,7 @@ class SigmaAlgebra:
         ... )
         >>> print(F.atom_indicator_df)  # doctest: +NORMALIZE_WHITESPACE
                 a  b  c
-        s
+        omega
         0       0  1  0
         1       0  1  0
         2       1  0  0
@@ -1459,7 +1459,7 @@ class SigmaAlgebra:
         ... )
         >>> print(G.atom_indicator_df)  # doctest: +NORMALIZE_WHITESPACE
                 (a, b)  (c, d)
-        s
+        omega
         0            1       0
         1            1       0
         2            1       0
