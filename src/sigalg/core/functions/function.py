@@ -1099,7 +1099,7 @@ class Function:
                 ]
             ) == len(factors)
 
-            sig_alg = SigmaAlgebra.cartesian_product(
+            sig_alg = SigmaAlgebra.tensor_product(
                 [function.sig_alg for function in factors]
             )
 
@@ -3100,7 +3100,7 @@ class Function:
                 index_name=self.index.name,
             )
 
-            if hasattr(self, "measure") and self.measure:
+            if hasattr(self, "measure") and self.measure is not None:
                 result.measure = self.measure
                 result.sig_alg = self.measure.sig_alg
                 if isinstance(self.measure, ProbabilityMeasure):
@@ -3690,6 +3690,8 @@ class Function:
             index_kind=type(self.index).__name__ if self.index else "Index",
             index_name=self.index.name if self.index else None,
             name=name,
+            sig_alg=getattr(self, "sig_alg", None),
+            measure=getattr(self, "measure", None),
         )
 
     def to_numpy(self, multi_dim: bool = False, dtype=None, copy=None) -> np.ndarray:
@@ -4699,6 +4701,8 @@ class Function:
                 index_kind=None,
                 index_name=None,
                 name=name,
+                sig_alg=getattr(self, "sig_alg", None),
+                measure=getattr(self, "measure", None),
                 **kwargs,
             )
 
