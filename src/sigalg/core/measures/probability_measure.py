@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Hashable
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
 from .measure import Measure
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
-
     import numpy as np
 
     from ...typing.mapping_like import MappingLike
@@ -242,6 +241,12 @@ class ProbabilityMeasure(Measure):
             name=name,
         )
 
+    # --------------------- dunder operators --------------------- #
+
+    def __matmul__(self, other):
+        """Pass."""
+        return ProbabilityMeasure.tensor_product([self, other])
+
     # --------------------- probability methods --------------------- #
 
     def sample(
@@ -358,6 +363,69 @@ class ProbabilityMeasure(Measure):
         )
 
         return MeasureSpace._from_validated(measure=measure)
+
+    def marginal(
+        self,
+        variables: list[Hashable] | Hashable,
+        name: Hashable | None = None,
+    ) -> ProbabilityMeasure:
+        """Pass."""
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if not isinstance(variables, Hashable | list):
+            raise TypeError(
+                "variables must either be a single variable name or a "
+                "list of variable names."
+            )
+        if not isinstance(variables, Hashable) and not all(
+            isinstance(x, Hashable) for x in variables
+        ):
+            raise TypeError(
+                "If variables is not a single variable name, it must be a "
+                "list of variable names."
+            )
+        if isinstance(variables, Hashable):
+            variables = [variables]
+        if len(variables) == 0:
+            return self
+        if not set(variables) <= set(self.variable_names):
+            raise ValueError(
+                "The set of variable names must be a subset of the set of all variable "
+                "names."
+            )
+        if not self.sig_alg.is_power_set:
+            raise ValueError(
+                "The marginal distributions are currently only defined for probability "
+                "measures on power-set sigma-algebras."
+            )
+
+        if name is None:
+            if len(variables) == 1:
+                name = f"{self.name}_{variables[0]}"
+                domain_name = f"{self.sig_alg.domain.name}_{variables[0]}"
+            else:
+                variables_str = "(" + ", ".join(variables) + ")"
+                name = f"{self.name}_{variables_str}"
+                domain_name = f"{self.sig_alg.domain.name}_{variables_str}"
+
+        data = self.data.groupby(level=variables).sum().rename(name)
+
+        sig_alg = SigmaAlgebra._from_validated(
+            data=data.index.to_frame().squeeze(axis=1),
+            variable_names=variables,
+            domain_kind=type(self.sig_alg.domain).__name__,
+            domain_name=domain_name,
+            index_kind="Index",
+            index_name="I",
+            name="R",
+        )
+
+        return ProbabilityMeasure._from_validated(
+            data=data,
+            kind="probability",
+            sig_alg=sig_alg,
+            name=name,
+        )
 
     def conditional(
         self,
@@ -802,13 +870,13 @@ class ProbabilityMeasure(Measure):
             given=given, base_measure=base_measure
         )
 
+        if base_measure is None:
+            base_measure = Measure.counting(self.sig_alg)
+
         if not self.is_absolutely_continuous(base_measure, tol=tol):
             raise ValueError(
                 "The given measure is not absolutely continuous with respect to the base measure."
             )
-
-        if base_measure is None:
-            base_measure = Measure.counting(self.sig_alg.domain)
 
         if given is not None and name is None:
             name = f"d{self.name}(-|{given_name})_d{base_measure.name}"
@@ -884,18 +952,19 @@ class ProbabilityMeasure(Measure):
         )
         from ..measures.measure import Measure
 
-        given_name = given.name
+        if given is not None:
+            given_name = given.name
         given = self._normalize_given_and_base_measure(
             given=given, base_measure=base_measure
         )
+
+        if base_measure is None:
+            base_measure = Measure.counting(self.sig_alg)
 
         if not self.is_absolutely_continuous(base_measure, tol=tol):
             raise ValueError(
                 "The given measure is not absolutely continuous with respect to the base measure."
             )
-
-        if base_measure is None:
-            base_measure = Measure.counting(self.sig_alg.domain)
 
         if given is not None and name is None:
             name = f"s({self.name}|{given_name}; {base_measure.name})"
@@ -948,21 +1017,23 @@ class ProbabilityMeasure(Measure):
         """Pass."""
         import pandas as pd
 
-        from .._utils.function_helpers import ascend_from_atom_space, compute_integral
+        from .._utils.function_helpers import ascend_from_atom_space
+        from .._utils.measure_helpers import compute_entropy
         from ..functions.measurable_function import MeasurableFunction
 
-        given_name = given.name
+        if given is not None:
+            given_name = given.name
         given = self._normalize_given_and_base_measure(
             given=given, base_measure=base_measure
         )
+
+        if base_measure is None:
+            base_measure = Measure.counting(self.sig_alg)
 
         if not self.is_absolutely_continuous(base_measure, tol=tol):
             raise ValueError(
                 "The given measure is not absolutely continuous with respect to the base measure."
             )
-
-        if base_measure is None:
-            base_measure = Measure.counting(self.sig_alg.domain)
 
         if given is not None and name is None:
             name = f"H({self.name}|{given_name}; {base_measure.name})"
@@ -970,14 +1041,17 @@ class ProbabilityMeasure(Measure):
         elif name is None:
             name = f"H({self.name}; {base_measure.name})"
 
-        surprisal = self.surprisal(base_measure=base_measure, given=given, base=base)
-
-        data = compute_integral(
-            function_atom_data=surprisal.atom_data(),
-            measure_data=surprisal.measure.data,
-            indicator_data=None,
-            function_parameter_names=None,
-            measure_parameter_names=None,
+        data = compute_entropy(
+            self_data=self.data,
+            base_measure_data=base_measure.data,
+            sig_alg_data=self.sig_alg.data,
+            given_data=given.data if given is not None else None,
+            given_variable_names=given.variable_names if given is not None else None,
+            atom_data=self.sig_alg.down_lattice.get_atom_data(given)
+            if given is not None
+            else None,
+            restricted_self_data=(self | given).data if given is not None else None,
+            base=base,
         )
 
         if isinstance(data, pd.Series):
@@ -994,6 +1068,78 @@ class ProbabilityMeasure(Measure):
 
         else:
             return data.astype(Real)
+
+    def divergence(
+        self,
+        other: ProbabilityMeasure,
+        base: Literal["e", "2", "10"] = "e",
+        tol: float = 1e-8,
+    ) -> Real:
+        """Pass."""
+        return -self.entropy(base_measure=other, base=base, tol=tol)
+
+    def mutual_info(
+        self,
+        first_variables: list[Hashable] | None = None,
+        second_variables: list[Hashable] | None = None,
+        base: Literal["e", "2", "10"] = "e",
+    ) -> Real:
+        """Pass."""
+        import pandas as pd
+
+        from .._utils.measure_helpers import compute_entropy
+
+        if (first_variables is None) != (second_variables is None):
+            raise TypeError(
+                "Either both first_variables and second_variables must "
+                "be given, or neither given (in which case the "
+                "probability measure must be defined on a 2-dimesional "
+                "domain)."
+            )
+        if first_variables is None:
+            first_variables = [self.variable_names[0]]
+            second_variables = [self.variable_names[1]]
+        if set(first_variables) & set(second_variables):
+            raise ValueError("The first and second sets of variables must be disjoint.")
+        if set(first_variables) | set(second_variables) != set(self.variable_names):
+            raise ValueError(
+                "The union of the first and second sets of variable names "
+                "must equal the set of all variable names of the probability measure."
+            )
+        if not self.sig_alg.is_power_set:
+            raise ValueError(
+                "The mutual_info method is only defined for probability"
+                " measures defined on power-set sigma-algebras."
+            )
+
+        left_marginal = (
+            self.data.groupby(level=first_variables).sum().rename("left").reset_index()
+        )
+        right_marginal = (
+            self.data.groupby(level=second_variables)
+            .sum()
+            .rename("right")
+            .reset_index()
+        )
+
+        crossed_data = (
+            pd.merge(left=left_marginal, right=right_marginal, how="cross")
+            .set_index(self.variable_names)
+            .sort_index()
+        ).astype(float)
+
+        product = (crossed_data["left"] * crossed_data["right"]).rename("product")
+
+        self_data = self.data.reindex(product.index, fill_value=0.0)
+
+        data = -compute_entropy(
+            self_data=self_data,
+            base_measure_data=product,
+            sig_alg_data=self.sig_alg.data,
+            base=base,
+        )
+
+        return float(data) + 0.0
 
     def are_independent(
         self,
