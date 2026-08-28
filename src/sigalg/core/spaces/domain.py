@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 from ..indices.index import Index
 
 if TYPE_CHECKING:
-    from ..functions.function import Function
     from ..measures.measure import Measure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .measurable_space import MeasurableSpace
@@ -22,17 +20,18 @@ class Domain(Index):
     Parameters
     ----------
     indices : IndexLike | None, default=None
-        The object from which to construct the `Domain`. If `None`, an empty index is created.
+        The object from which to construct the `Domain`.
     variable_names : list[Hashable] | None, default=None
-        A list of variable names for the dimensions of the domain. If `None`, a default variable name `point` will be used.
+        A list of variable names for the dimensions of the domain. If `None`, defaults will be generated.
     name : Hashable | None, default=None
         Name identifier for the domain. If `None`, a default name will be generated.
 
     Examples
     --------
+    >>> from sigalg.core import Domain
+
     Build a `Domain` from a list of indices.
 
-    >>> from sigalg.core import Domain
     >>> X = Domain([1, 2, 3])
     >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
     Domain 'X':
@@ -58,11 +57,6 @@ class Domain(Index):
         ----------
         sig_alg : SigmaAlgebra | None, default=None
             Sigma-algebra to use. If `None`, a power set sigma-algebra will be created.
-
-        Raises
-        ------
-        TypeError
-            If `sig_alg` is not a `SigmaAlgebra` or `None`.
 
         Returns
         -------
@@ -131,9 +125,7 @@ class Domain(Index):
         return MeasurableSpace(domain=self, sig_alg=sig_alg)
 
     def make_measure_space(
-        self,
-        sig_alg: SigmaAlgebra | None = None,
-        measure: Measure | None = None,
+        self, sig_alg: SigmaAlgebra | None = None, measure: Measure | None = None
     ) -> MeasureSpace:
         """Convert this domain to a measure space by adding a sigma-algebra and measure.
 
@@ -144,11 +136,6 @@ class Domain(Index):
         measure : Measure | None, default=None
             Measure to use. If `None`, the counting measure will be created.
 
-        Raises
-        ------
-        TypeError
-            If `sig_alg` is not a `SigmaAlgebra` or `None`, or if `measure` is not a `Measure` or `None`.
-
         Returns
         -------
         measure_space : MeasureSpace
@@ -156,9 +143,10 @@ class Domain(Index):
 
         Examples
         --------
+        >>> from sigalg.core import Domain, Measure, SigmaAlgebra
+
         Define a domain.
 
-        >>> from sigalg.core import Domain, Measure, SigmaAlgebra
         >>> X = Domain(indices=["a", "b", "c"])
 
         Promote to a `MeasureSpace` with default power set sigma-algebra and counting measure.
@@ -252,9 +240,10 @@ class Domain(Index):
 
         Examples
         --------
+        >>> from sigalg.core import Domain
+
         Define a domain.
 
-        >>> from sigalg.core import Domain
         >>> X = Domain(indices=["a", "b", "c"], name="X")
 
         Promote to a `SampleSpace`.
@@ -270,32 +259,6 @@ class Domain(Index):
         from .sample_space import SampleSpace
 
         return SampleSpace._from_validated(data=self.data.copy(), name=self.name)
-
-    # --------------------- mapping methods --------------------- #
-
-    def projection(self, variable: Hashable, name: Hashable | None = None) -> Function:
-        """Pass."""
-        from ..functions.function import Function
-
-        if not isinstance(variable, Hashable):
-            raise TypeError("variable must be a hashable item.")
-        if variable not in self.variable_names:
-            raise ValueError("variable is not a variable name of the domain.")
-
-        data = self.data.to_frame()[variable]
-
-        if name is None:
-            name = f"pr_{variable}"
-
-        return Function._from_validated(
-            data=data,
-            kind="any",
-            domain_kind=type(self).__name__,
-            domain_name=self.name,
-            index_kind=None,
-            index_name=None,
-            name=name,
-        )
 
     # --------------------- representation --------------------- #
 
@@ -317,7 +280,7 @@ class Domain(Index):
     def __eq__(self, other: Domain) -> bool:
         """Check equality with another domain.
 
-        Two domains are equal if they have the same variable names (hence dimension) and are equal as sets.
+        Two domains are equal if they have the same variable names (in the same order) and the same elements (in the same order).
 
         Parameters
         ----------

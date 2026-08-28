@@ -10,17 +10,18 @@ class SampleSpace(Domain):
     ----------
     indices : IndexLike | None, default=None
         An `IndexLike` object containing the points in the sample space.
+    variable_names : list[Hashable] | None, default=None
+        A list of names of the variables for the sample space. If `None`, defaults will be generated.
     name : Hashable | None, default=None
         Name identifier for the sample space. If `None`, a default will be generated.
-    variable_names : list[Hashable] | None, default=None
-        A list of names of the variables for the sample space. If `None`, default variables names will be generated.
 
     Examples
     --------
-    Construct a 1-dimensional `SampleSpace` from a list of sample points.
-
     >>> from sigalg.core import SampleSpace
     >>> import pandas as pd
+
+    Construct a 1-dimensional `SampleSpace` from a list of sample points.
+
     >>> indices = ["red", "green", "blue"]
     >>> Omega1 = SampleSpace(indices=indices, name="Omega1")
     >>> print(Omega1)  # doctest: +NORMALIZE_WHITESPACE

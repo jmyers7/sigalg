@@ -24,10 +24,6 @@ class Index:
         A list of variable names for the dimensions of the index. If `None`, defaults will be generated.
     name : Hashable | None, default=None
         Name identifier for the index. If `None`, a default name will be generated.
-    copy_data : bool, default=True
-        If `indices` is a `pd.Index`, whether to internally make a copy of the index or not.
-    **kwargs
-        Additional keyword arguments passed to subclasses.
 
     Examples
     --------
@@ -141,13 +137,6 @@ class Index:
         name : Hashable | None, default=None
             Name identifier for the index. If `None`, a default name will be generated.
 
-        Raises
-        ------
-        ValueError
-            If `size` is not a positive integer.
-        TypeError
-            If `initial_index` is not an integer, or `prefix`, `name, or `variable_name` is not hashable (if given).
-
         Returns
         -------
         index : Index
@@ -186,15 +175,15 @@ class Index:
          6
         """
         if not isinstance(size, int) or size <= 0:
-            raise ValueError("'size' must be a positive integer.")
+            raise ValueError("size must be a positive integer.")
         if not isinstance(initial_index, int):
-            raise TypeError("'initial_index' must be an integer.")
+            raise TypeError("initial_index must be an integer.")
         if prefix is not None and not isinstance(prefix, Hashable):
-            raise TypeError("If given, 'prefix' must be hashable.")
+            raise TypeError("If given, prefix must be hashable.")
         if name is not None and not isinstance(name, Hashable):
-            raise TypeError("If given, 'name' must be hashable.")
+            raise TypeError("If given, name must be hashable.")
         if variable_name is not None and not isinstance(variable_name, Hashable):
-            raise TypeError("If given, 'variable_name' must be hashable.")
+            raise TypeError("If given, variable_name must be hashable.")
 
         if name is None:
             name = cls._default_name
@@ -279,7 +268,7 @@ class Index:
          0  7  5
          4  1  8
         """
-        from ._helpers import random_tuples
+        from .._utils.index_helpers import random_tuples
 
         if name is None:
             name = cls._default_name
@@ -305,9 +294,9 @@ class Index:
         factors : list[IndexLike | Index]
             The factors of the Cartesian product.
         variable_names : list[Hashable] | None, default=None
-            A list of variable names for the resulting index. If `None`, the variable names will be set to the concatenation of the variable names of indices if they are all `Index` instances.
+            A list of variable names for the resulting index. If `None`, defaults will be generated.
         name: Hashable | None, default=None
-            The name of the Cartesian product. If all items in `indices` are instances of `Index` and `name` is `None`, then a default will be generated from the names of the instances. Otherwise, if one or more is not an instance of `Index` and if `name` is `None`, then a default name of `I` will be used.
+            The name of the Cartesian product. If `None`, a defult will be generated.
 
         Returns
         -------
@@ -438,23 +427,6 @@ class Index:
 
         return cls(indices=data, name=name, variable_names=variable_names, **kwargs)
 
-    def __matmul__(self, other: IndexLike | Index) -> Index:
-        """Get the Cartesian product of this `Index` instance with another.
-
-        Internally, calls the class method `Index.cartesian_product`.
-
-        Parameters
-        ----------
-        other : IndexLike | Index
-            The second factor in the Cartesian product.
-
-        Returns
-        -------
-        cartesian_product : Index
-            The Cartesian product.
-        """
-        return type(self).cartesian_product([self, other])
-
     @classmethod
     def cartesian_power(
         cls,
@@ -472,16 +444,9 @@ class Index:
         n : int
             The power of the Cartesian power.
         variable_names : list[Hashable] | None, default=None
-            A list of variable names for the resulting index. If `None`, the variable names will be set to the variable names of `index` (if it is an instance of `Index`) with subscripts.
+            A list of variable names for the resulting index. If `None`, defaults will be generated.
         name : Hashable | None, default=None
-            The name of the Cartesian power. If `None`, a default will be generated using the name of the current instance of `Index`.
-
-        Raises
-        ------
-        TypeError
-            If `n` is not an integer.
-        ValueError
-            If `n` is not a positive integer.
+            The name of the Cartesian power. If `None`, a default will be generated.
 
         Returns
         -------
@@ -557,6 +522,25 @@ class Index:
 
         return power.with_name(name)
 
+    # --------------------- dunder operations --------------------- #
+
+    def __matmul__(self, other: IndexLike | Index) -> Index:
+        """Get the Cartesian product of this `Index` instance with another.
+
+        Internally, calls the class method `Index.cartesian_product`.
+
+        Parameters
+        ----------
+        other : IndexLike | Index
+            The second factor in the Cartesian product.
+
+        Returns
+        -------
+        cartesian_product : Index
+            The Cartesian product.
+        """
+        return type(self).cartesian_product([self, other])
+
     def __xor__(self, n: int) -> Index:
         """Form the Cartesian power of this instance of `Index`.
 
@@ -574,35 +558,11 @@ class Index:
         """
         return type(self).cartesian_power(index=self, n=n)
 
-    @classmethod
-    def _promote(cls, instance):
-        new = cls.__new__(cls)
-        new.__dict__.update(instance.__dict__)
-        return new
-
-    def with_name(self, name: Hashable) -> Index:
-        """Set the name of the index and return `self` for chaining.
-
-        Parameters
-        ----------
-        name : Hashable
-            New name for the index.
-
-        Returns
-        -------
-        self : Index
-            The current index with a new name.
-        """
-        self.name = name
-        return self
-
     # --------------------- properties --------------------- #
 
     @property
     def variable_names(self) -> list[Hashable] | None:
         """Get the variable names of the index.
-
-        If the index is not a `pd.MultiIndex`, this will be a list containing a single element. If the index is a `pd.MultiIndex`, this will be a list of names corresponding to each level of the `MultiIndex`.
 
         Returns
         -------
@@ -611,10 +571,11 @@ class Index:
 
         Examples
         --------
-        Get the variable names of an `Index` built from a list with custom variable names passed to the constructor.
-
         >>> import pandas as pd
         >>> from sigalg.core import Index
+
+        Get the variable names of an `Index` built from a list with custom variable names passed to the constructor.
+
         >>> I1 = Index(["x", "y", "z"], name="I1", variable_names=["letters"])
         >>> print(I1.variable_names)
         ['letters']
@@ -645,8 +606,6 @@ class Index:
     @property
     def dimension(self) -> int | None:
         """Get the dimension of the index.
-
-        The dimension is 1 if the underlying `pd.Index` is a regular `Index`, and is equal to the number of levels if the underlying `pd.Index` is a `MultiIndex`.
 
         Returns
         -------
@@ -689,11 +648,6 @@ class Index:
         item : Hashable
             Item to check for membership in the index.
 
-        Raises
-        ------
-        TypeError
-            If `item` is not hashable.
-
         Returns
         -------
         contains : bool
@@ -702,6 +656,24 @@ class Index:
         if not isinstance(item, Hashable):
             raise TypeError("item must be hashable.")
         return bool(item in self.data)
+
+    def sort(self, ascending: bool = True) -> Index:
+        """Return a sorted copy of the index.
+
+        Parameters
+        ----------
+        ascending : bool, default=True
+            Whether to sort in ascending order. If `False`, sort in descending order.
+
+        Returns
+        -------
+        sorted_index : Index
+            A new index with elements sorted.
+        """
+        sorted_data = self.data.copy().sort_values(ascending=ascending)
+        return type(self)._from_validated(data=sorted_data, name=self.name)
+
+    # --------------------- conversion methods --------------------- #
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """Return the index's data as a NumPy array.
@@ -743,21 +715,21 @@ class Index:
         """
         return self.__array__(dtype=dtype, copy=copy)
 
-    def sort(self, ascending: bool = True) -> Index:
-        """Return a sorted copy of the index.
+    def with_name(self, name: Hashable) -> Index:
+        """Set the name of the index and return `self` for chaining.
 
         Parameters
         ----------
-        ascending : bool, default=True
-            Whether to sort in ascending order. If `False`, sort in descending order.
+        name : Hashable
+            New name for the index.
 
         Returns
         -------
-        sorted_index : Index
-            A new index with elements sorted.
+        self : Index
+            The current index with a new name.
         """
-        sorted_data = self.data.copy().sort_values(ascending=ascending)
-        return type(self)._from_validated(data=sorted_data, name=self.name)
+        self.name = name
+        return self
 
     # --------------------- sequence methods --------------------- #
 
@@ -782,7 +754,20 @@ class Index:
         return iter(self.data)
 
     def to_kwargs(self) -> list[dict]:
-        """Pass."""
+        """Return a list of dictionaries mapping variable names to their values.
+
+        Returns
+        -------
+        kwargs : list[dict]
+            A list of dictionaries mapping variable names to their values.
+
+        Examples
+        --------
+        >>> from sigalg.core import Index
+        >>> I = Index([(1, 2), (3, 4)], variable_names={"a", "b"})
+        >>> I.to_kwargs()
+        [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]
+        """
         if self.dimension == 1:
             return [dict(zip(self.variable_names, [point])) for point in self]
         else:
@@ -791,9 +776,9 @@ class Index:
     # --------------------- equality --------------------- #
 
     def __eq__(self, other: Index) -> bool:
-        """Check equality with another index.
+        """Check equality with another `Index`.
 
-        Two indices are equal if they have the same variable names (as sets) and are equal (as sets).
+        Two indices are equal if they have the same variable names (in the same order) and the same elements (in the same order).
 
         Parameters
         ----------
@@ -805,16 +790,16 @@ class Index:
         is_equal : bool
             `True` if the indices are considered equal according to the above criteria, `False` otherwise.
         """
-        from .._utils.index_helpers import align_index
+        import numpy as np
 
+        if self is other:
+            return True
         if not isinstance(other, Index):
             return False
-        try:
-            _ = align_index(self.data, by=other.data)
-        except ValueError:
+        if self.variable_names != other.variable_names:
             return False
 
-        return True
+        return bool(np.array_equal(self, other))
 
     # --------------------- representation --------------------- #
 

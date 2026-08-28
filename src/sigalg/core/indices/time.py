@@ -28,11 +28,6 @@ class Time(Index):
     name : Hashable | None, default=None
         Name identifier for the index. If `None`, a default name will be generated.
 
-    Raises
-    ------
-    ValueError
-        If the underlying data of the time index is a `pd.MultiIndex`, if any element in the time index is not a real number, or if the time index is not in ascending order.
-
     Examples
     --------
     Create a discrete `Time` instance.
@@ -122,13 +117,6 @@ class Time(Index):
         name : Hashable, default="T"
             Name of the time index.
 
-        Raises
-        ------
-        ValueError
-            If `length` is not a positive integer or if `stop` is not an integer greater than `start`, or if both `length` and `stop` are specified, or if neither is specified.
-        TypeError
-            If `start` is not an integer.
-
         Returns
         -------
         time : Time
@@ -197,13 +185,6 @@ class Time(Index):
             Variable name for the time index.
         name : Hashable, default="T"
             Name of the time index.
-
-        Raises
-        ------
-        ValueError
-            If both `dt` and `num_points` are specified, or if neither is specified. Also raised if `start` is not less than `stop`, or if `dt` is not positive, or if `num_points` is less than 2.
-        TypeError
-            If `start`, `stop`, or `dt` (if given) are not real numbers, or if `num_points` (if given) is not an integer.
 
         Returns
         -------
@@ -289,11 +270,6 @@ class Time(Index):
         time_point : Real
             The time point to find the nearest time for.
 
-        Raises
-        ------
-        ValueError
-            If the Time index is empty, or if `time_point` is outside the range of the Time index.
-
         Returns
         -------
         time : Real
@@ -338,13 +314,6 @@ class Time(Index):
         ----------
         time : Real
             The time point to insert.
-
-        Raises
-        ------
-        TypeError
-            If `time` is not a real number.
-        ValueError
-            If the Time index is empty or if `time` already exists in the Time index.
 
         Returns
         -------
@@ -398,13 +367,6 @@ class Time(Index):
             The time point to remove. Must be specified if `pos` is not provided.
         pos : int | None, default=None
             The position of the time point to remove. Must be specified if `time` is not provided.
-
-        Raises
-        ------
-        TypeError
-            If `time` is not a real number or `pos` is not an integer.
-        ValueError
-            If the Time index is empty, if `time` does not exist in the `Time` index, if `pos` is out of bounds, if both `time` and `pos` are provided, or if neither is provided.
 
         Returns
         -------
