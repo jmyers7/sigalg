@@ -505,7 +505,7 @@ class SigmaAlgebra:
         True
         """
         from ...validation.domain_index_validator import DomainIndexValidator
-        from ..indices._helpers import random_tuples
+        from .._utils.index_helpers import random_tuples
         from ..indices.index import Index
         from ..indices.time import Time
 

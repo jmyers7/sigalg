@@ -4,7 +4,7 @@ from .function_helpers import (
     compute_expectation,
     compute_integral,
 )
-from .index_helpers import align_index
+from .index_helpers import align_index, random_tuples
 from .measure_helpers import (
     compute_conditional_prob_measure,
     compute_entropy,
@@ -38,4 +38,5 @@ __all__ = [
     "compute_integral",
     "compute_surprisal",
     "compute_entropy",
+    "random_tuples",
 ]
