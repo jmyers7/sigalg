@@ -83,6 +83,7 @@ def compute_radon_nikodym(
     given_variable_names: list[Hashable] | None = None,
     atom_data: pd.Series | pd.DataFrame | None = None,
     restricted_self_data: pd.Series | None = None,
+    ascend: bool = True,
 ) -> pd.Series:
     """Pass."""
     from .function_helpers import ascend_from_atom_space
@@ -90,9 +91,16 @@ def compute_radon_nikodym(
     if given_data is None:
         data = self_data.divide(base_measure_data, axis=0).fillna(0.0)
         data.name = None
-        return ascend_from_atom_space(
-            self_data=data, sig_alg_data=sig_alg_data, parameter_names=parameter_names
-        )
+
+        if ascend:
+            return ascend_from_atom_space(
+                self_data=data,
+                sig_alg_data=sig_alg_data,
+                parameter_names=parameter_names,
+            )
+
+        else:
+            return data
 
     else:
         conditional_data = compute_conditional_prob_measure(
@@ -104,16 +112,17 @@ def compute_radon_nikodym(
         )
 
         conditional_data = conditional_data.divide(base_measure_data, axis=0)
+        data = conditional_data.fillna(0.0, inplace=True).sort_index()
 
-        derivative_data = conditional_data.fillna(0.0, inplace=True).sort_index()
+        if ascend:
+            return ascend_from_atom_space(
+                self_data=data,
+                sig_alg_data=sig_alg_data,
+                parameter_names=given_variable_names,
+            )
 
-        data = ascend_from_atom_space(
-            self_data=derivative_data,
-            sig_alg_data=sig_alg_data,
-            parameter_names=given_variable_names,
-        )
-
-        return data
+        else:
+            return data
 
 
 def compute_surprisal(
@@ -126,6 +135,7 @@ def compute_surprisal(
     atom_data: pd.Series | pd.DataFrame | None = None,
     restricted_self_data: pd.Series | None = None,
     base: Literal["e", "2", "10"] = "e",
+    ascend: bool = True,
 ) -> Real | pd.Series:
     """Pass."""
     import numpy as np
@@ -139,6 +149,7 @@ def compute_surprisal(
         given_variable_names=given_variable_names,
         atom_data=atom_data,
         restricted_self_data=restricted_self_data,
+        ascend=ascend,
     )
 
     if base == "e":
@@ -150,6 +161,39 @@ def compute_surprisal(
 
     with np.errstate(divide="ignore"):
         data = -log(data)
-    data = data.mask(np.isinf(data), 0)
 
-    return data
+    return data.mask(np.isinf(data), 0)
+
+
+def compute_entropy(
+    self_data: pd.Series,
+    base_measure_data: pd.Series,
+    sig_alg_data: pd.Series | pd.DataFrame,
+    given_data: pd.Series | pd.DataFrame | None = None,
+    given_variable_names: list[Hashable] | None = None,
+    atom_data: pd.Series | pd.DataFrame | None = None,
+    restricted_self_data: pd.Series | None = None,
+    base: Literal["e", "2", "10"] = "e",
+) -> Real | pd.Series:
+    """Pass."""
+    from .function_helpers import compute_integral
+
+    data = compute_surprisal(
+        self_data=self_data,
+        base_measure_data=base_measure_data,
+        sig_alg_data=sig_alg_data,
+        given_data=given_data,
+        given_variable_names=given_variable_names,
+        atom_data=atom_data,
+        restricted_self_data=restricted_self_data,
+        base=base,
+        ascend=False,
+    )
+
+    return compute_integral(
+        function_atom_data=data,
+        measure_data=self_data,
+        indicator_data=None,
+        function_parameter_names=None,
+        measure_parameter_names=None,
+    )

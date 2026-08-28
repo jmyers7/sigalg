@@ -7,6 +7,7 @@ from .function_helpers import (
 from .index_helpers import align_index
 from .measure_helpers import (
     compute_conditional_prob_measure,
+    compute_entropy,
     compute_radon_nikodym,
     compute_surprisal,
 )
@@ -36,4 +37,5 @@ __all__ = [
     "compute_conditional_prob_measure",
     "compute_integral",
     "compute_surprisal",
+    "compute_entropy",
 ]
