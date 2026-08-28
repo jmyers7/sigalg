@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 from ..indices.index import Index
 
 if TYPE_CHECKING:
+    from ..functions.function import Function
     from ..measures.measure import Measure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .measurable_space import MeasurableSpace
@@ -268,6 +270,32 @@ class Domain(Index):
         from .sample_space import SampleSpace
 
         return SampleSpace._from_validated(data=self.data.copy(), name=self.name)
+
+    # --------------------- mapping methods --------------------- #
+
+    def projection(self, variable: Hashable, name: Hashable | None = None) -> Function:
+        """Pass."""
+        from ..functions.function import Function
+
+        if not isinstance(variable, Hashable):
+            raise TypeError("variable must be a hashable item.")
+        if variable not in self.variable_names:
+            raise ValueError("variable is not a variable name of the domain.")
+
+        data = self.data.to_frame()[variable]
+
+        if name is None:
+            name = f"pr_{variable}"
+
+        return Function._from_validated(
+            data=data,
+            kind="any",
+            domain_kind=type(self).__name__,
+            domain_name=self.name,
+            index_kind=None,
+            index_name=None,
+            name=name,
+        )
 
     # --------------------- representation --------------------- #
 
