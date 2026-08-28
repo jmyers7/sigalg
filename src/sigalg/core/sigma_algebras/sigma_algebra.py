@@ -724,7 +724,7 @@ class SigmaAlgebra:
         )
 
     @classmethod
-    def cartesian_product(
+    def tensor_product(
         cls,
         factors: list[SigmaAlgebra],
         variable_names: list[Hashable] | None = None,
@@ -803,7 +803,7 @@ class SigmaAlgebra:
 
         Compute the Cartesian product of the two sigma-algebras usings the `cartesian_product` method.
 
-        >>> prod_sig_alg = SigmaAlgebra.cartesian_product([F, G])
+        >>> prod_sig_alg = SigmaAlgebra.tensor_product([F, G])
         >>> print(prod_sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F x G':
         i    0  1  2
@@ -830,8 +830,7 @@ class SigmaAlgebra:
 
         Compute the same Cartesian product using the `@` operator.
 
-        >>> prod_sig_alg = SigmaAlgebra.cartesian_product([F, G])
-        >>> print(prod_sig_alg)  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(F @ G)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F x G':
         i    0  1  2
         x y
@@ -948,7 +947,7 @@ class SigmaAlgebra:
         )
 
     @classmethod
-    def cartesian_power(cls, sig_alg: SigmaAlgebra, n: int) -> SigmaAlgebra:
+    def tensor_power(cls, sig_alg: SigmaAlgebra, n: int) -> SigmaAlgebra:
         """Form the Cartesian power of the sigma-algebra.
 
         Parameters
@@ -982,7 +981,7 @@ class SigmaAlgebra:
         ...         2: (2, "b"),
         ...     },
         ... )
-        >>> F_3 = SigmaAlgebra.cartesian_power(F, 3)
+        >>> F_3 = SigmaAlgebra.tensor_power(F, 3)
         >>> print(F_3)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F ^ 3':
         i                        0  1  2  3  4  5
@@ -1027,7 +1026,7 @@ class SigmaAlgebra:
            2   b    2   b    2   b
         """
         name = f"{sig_alg.name} ^ {n}"
-        return SigmaAlgebra.cartesian_product(factors=[sig_alg] * n, name=name)
+        return SigmaAlgebra.tensor_product(factors=[sig_alg] * n, name=name)
 
     # --------------------- dunder operators --------------------- #
 
@@ -1046,7 +1045,7 @@ class SigmaAlgebra:
         cartesian_product : SigmaAlgebra
             The tensor product.
         """
-        return type(self).cartesian_product(factors=[self, other])
+        return type(self).tensor_product(factors=[self, other])
 
     def __xor__(self, n: int) -> SigmaAlgebra:
         """Form the Cartesian power of this instance of `SigmaAlgebra`.
@@ -1063,7 +1062,7 @@ class SigmaAlgebra:
         cartesian_power : SigmaAlgebra
             The Cartesian power.
         """
-        return SigmaAlgebra.cartesian_power(sig_alg=self, n=n)
+        return SigmaAlgebra.tensor_power(sig_alg=self, n=n)
 
     # --------------------- utils --------------------- #
 

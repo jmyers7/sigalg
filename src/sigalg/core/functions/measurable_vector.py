@@ -992,7 +992,7 @@ class MeasurableVector(Function, OperatorsMethods):
             sig_alg.domain.name = domain_name if domain_name else sig_alg.domain.name
         else:
             measure = None
-            sig_alg = SigmaAlgebra.cartesian_product(
+            sig_alg = SigmaAlgebra.tensor_product(
                 [factor.sig_alg for factor in factors],
                 domain_name=domain_name,
                 name=sig_alg_name,
