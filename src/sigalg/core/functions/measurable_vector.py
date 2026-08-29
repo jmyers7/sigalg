@@ -666,7 +666,6 @@ class MeasurableVector(Function, OperatorsMethods):
             data = ascend_from_atom_space(
                 self_data=sig_alg_data,
                 sig_alg_data=sub_sig_alg.data,
-                parameter_names=[],
             )
 
         if isinstance(data, pd.Series):
@@ -988,8 +987,11 @@ class MeasurableVector(Function, OperatorsMethods):
         if all_measures:
             measure = Measure.tensor_product(measures, name=measure_name)
             sig_alg = measure.sig_alg
-            sig_alg.name = sig_alg_name if sig_alg_name else sig_alg.name
-            sig_alg.domain.name = domain_name if domain_name else sig_alg.domain.name
+            sig_alg.name = sig_alg_name if sig_alg_name is not None else sig_alg.name
+            sig_alg.domain_name = (
+                domain_name if domain_name is not None else sig_alg.domain.name
+            )
+
         else:
             measure = None
             sig_alg = SigmaAlgebra.tensor_product(
@@ -1440,16 +1442,16 @@ class MeasurableVector(Function, OperatorsMethods):
         Random vector 'X':
         i      0  1
         omega
-        0      9  4
-        1      9  4
-        2      8  6
-        3      9  4
-        4      7  7
-        5      9  4
-        6      1  3
-        7      9  4
-        8      1  3
-        9      9  4
+        0      2  6
+        1      2  6
+        2      1  7
+        3      2  6
+        4      7  3
+        5      2  6
+        6      0  9
+        7      2  6
+        8      0  9
+        9      2  6
         >>> print(X.measure_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, F, P)
         ===============================
@@ -1484,18 +1486,19 @@ class MeasurableVector(Function, OperatorsMethods):
         * Probability measure 'P':
                   P
         F
-        1  0.751070
-        3  0.244804
-        2  0.000026
-        0  0.004100
+        1  0.049134
+        3  0.207580
+        2  0.082504
+        0  0.660782
         >>> X_sample = X.sample(size=1_000, random_state=rng)
         >>> print(X_sample.measure)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'C':
                    C
         X_0 X_1
-        9   4    738
-        8   6    258
-        1   3      4
+        0   9    663
+        1   7    210
+        7   3     81
+        2   6     46
 
         Sample from a 1-dimensional random variable.
 
@@ -1513,21 +1516,23 @@ class MeasurableVector(Function, OperatorsMethods):
         omega
         0      4
         1      4
-        2      7
+        2      5
         3      4
-        4      3
+        4      7
         5      4
-        6      7
+        6      6
         7      4
-        8      7
+        8      6
         9      4
         >>> Y_sample = Y.sample(size=1_000, random_state=rng)
         >>> print(Y_sample.measure)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'C':
              C
         Y
-        4  736
-        7  264
+        6  650
+        5  219
+        7   92
+        4   39
         """
         from ..measures.probability_measure import ProbabilityMeasure
         from .operators import Operators

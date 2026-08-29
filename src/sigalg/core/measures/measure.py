@@ -418,9 +418,9 @@ class Measure(Function):
         Probability measure 'P':
                   P
         F
-        0  0.060728
-        1  0.757515
-        2  0.181758
+        0  0.164599
+        1  0.535368
+        2  0.300033
         3  0.000000
         """
         from ...validation.measure_domain_normalizer import MeasureDomainNormalizer
@@ -487,10 +487,7 @@ class Measure(Function):
             )
 
         else:
-            arr = rng.dirichlet(
-                alpha=(1 / (len(domain) - num_null_atoms),)
-                * (len(domain) - num_null_atoms)
-            ).T
+            arr = rng.dirichlet(alpha=(1,) * (len(domain) - num_null_atoms)).T
 
         arr = np.concat([arr, np.zeros(num_null_atoms, dtype=int)])
         rng.shuffle(arr)
@@ -1189,46 +1186,45 @@ class Measure(Function):
         is_equal : bool
             `True` if the two measures are equal, `False` otherwise.
         """
-        # HACK: this branch catches the error in one of the tests for the factorization of the joint distribution in the tests
-        if not isinstance(other, Measure):
-            if isinstance(other, Function):
-                self_domain = self.domain.data
-                other_domain = other.domain.data
-
-                intersection = self_domain.intersection(other_domain)
-                if not intersection.equals(self_domain):
-                    return False
-
-                complement_domain = other_domain.difference(self_domain)
-
-                return np.allclose(self.data, other.data[intersection]) and np.allclose(
-                    other.data[complement_domain], 0.0
-                )
-
-            raise TypeError("Can only compare with another Measure instance.")
+        from .._utils.utils import to_df
 
         if self.sig_alg != other.sig_alg:
             return False
 
-        atom_data = self.lattice.get_atom_data(other.sig_alg)
-        self_data = self.data.copy()
-        other_data = other.data
+        atom_data = to_df(self.lattice.get_atom_data(other.sig_alg))
+        atom_data.columns = other.sig_alg.variable_names
 
-        if other.sig_alg.dimension > 1:
-            self_data.index = pd.MultiIndex.from_frame(
-                atom_data.reindex(self_data.index), names=other.variable_names
-            )
+        data = (
+            pd.concat([self.data, atom_data], axis=1)
+            .set_index(other.sig_alg.variable_names)
+            .squeeze(axis=1)
+        )
 
-        else:
-            self_data.index = pd.Index(
-                atom_data.reindex(self_data.index), name=other.variable_names[0]
-            )
+        return bool(data.equals(other.data))
 
-        return np.array_equal(other_data, self_data.reindex(other_data.index))
+    def close(self, other: Measure, rtol: float = 1e-5, atol=1e-8) -> bool:
+        """Pass."""
+        import numpy as np
+
+        from .._utils.utils import to_df
+
+        if self.sig_alg != other.sig_alg:
+            return False
+
+        atom_data = to_df(self.lattice.get_atom_data(other.sig_alg))
+        atom_data.columns = other.sig_alg.variable_names
+
+        data = (
+            pd.concat([self.data, atom_data], axis=1)
+            .set_index(other.sig_alg.variable_names)
+            .squeeze(axis=1)
+        )
+
+        return np.allclose(data, other.data, rtol=rtol, atol=atol)
 
     # --------------------- comparison methods --------------------- #
 
-    def is_restriction_of(self, other: Measure) -> bool:
+    def is_restriction_of(self, other: Measure, rtol: float = 1e-5, atol=1e-8) -> bool:
         """Check whether this measure is the restriction of the other measure to a sub-sigma-algebra.
 
         Returns
@@ -1239,7 +1235,9 @@ class Measure(Function):
         if self is other:
             return True
 
-        return bool((self.sig_alg <= other.sig_alg) and (self == other | self.sig_alg))
+        return bool(
+            (self.sig_alg <= other.sig_alg) and self.close(other | self.sig_alg)
+        )
 
     # --------------------- arithmetic operations --------------------- #
 
