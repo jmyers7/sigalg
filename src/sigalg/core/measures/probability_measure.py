@@ -1424,7 +1424,7 @@ class ProbabilityMeasure(Measure):
         P \left( \{\omega \in \Omega : X(\omega) \neq Y(\omega)\} \right) = 0.
         $$
         """
-        return self.equal_almost_everywhere(
+        return self.equal_ae(
             first=first, second=second, tol=tol, rtol=rtol, atol=atol
         )
 

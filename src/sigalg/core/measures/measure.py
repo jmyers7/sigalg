@@ -29,16 +29,16 @@ class Measure(Function):
 
     Parameters
     ----------
-    domain : MeasureDomain, default=None
-        The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`; in the latter case the domain will be set to the power set of the domain.
+    domain : MeasureDomain | None, default=None
+        The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`. In the latter case, the domain will be set to the power set of the domain.
     mapping : MappingLike | None, default=None
         A mapping from the domain to the measure values.
     kind : Literal["measure", "probability"], default="measure"
-        The kind of measure. If `measure`, the measure can only take non-negative values; if `probability`, the measure can only take non-negative values that sum to 1 and it will be promoted to an instance of the subclass `ProbabilityMeasure` and the `output_name` will be set to `probability`.
-    output_name : str, default="measure"
-        The name of the output variable of the measure.
-    name : Hashable, default="mu"
-        The name of the measure
+        The kind of measure.
+    output_name : Hashable | None, default=None
+        The name of the output variable of the measure. If `None`, a default will be generated.
+    name : Hashable | None, default=None
+        The name of the measure. If `None`, a default will be generated.
 
     Examples
     --------
@@ -167,7 +167,6 @@ class Measure(Function):
     _default_name = "mu"
     _str_name = "Measure"
     _repr_name = "Measure"
-    _properties = []
 
     # --------------------- constructors --------------------- #
 
@@ -244,7 +243,9 @@ class Measure(Function):
         Parameters
         ----------
         domain : MeasureDomain
-            The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`; in the latter case the domain of the measure will be set to the power-set of the `Domain` instance.
+            The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`. In the latter case, the domain of the measure will be set to the power set of the domain.
+        output_name : Hashable | None, default=None
+            The output name of the measure. If `None`, a default will be generated.
         name : Hashable, default="C"
             A name for the measure.
 
@@ -331,36 +332,28 @@ class Measure(Function):
         Parameters
         ----------
         domain : MeasureDomain
-            The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`; in the latter case the domain will be set to the power-set of the `Domain` instance.
+            The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`; in the latter case, the domain will be set to the power set of the domain.
         num_null_atoms : int, default=0
             The number of atoms in the sigma-algebra that should be assigned a measure of 0.
         kind : Literal["probability", "measure"], default="measure"
-            The kind of measure to generate. If `"probability"`, generates a probability measure using a Dirichlet distribution. If `"measure"`, generates a general measure with integer values. If the method is called on the `ProbabilityMeasure` class, this parameter is ignored and a probability measure is always generated.
-        distribution : Literal["uniform", "poisson"], default="uniform"
-            The distribution to use when `kind="measure"`. If `"uniform"`, samples integers uniformly from `[min_value, max_value]`. If `"poisson"`, samples from a Poisson distribution with parameter `rate`.
-        min_value : int, default=1
-            The minimum value for uniform integer sampling (only used when `kind="measure"` and `distribution="uniform"`).
+            The kind of measure to generate. If `'probability'`, generates a probability measure using a Dirichlet distribution.
+        distribution : Literal["uniform", "poisson", "dirichlet"], default="uniform"
+            The type of distribution from which to sample the values of the measure.
         max_value : int, default=10
-            The maximum value for uniform integer sampling (only used when `kind="measure"` and `distribution="uniform"`).
+            The maximum value for uniform integer sampling when `distribution='uniform'`. Integers are sampled from the interval `[1, max_value)`.
         rate : float, default=5.0
-            The rate parameter for Poisson sampling (only used when `kind="measure"` and `distribution="poisson"`).
+            The rate parameter for Poisson sampling when `distribution='poisson'`.
         output_name: Hashable | None = None
+            Output name of measure. If `None`, a default will be generated.
         name : Hashable | None, default=None
             The name of the measure. If `None`, a default will be generated.
         random_state : int | np.random.Generator | None, default=None
             An optional random seed.
 
-        Raises
-        ------
-        TypeError
-            If `num_null_atoms` is not an integer. If `random_state` is not an integer, `np.random.Generator`, or `None`. If `name` is not hashable. If `min_value` or `max_value` are not integers.
-        ValueError
-            If `num_null_atoms` is negative or greater than or equal to the number of atoms in the sigma-algebra (if given) or the size of the sample space (if given). If `kind` is not "probability" or "measure". If `distribution` is not "uniform" or "poisson". If `min_value > max_value`. If `rate` is not positive.
-
         Returns
         -------
         random_measure : Measure
-            A randomly generated measure. If `kind="probability"`, returns a `ProbabilityMeasure`; otherwise returns a `Measure`.
+            A randomly generated measure.
 
         Examples
         --------
@@ -373,7 +366,7 @@ class Measure(Function):
         >>> X = Domain.from_sequence(size=5, variable_name="x")
         >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 3])))
 
-        Generate a random measure with values drawn from a uniform distribution on the integers in `[0, 10)` and with one null atom.
+        Generate a random measure with values drawn from a uniform distribution on the integers in `[1, 10)` and with one null atom.
 
         >>> mu = Measure.from_rand(
         ...     domain=F,
@@ -512,6 +505,11 @@ class Measure(Function):
     def non_null_atoms(self) -> list[Set] | None:
         """Get the non-null atoms of the sigma-algebra of the measure.
 
+        Returns
+        -------
+        non_null_atoms : list[Set] | None
+            A list of the atoms of the sigma-algebra that have non-zero measure.
+
         Examples
         --------
         >>> from sigalg.core import Domain, Measure, SigmaAlgebra
@@ -542,38 +540,120 @@ class Measure(Function):
 
     @cached_property
     def lattice(self) -> Lattice | None:
-        """Pass."""
+        """Return the downward lattice of all sigma-algebras contained in the domain sigma-algebra of the measure.
+
+        Returns
+        -------
+        down_lattice : Lattice | None
+            The downward lattice of all sigma-algebras contained in the domain sigma-algebra of the measure.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Measure, SigmaAlgebra
+
+        Define a measure on a measurable space.
+
+        >>> X = Domain.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ... )
+        >>> mu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 9,
+        ...         1: 8,
+        ...         2: 7,
+        ...     },
+        ... )
+
+        The lattice of the measure is initialized with the domain sigma-algebra `F`.
+
+        >>> mu.lattice
+        Lattice(base=F, type=downward, num_sig_algs=1)
+
+        Define a sub-sigma-algebra of `F` and check that it is in the lattice.
+
+        >>> G = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 1,
+        ...     },
+        ...     name="G",
+        ... )
+        >>> G in mu.lattice
+        True
+
+        Check that the lattice now includes `G`.
+
+        >>> mu.lattice
+        Lattice(base=F, type=downward, num_sig_algs=2)
+
+        Since `G` is a sub-sigma-algebra of `F`, we may restrict the measure `mu` to `G`.
+
+        >>> print(mu | G)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'mu|G':
+           mu|G
+        G
+        0     9
+        1    15
+
+        Define another sigma-algebra, and check if it is a sub-sigma-algebra of `F`.
+
+        >>> H = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...     },
+        ...     name="H",
+        ... )
+        >>> H in mu.lattice
+        False
+
+        Check that `H` was not added to the lattice.
+
+        >>> mu.lattice
+        Lattice(base=F, type=downward, num_sig_algs=2)
+        """
         if self.sig_alg is not None:
             return self.sig_alg.down_lattice
         else:
             return None
 
-    # --------------------- methods --------------------- #
+    # --------------------- measure methods --------------------- #
 
-    def equal_almost_everywhere(
+    def equal_ae(
         self,
         first: Function,
         second: Function,
-        tol: float = 1e-8,
         rtol: float = 1e-5,
         atol: float = 1e-8,
     ) -> bool:
-        r"""Determine whether two measurable vectors are equal almost everywhere.
+        r"""Determine whether two functions are equal almost everywhere.
 
         See the Notes section below for the mathematical details.
 
         Parameters
         ----------
-        first : MeasurableVector
-            The first measurable vector.
-        second : MeasurableVector
-            The second measurable vector.
-        tol : float, default=1e-8
-            The tolerance below which a measure is considered to be zero for the purposes of this comparison.
+        first : Functin
+            The first function.
+        second : Function
+            The second function.
         rtol : float, default=1e-5
-            The relative tolerance for `np.isclose` when comparing the measurable vectors.
+            The relative tolerance for `np.isclose` when comparing the functions.
         atol : float, default=1e-8
-            The absolute tolerance for `np.isclose` when comparing the measurable vectors.
+            The absolute tolerance for `np.isclose` when comparing the functions.
 
         Returns
         -------
@@ -583,87 +663,73 @@ class Measure(Function):
         Examples
         --------
         >>> from sigalg.core import (
+        ...     Domain,
         ...     Measure,
-        ...     RandomVariable,
-        ...     RandomVector,
-        ...     SampleSpace,
+        ...     MeasurableFunction,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> F = SigmaAlgebra.power_set(Omega)
+
+        Define a measure space and three measurable functions.
+
+        >>> X = Domain.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,  # null atom
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
+        ... )
         >>> mu = Measure(
         ...     domain=F,
         ...     mapping={
-        ...         0: 1.2,
-        ...         1: 2.3,
-        ...         2: 0.0,
+        ...         0: 0,
+        ...         1: 2,
         ...     },
         ... )
-        >>> X = RandomVariable.with_uniform(
-        ...     domain=Omega,
+        >>> f = MeasurableFunction(
+        ...     domain=X,
+        ...     sig_alg=F,
         ...     mapping={
-        ...         0: 1.0,
-        ...         1: 2.0,
-        ...         2: 3.0,
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 2,
         ...     },
         ... )
-        >>> Y = RandomVariable.with_uniform(
-        ...     domain=Omega,
+        >>> g = MeasurableFunction(
+        ...     domain=X,
+        ...     sig_alg=F,
         ...     mapping={
-        ...         0: 1.0,
-        ...         1: 2.0,
-        ...         2: 4.0,
+        ...         0: 0,
+        ...         1: 2,
+        ...         2: 2,
         ...     },
-        ...     name="Y",
+        ...     name="g",
         ... )
-        >>> Z = RandomVariable.with_uniform(
-        ...     domain=Omega,
+        >>> h = MeasurableFunction(
+        ...     domain=X,
+        ...     sig_alg=F,
         ...     mapping={
-        ...         0: 1.0,
-        ...         1: 3.0,
-        ...         2: 3.0,
+        ...         0: 1,
+        ...         1: 3,
+        ...         2: 3,
         ...     },
-        ...     name="Z",
+        ...     name="h",
         ... )
-        >>> print(mu.equal_almost_everywhere(X, Y))
+
+        Notice that `f` and `g` are equal, except on the atom with identifier `0`. However, this is a null atom.
+
+        >>> mu.equal_almost_everywhere(f, g)
         True
-        >>> print(mu.equal_almost_everywhere(X, Z))
-        False
-        >>> U = RandomVector.with_uniform(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (1, 2),
-        ...         2: (3, 2),
-        ...     },
-        ...     name="U",
-        ... )
-        >>> V = RandomVector.with_uniform(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (1, 2),
-        ...         2: (-1, 4),
-        ...     },
-        ...     name="V",
-        ... )
-        >>> W = RandomVector.with_uniform(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (-1, 1),
-        ...         2: (3, 2),
-        ...     },
-        ...     name="W",
-        ... )
-        >>> print(mu.equal_almost_everywhere(U, V))
-        True
-        >>> print(mu.equal_almost_everywhere(U, W))
+
+        The functions `f` and `h` differ on a non-null atom.
+
+        >>> mu.equal_almost_everywhere(f, h)
         False
 
         Notes
         -----
-        Two measurable vectors $f,g:X \to \mathbb{R}^d$ defined on a measure space $(X, \mathcal{F}, \mu)$ are *equal almost everywhere* if
+        Two functions $f,g:X \to \mathbb{R}^d$ defined on a measure space $(X, \mathcal{F}, \mu)$ are *equal almost everywhere* if
 
         $$
         \mu \left( \{x \in X : f(x) \neq g(x)\} \right) = 0.
@@ -711,7 +777,7 @@ class Measure(Function):
 
         measure_different = np.sum(are_different.astype(float) * prob_arr)
 
-        return bool(measure_different < tol)
+        return bool(measure_different < atol)
 
     def restrict_to(
         self,
@@ -720,19 +786,23 @@ class Measure(Function):
         subset_name: Hashable | None = "A",
         name: Hashable | None = None,
     ) -> Measure:
-        """Restrict the measure to a sub-sigma-algebra and return a new measure.
+        """Restrict the measure to either a sub-sigma-algebra or measurable set.
 
         Parameters
         ----------
-        sig_alg : SigmaAlgebra
-            The sub-sigma-algebra to which to restrict the measure.
+        obj : SigmaAlgebra | Set | list[Hashable]
+            The sub-sigma-algebra or `Set` instance to which to restrict the measure.
+        normalize : bool, default=False
+            If the measure is restricted to a `Set` instance, whether to normalize the measure values to create a probability measure.
+        subset_name : Hashable | None, default="A"
+            The name of the subset. Only used if `obj` is a `list[Hashable]`.
+        name : Hashable | None, default=None
+            The name of the restriction. If `None`, a default will be generated.
 
         Returns
         -------
         measure : Measure
-            A new measure restricted to a sub-sigma-algebra.
-        name : Hashable | None, default=None
-            The name of the restriction. If `None`, a default will be generated.
+            The restricted measure.
 
         Examples
         --------
@@ -811,8 +881,6 @@ class Measure(Function):
         1  0.428571
         2  0.571429
         """
-        import pandas as pd
-
         from .._utils import to_df
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.set import Set
@@ -879,24 +947,96 @@ class Measure(Function):
                 name=name,
             )
 
-    def is_absolutely_continuous(
-        self, base_measure: Measure, tol: float = 1e-8
-    ) -> bool:
-        """Pass."""
-        if self.sig_alg != base_measure.sig_alg:
+    def is_absolutely_continuous(self, other: Measure, tol: float = 1e-8) -> bool:
+        r"""Determine whether the current measure is absolutely continuous with respect to another.
+
+        See the Notes section below for the mathematical details,
+
+        Parameters
+        ----------
+        other : Measure
+            The other measure.
+        tol : float, default=1e-8
+            A tolerance below which a quantity will be deemed `0`.
+
+        Returns
+        -------
+        is_absolutely_continuous : bool
+            A Boolean flagging whether the current measure is absolutely continuous with respect to the `other` measure.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Measure, SigmaAlgebra
+
+        Define three measures on a measurable space.
+
+        >>> X = Domain.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ... )
+        >>> mu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 2,
+        ...     },
+        ... )
+        >>> nu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...     },
+        ...     name="nu",
+        ... )
+        >>> xi = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 0,
+        ...     },
+        ...     name="xi",
+        ... )
+
+        Notice that the only `nu`-null atom is also `mu`-null, and so `mu` is absolutely continuous with respect to `nu`.
+
+        >>> mu.is_absolutely_continuous(nu)
+        True
+
+        Note that there is a `xi`-null atom that is not `mu`-null, and so `mu` is not absolutely continuous with respect to `xi`.
+
+        >>> mu.is_absolutely_continuous(xi)
+        False
+
+        We can check these conditions using the `<<` operators, as well.
+
+        >>> mu << nu
+        True
+        >>> mu << xi
+        False
+
+        Notes
+        -----
+        Let $\mu$ and $\nu$ be two measures on a measurable space $(X,\mathcal{F})$. We shall say that $\mu$ is *absolutely continuous* with respect to $\nu$, and write $\mu \ll \nu$, provided that $\mu(U)=0$ whenever $\nu(U)=0$, for all $U\in \mathcal{F}$.
+        """
+        if self.sig_alg != other.sig_alg:
             raise ValueError(
                 "Only measures with the same sigma-algebra may be compared for absolute continuity."
             )
 
-        self_data = (self | base_measure.sig_alg).data.reindex(base_measure.data.index)
-        base_data = base_measure.data
+        self_data = (self | other.sig_alg).data.reindex(other.data.index)
+        base_data = other.data
 
         return bool(((base_data > tol) | (self_data < tol)).all())
-
-    def __contains__(self, sig_alg: SigmaAlgebra) -> bool:
-        """Pass."""
-        if self.sig_alg is not None:
-            return sig_alg in self.lattice
 
     def get_random_set(
         self,
@@ -912,18 +1052,11 @@ class Measure(Function):
         num_atoms : int
             The number of atoms to include in the random set.
         is_null : bool, default=False
-            If `True`, the random set will be a null set (i.e., it will have measure zero).
+            If `True`, the random set will be a null set.
         name : Hashable, default="A"
             The name of the random set.
         random_state : int | np.random.Generator | None, default=None
             An optional random seed.
-
-        Raises
-        ------
-        TypeError
-            If `num_atoms` is not an integer, or if `random_state` is not an integer, `np.random.Generator`, or `None`.
-        ValueError
-            If `num_atoms` is not a positive integer.
 
         Returns
         -------
@@ -970,48 +1103,37 @@ class Measure(Function):
         self,
         obj: SigmaAlgebra | Set | list[Hashable],
     ) -> Measure:
-        """Restrict the measure to a sub-sigma-algebra.
+        """Restrict the measure to either a sub-sigma-algebra or measurable set.
 
-        Parameters
-        ----------
-        sig_alg : SigmaAlgebra
-            The sub-sigma-algebra to which to restrict the measure.
-
-        Returns
-        -------
-        measure : Measure
-            A new measure restricted to the new sigma-algebra.
+        Internally calls the `restrict_to` method. See the docstring there for more details.
         """
         return self.restrict_to(obj)
 
     def __rshift__(self, vec: MeasurableVector) -> Measure:
-        """Pushforward the measure through a measurable vector.
+        """Push the measure forward through a measurable vector.
 
-        Calls the method `Operators.pushforward`. See the documentation of that method for more information.
-
-        Parameters
-        ----------
-        vec : MeasurableVector
-            The measurable vector through which to push the measure forward.
-
-        Returns
-        -------
-        measure : Measure
-            The pushforward measure.
+        Internally calls the `Operators.pushforward` method. See the docstring there for more details.
         """
         from ..functions.operators import Operators
 
         return Operators.pushforward(vec=vec, measure=self)
 
-    # TODO: add docstring
     def __lshift__(self, other: Measure):
-        """Pass."""
+        """Determine whether the current measure is absolutely continuous with respect to another.
+
+        Internally calls the `is_absolutely_continuous` method. See the docstring there for more details.
+        """
         return self.is_absolutely_continuous(other)
+
+    def __contains__(self, sig_alg: SigmaAlgebra) -> bool:
+        """Check whether a sigma-algebra is contained in the domain sigma-algebra of this measure."""
+        if self.sig_alg is not None:
+            return sig_alg in self.lattice
 
     # --------------------- data access methods --------------------- #
 
     def __call__(self, *args, **kwargs) -> Real | Function:
-        """Get the measure.
+        """Call the measure.
 
         The return value is determined by the following rules:
 
@@ -1102,7 +1224,7 @@ class Measure(Function):
                 measurable_set = self.sig_alg.get_set(args[0])
             else:
                 raise TypeError(
-                    "If a positional argument is passed into a measure, it must be an instance of MeasurableSet or a list of points corresponding to a measurable set in the sigma-algebra."
+                    "If a positional argument is passed into a measure, it must be an instance of Set or a list of points corresponding to a measurable set in the sigma-algebra."
                 )
 
         elif len(args) == 0 and len(kwargs) > 0:
@@ -1113,7 +1235,7 @@ class Measure(Function):
 
         else:
             raise ValueError(
-                "A measure may only be called with a MeasurableSet (or list of points corresponding to a measurable set) as a positional argument, or atom identifiers as keyword arguments."
+                "A measure may only be called with a Set (or list of points corresponding to a measurable set) as a positional argument, or atom identifiers as keyword arguments."
             )
 
         if measurable_set is not None:
@@ -1137,6 +1259,8 @@ class Measure(Function):
                     result.data.name = result.name
 
             return result
+
+    # --------------------- conversion methods --------------------- #
 
     def to_function(self) -> Function:
         """Promote to a `Function` instance."""
@@ -1169,7 +1293,7 @@ class Measure(Function):
                 f"name={self.name})"
             )
 
-    # --------------------- equality --------------------- #
+    # --------------------- equality and comparison methods --------------------- #
 
     def __eq__(self, other: Measure) -> bool:
         """Check equality with another measure.
@@ -1202,10 +1326,23 @@ class Measure(Function):
 
         return bool(data.equals(other.data))
 
-    def close(self, other: Measure, rtol: float = 1e-5, atol=1e-8) -> bool:
-        """Pass."""
-        import numpy as np
+    def is_close(self, other: Measure, rtol: float = 1e-5, atol=1e-8) -> bool:
+        """Check if two measures have approximately the same values.
 
+        Parameters
+        ----------
+        other : Measure
+            The other measure to compare with.
+        rtol : float, default=1e-5
+            Relative tolerance for comparing values.
+        atol : float, default=1e-8
+            Absolute tolerance for comparing values.
+
+        Returns
+        -------
+        is_close : bool
+            `True` if the two measures have approximately the same values, `False` otherwise.
+        """
         from .._utils.utils import to_df
 
         if self.sig_alg != other.sig_alg:
@@ -1222,10 +1359,68 @@ class Measure(Function):
 
         return np.allclose(data, other.data, rtol=rtol, atol=atol)
 
-    # --------------------- comparison methods --------------------- #
-
     def is_restriction_of(self, other: Measure, rtol: float = 1e-5, atol=1e-8) -> bool:
         """Check whether this measure is the restriction of the other measure to a sub-sigma-algebra.
+
+        Parameters
+        ----------
+        other : Measure
+            The other measure to compare to.
+        rtol : float, default=1e-5
+            Relative tolerance for comparing values.
+        atol : float, default=1e-8
+            Absolute tolerance for comparing values.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Measure, SigmaAlgebra
+
+        Define a measurable space and a sub-sigma-algebra.
+
+        >>> X = Domain.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ... )
+        >>> G = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 1,
+        ...     },
+        ...     name="G",
+        ... )
+
+        Define two measures.
+
+        >>> mu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 3,
+        ...     },
+        ... )
+        >>> nu = Measure(
+        ...     domain=G,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 5,
+        ...     },
+        ...     name="nu",
+        ... )
+
+        Note that `nu` is indeed the restriction of `mu` to the sub-sigma-algebra `G`.
+
+        >>> nu.is_restriction_of(mu)
+        True
 
         Returns
         -------
@@ -1236,7 +1431,8 @@ class Measure(Function):
             return True
 
         return bool(
-            (self.sig_alg <= other.sig_alg) and self.close(other | self.sig_alg)
+            (self.sig_alg <= other.sig_alg)
+            and self.is_close(other | self.sig_alg, rtol=rtol, atol=atol)
         )
 
     # --------------------- arithmetic operations --------------------- #
@@ -1254,7 +1450,10 @@ class Measure(Function):
         name: Hashable | None = None,
         **kwargs,
     ) -> Function:
-        """Apply a binary operation to this measure."""
+        """Apply a binary operation to this measure.
+
+        See the method `Function._apply_binary_operation` for more details on the parameters and behavior.
+        """
         return Function._apply_binary_operation(
             self=self.to_function(),
             other=other,
