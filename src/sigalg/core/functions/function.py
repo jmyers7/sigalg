@@ -26,8 +26,6 @@ if TYPE_CHECKING:
     from ..spaces.set import Set
     from .measurable_vector import MeasurableVector
 
-    PandasLike = pd.Series | pd.DataFrame
-
 
 class Function:
     """A class representing a function.
@@ -1320,6 +1318,8 @@ class Function:
             name = " x ".join([factor.name for factor in factors])
         if domain_name is None:
             domain_name = " x ".join([factor.domain.name for factor in factors])
+
+        # print(domain_name)
 
         return cls._from_validated(
             data=data,
@@ -3554,8 +3554,6 @@ class Function:
     def __eq__(self, other: Function | Real) -> bool:
         """Check if two functions are equal.
 
-        Equality may only be checked if both functions have domains. If the arguments of the two functions are the same but in a different order, the method will attempt to reorder the levels of the other function's data to match the order of this function's arguments before comparing the values.
-
         Parameters
         ----------
         other : Function | Real
@@ -3565,68 +3563,20 @@ class Function:
         -------
         are_equal : bool
             True if the two functions are equal, False otherwise.
-
-        Examples
-        --------
-        Define two functions whose domains are the same up to order and variable order.
-        >>> from sigalg.core import Domain, Function
-        >>> D_f = Domain([(0, 1), (1, 2)], variable_names=["x", "y"], name="D_f")
-        >>> D_g = Domain([(2, 1), (1, 0)], variable_names=["y", "x"], name="D_g")
-        >>> f = Function(domain=D_f, mapping=lambda *, x, y: x**2 + y**2)
-        >>> g = Function(domain=D_g, mapping=lambda *, y, x: x**2 + y**2, name="g")
-        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'f':
-              f
-        x y
-        0 1   1
-        1 2   5
-        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'g':
-              g
-        y x
-        2 1   5
-        1 0   1
-
-        These functions are equal.
-
-        >>> f == g
-        True
         """
         import pandas as pd
 
-        from .._utils.utils import to_df
-
         if isinstance(other, Function):
-            if self.domain is None or other.domain is None:
-                raise ValueError(
-                    "Cannot compare two functions whose domains are not defined."
-                )
-
-            if set(self.domain.variable_names) != set(other.domain.variable_names):
+            if self is other:
+                return True
+            if self.domain != other.domain:
                 return False
-            if self.dimension != other.dimension:
-                return False
-            if self.index is not None and list(self.index) != list(other.index):
+            if self.index != other.index:
                 return False
 
-            self_data = to_df(self.data, "_self")
-            other_data = to_df(other.data, "_other")
-
-            test_data = pd.merge(
-                left=self_data.reset_index(),
-                right=other_data.reset_index(),
-                how="outer",
+            return bool(
+                self.data.astype("float64").equals(other.data.astype("float64"))
             )
-
-            if test_data.isna().any().any():
-                return False
-
-            self_data = test_data[list(self_data.columns)]
-            self_data.columns = pd.RangeIndex(self.dimension)
-            other_data = test_data[list(other_data.columns)]
-            other_data.columns = pd.RangeIndex(self.dimension)
-
-            return bool((self_data == other_data).all().all())
 
         elif isinstance(other, Hashable | tuple | pd.Series):
             return self.get_inverse_image(value=other)

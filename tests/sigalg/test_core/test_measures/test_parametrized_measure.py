@@ -123,7 +123,7 @@ class TestEquality:
         assert mu == nu
 
     def test_power_set_reordered_domains(self):
-        """Test equality with reordered measure domains."""
+        """Test inequality with reordered measure domains."""
         X = Domain([(1, 2), (3, 4), (5, 6)], variable_names=["a", "b"])
         Y = Domain([(4, 3), (2, 1), (6, 5)], variable_names=["b", "a"])
         Theta = Domain([(0, 1), (2, 3)], variable_names=["theta_0", "theta_1"])
@@ -154,10 +154,10 @@ class TestEquality:
             name="nu",
         )
 
-        assert mu == nu
+        assert mu != nu
 
     def test_power_set_all_reordered(self):
-        """Test equality with both domains and parameters reordered."""
+        """Test inequality with both domains and parameters reordered."""
         X = Domain([(1, 2), (3, 4), (5, 6)], variable_names=["a", "b"])
         Y = Domain([(4, 3), (2, 1), (6, 5)], variable_names=["b", "a"])
         Theta = Domain([(0, 1), (2, 3)], variable_names=["theta_0", "theta_1"])
@@ -189,7 +189,7 @@ class TestEquality:
             name="nu",
         )
 
-        assert mu == nu
+        assert mu != nu
 
     def test_custom_sig_alg_different_atom_labels_1d(self):
         """Test equality with custom sigma-algebras using different 1D atom labels."""
@@ -242,7 +242,7 @@ class TestEquality:
         assert mu == nu
 
     def test_custom_sig_alg_different_atom_labels_2d(self):
-        """Test equality with custom sigma-algebras: 1D vs 2D atom labels."""
+        """Test inequality with custom sigma-algebras: 1D vs 2D atom labels."""
         X = Domain([(1, 2), (3, 4), (5, 6)], variable_names=["a", "b"])
         Y = Domain([(4, 3), (2, 1), (6, 5)], variable_names=["b", "a"])
         Theta = Domain([(0, 1), (2, 3)], variable_names=["theta_0", "theta_1"])
@@ -291,7 +291,7 @@ class TestEquality:
             name="nu",
         )
 
-        assert mu == nu
+        assert mu != nu
 
     def test_different_partitions(self):
         """Test that measures on different partitions are not equal."""
@@ -983,7 +983,7 @@ class TestEquality:
         assert mu == nu
 
     def test_non_involutive_permutation_3cycle_domains(self):
-        """Test equality with 3-cycle permutation on domain variables."""
+        """Test inequality with 3-cycle permutation on domain variables."""
         X = Domain(
             [(1, 2, 3), (4, 5, 6), (7, 8, 9)],
             variable_names=["a", "b", "c"],
@@ -1020,10 +1020,10 @@ class TestEquality:
             name="nu",
         )
 
-        assert mu == nu
+        assert mu != nu
 
     def test_non_involutive_permutation_both_3cycle(self):
-        """Test equality with 3-cycle permutations on both domains and parameters."""
+        """Test inequality with 3-cycle permutations on both domains and parameters."""
         X = Domain(
             [(1, 2, 3), (4, 5, 6)],
             variable_names=["a", "b", "c"],
@@ -1063,7 +1063,7 @@ class TestEquality:
             name="nu",
         )
 
-        assert mu == nu
+        assert mu != nu
 
     def test_same_size_disjoint_domain_labels(self):
         """Test inequality with same size but completely disjoint domain variable names."""

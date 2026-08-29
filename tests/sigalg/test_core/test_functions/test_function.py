@@ -190,12 +190,12 @@ class TestEquality:
 
         assert f == g
 
-    def test_equal_functions_different_order(self, D, D_reordered):
-        """Test that functions with reordered arguments but same values are equal."""
+    def test_inequal_functions_different_order(self, D, D_reordered):
+        """Test that functions with reordered arguments but same values are not equal."""
         f = Function(domain=D, mapping=lambda *, x, y: x**2 + y**2)
         g = Function(domain=D_reordered, name="g", mapping=lambda *, y, x: x**2 + y**2)
 
-        assert f == g
+        assert f != g
 
     def test_equal_univariate_functions(self):
         """Test equality for univariate functions."""
@@ -238,23 +238,6 @@ class TestEquality:
         g = Function(domain=D2, name="g", mapping=lambda *, x, y: x**2 + y**2)
 
         assert f != g
-
-    def test_missing_domain_self_raises(self):
-        """Test that comparing when self has no domain raises ValueError."""
-        f = Function(mapping=lambda *, x, y: x + y)
-        D = Domain([(0, 1), (1, 2)], variable_names=["x", "y"])
-        g = Function(domain=D, name="g", mapping=lambda *, x, y: x + y)
-
-        with pytest.raises(ValueError, match="domains are not defined"):
-            f == g  # noqa: B015
-
-    def test_missing_domain_other_raises(self, D):
-        """Test that comparing when other has no domain raises ValueError."""
-        f = Function(domain=D, mapping=lambda *, x, y: x + y)
-        g = Function(name="g", mapping=lambda *, x, y: x + y)
-
-        with pytest.raises(ValueError, match="domains are not defined"):
-            f == g  # noqa: B015
 
 
 # --------------------- test arithmetic methods --------------------- #
