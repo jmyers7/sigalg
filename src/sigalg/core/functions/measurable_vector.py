@@ -150,7 +150,6 @@ class MeasurableVector(Function, OperatorsMethods):
     Given a measurable space $(X,\mathcal{F})$, a *measurable vector* is an $\mathcal{F}$-measurable function $f: X \to \mathbb{R}^d$, where $d$ is the *dimension* of the vector and $\mathbb{R}^d$ is equipped with its Borel $\sigma$-algebra. If $X$ is finite (as it always is, in SigAlg), then $f$ is $\mathcal{F}$-measurable if and only if $f$ is constant on the atoms of $\mathcal{F}$.
     """
 
-    _properties = []
     _repr_name = "MeasurableVector"
     _str_name = "Measurable vector"
     _default_name = "f"

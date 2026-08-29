@@ -97,17 +97,17 @@ class TrinomialPricingModel(GeometricPricingModel):
     """
 
     _repr_name = "Trinomial price process"
-    _properties = GeometricPricingModel._properties + [
-        "_initial_price",
-        "_risk_free_rate",
-        "_risk_free_gross_return",
-        "_up_prob",
-        "_middle_prob",
-        "_down_prob",
-        "_up_factor",
-        "_middle_factor",
-        "_down_factor",
-    ]
+    # _properties = GeometricPricingModel._properties + [
+    #     "_initial_price",
+    #     "_risk_free_rate",
+    #     "_risk_free_gross_return",
+    #     "_up_prob",
+    #     "_middle_prob",
+    #     "_down_prob",
+    #     "_up_factor",
+    #     "_middle_factor",
+    #     "_down_factor",
+    # ]
 
     # --------------------- constructors --------------------- #
 

@@ -98,7 +98,6 @@ class Function:
     5
     """
 
-    _properties = []
     _default_name = "f"
     _repr_name = "Function"
     _str_name = "Function"

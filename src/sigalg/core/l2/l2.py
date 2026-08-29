@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
-from numbers import Real
 from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
+    from numbers import Real
+
     from ...core.functions.measurable_function import MeasurableFunction
     from ...core.measures.measure import Measure
     from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -106,11 +107,6 @@ class L2:
     In the case that $X$ is finite (as it always is, in SigAlg), the condition $(\ast)$ is automatically satisfied, so $L^2(\mathcal{F})$ is simply the vector space of all $\mathcal{F}$-measurable functions.
     """
 
-    _properties = [
-        "_basis",
-        "_basis_df",
-    ]
-
     # --------------------- constructor --------------------- #
 
     def __init__(
@@ -133,12 +129,6 @@ class L2:
 
         self._name = name
         self._initialize_property_caches()
-
-    def _initialize_property_caches(self, exceptions: set | None = None) -> None:
-        if exceptions is None:
-            exceptions = set()
-        for property in set(self._properties) - exceptions:
-            setattr(self, property, None)
 
     # --------------------- properties --------------------- #
 

@@ -89,8 +89,6 @@ class Filtration:
 
     # --------------------- constructors --------------------- #
 
-    _properties = ["_domain", "_coarsest", "_finest"]
-
     def __init__(
         self,
         sig_algs: FiltrationLike | None = None,
@@ -125,10 +123,6 @@ class Filtration:
         self._variable_names = variable_names
 
         self._initialize_property_caches()
-
-    def _initialize_property_caches(self) -> None:
-        for property in self._properties:
-            setattr(self, property, None)
 
     # --------------------- properties --------------------- #
 

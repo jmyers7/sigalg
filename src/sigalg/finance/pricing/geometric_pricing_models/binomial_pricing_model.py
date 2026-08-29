@@ -101,17 +101,17 @@ class BinomialPricingModel(GeometricPricingModel):
     """
 
     _repr_name = "Binomial price process"
-    _properties = GeometricPricingModel._properties + [
-        "_initial_price",
-        "_risk_free_rate",
-        "_risk_free_gross_return",
-        "_up_prob",
-        "_down_prob",
-        "_up_factor",
-        "_down_factor",
-        "_enum_mode",
-        "_sparse_price_array",
-    ]
+    # _properties = GeometricPricingModel._properties + [
+    #     "_initial_price",
+    #     "_risk_free_rate",
+    #     "_risk_free_gross_return",
+    #     "_up_prob",
+    #     "_down_prob",
+    #     "_up_factor",
+    #     "_down_factor",
+    #     "_enum_mode",
+    #     "_sparse_price_array",
+    # ]
 
     # --------------------- constructors --------------------- #
 

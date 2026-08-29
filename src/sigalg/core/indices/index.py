@@ -73,7 +73,6 @@ class Index:
        2    b
     """
 
-    _properties = []
     _default_name = "I"
     _repr_name = "Index"
     _str_name = "Index"

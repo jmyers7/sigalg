@@ -129,15 +129,15 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     Let $(\Omega, \mathcal{F}, P)$ be a probability space and let $T$ be a linearly-ordered set. A (*$T$-indexed*) *stochastic process* is a collection of random variables $X_t$ defined on the probability space, one for each $t\in T$. The index set $T$ is often interpreted as "time".
     """
 
-    _properties = RandomVector._properties + [
-        "_n_trajectories",
-        "_natural_filtration",
-        "_last_rv",
-        "_random_state",
-        "_mode",
-        "_length",
-        "_time",
-    ]
+    # _properties = RandomVector._properties + [
+    #     "_n_trajectories",
+    #     "_natural_filtration",
+    #     "_last_rv",
+    #     "_random_state",
+    #     "_mode",
+    #     "_length",
+    #     "_time",
+    # ]
     _repr_name = "StochasticProcess"
     _str_name = "Stochastic process"
     _default_name = "X"

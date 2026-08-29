@@ -94,7 +94,6 @@ class ParametrizedMeasure(Function):
     _repr_name = "ParametrizedMeasure"
     _str_name = "Parametrized measure"
     _default_name = "mu"
-    _properties = Function._properties + []
 
     # --------------------- constructors --------------------- #
 

@@ -96,8 +96,6 @@ class SigmaAlgebra:
     If $\{A_i\}_{i\in I}$ is the set of atoms, indexed by a finite set $I$, then there is a mapping $X \to I$ given by $x \mapsto i$, where $A_i$ is the unique atom that contains $x$. This mapping is what SigAlg uses to represent $\sigma$-algebras. The indices in $I$ are called *atom identifiers*. The atom identifiers may consist of tuples, in which case the $\sigma$-algebra is said to have *multi-dimensional* atom identifiers, and the *dimension* of the $\sigma$-algebra is the common length of the tuples.
     """
 
-    _properties = []
-
     # --------------------- constructors --------------------- #
 
     def __init__(

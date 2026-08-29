@@ -16,10 +16,10 @@ from ..claims.claim import Claim
 class GeometricPricingModel(ABC, StochasticProcess):
     """Abstract base class for geometric pricing models."""
 
-    _properties = StochasticProcess._properties + [
-        "_driving_process",
-        "_emms",
-    ]
+    # _properties = StochasticProcess._properties + [
+    #     "_driving_process",
+    #     "_emms",
+    # ]
 
     # --------------------- data generation methods --------------------- #
 

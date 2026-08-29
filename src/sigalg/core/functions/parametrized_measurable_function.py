@@ -125,7 +125,6 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
     _repr_name = "ParametrizedMeasurableFunction"
     _str_name = "Parametrized measurable function"
     _default_name = "f"
-    _properties = Function._properties + []
 
     # --------------------- constructors --------------------- #
 
