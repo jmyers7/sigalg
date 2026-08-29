@@ -15,6 +15,7 @@ def ascend_from_atom_space(
     self_data: PandasLike,
     sig_alg_data: PandasLike,
     parameter_names: list[Hashable] | None = None,
+    sort_index: bool = False,
 ) -> PandasLike:
     """Convert (parametrized) function data defined on atom identifiers of a sigma-algebra into (parametrized) function data defined on the measurable domain.
 
@@ -25,7 +26,7 @@ def ascend_from_atom_space(
     Examples
     --------
     >>> import sigalg as sa
-    >>> from sigalg.core._utils import sig_alg_func_to_measurable_func
+    >>> from sigalg.core._utils import ascend_from_atom_space
 
     Generate a function with 2-dimensional outputs defined on the atom space of a sigma-algebra with 2-dimensional atom identifiers.
 
@@ -57,7 +58,7 @@ def ascend_from_atom_space(
 
     Convert to the data of a measurable vector on the domain.
 
-    >>> data = sig_alg_func_to_measurable_func(
+    >>> data = ascend_from_atom_space(
     ...     self_data=f.data,
     ...     sig_alg_data=F.data,
     ... )
@@ -111,10 +112,11 @@ def ascend_from_atom_space(
 
     Convert to the data of a parametrized measurable function on the domain.
 
-    >>> data = sig_alg_func_to_measurable_func(
+    >>> data = ascend_from_atom_space(
     ...     self_data=g.data,
     ...     sig_alg_data=F.data,
     ...     parameter_names=["theta_0", "theta_1"],
+    ...     sort_index=True,
     ... )
     >>> print(data)  # doctest: +NORMALIZE_WHITESPACE
     theta_0  theta_1  x_0  x_1
@@ -164,9 +166,11 @@ def ascend_from_atom_space(
         .set_index(add_subscript(parameter_names, "param") + domain_variable_names)[
             self_index
         ]
-        .sort_index()
         .squeeze(axis=1)
     )
+
+    if sort_index:
+        data = data.sort_index()
 
     parameter_names = [
         f"{name}_0" if name in domain_variable_names else name
@@ -290,17 +294,17 @@ def compute_expectation(
     ...     measure_data_on_given=(P | G).data,
     ... )
     >>> print(exp)  # doctest: +NORMALIZE_WHITESPACE
-    s
-    0    4.0
-    1    4.0
-    2    1.0
-    3    4.0
-    4    6.0
-    5    6.0
-    6    4.0
-    7    4.0
-    8    4.0
-    9    4.0
+    omega
+    0    3.0
+    1    3.0
+    2    0.0
+    3    3.0
+    4    7.0
+    5    7.0
+    6    3.0
+    7    3.0
+    8    3.0
+    9    3.0
     dtype: float64
     """
     import pandas as pd
