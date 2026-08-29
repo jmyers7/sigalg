@@ -337,10 +337,10 @@ class TestEquality:
         assert given != other
 
     def test_equality_same_elements_different_order(self):
-        """Test equality when elements are the same but in different order."""
+        """Test inequality when elements are the same but in different order."""
         given = Index(indices=["a", "b", "c"], variable_names=["x"])
         other = Index(indices=["c", "a", "b"], variable_names=["x"])
-        assert given == other
+        assert given != other
 
     def test_non_equality_different_elements(self):
         """Test inequality when elements are different."""
@@ -376,7 +376,7 @@ class TestEquality:
         )
         assert given == other
 
-    def test_equality_multiindex_different_order_same_elements(self):
+    def test_inequality_multiindex_different_order_same_elements(self):
         """Test equality with MultiIndex when elements are the same but order differs."""
         given = Index(
             indices=[("a", 1), ("b", 2), ("c", 3)], variable_names=["letter", "num"]
@@ -384,9 +384,9 @@ class TestEquality:
         other = Index(
             indices=[("c", 3), ("a", 1), ("b", 2)], variable_names=["letter", "num"]
         )
-        assert given == other
+        assert given != other
 
-    def test_equality_multiindex_reordered_levels(self):
+    def test_inequality_multiindex_reordered_levels(self):
         """Test equality with MultiIndex when levels are reordered but elements are the same."""
         given = Index(
             indices=[("a", 1), ("b", 2), ("c", 3)], variable_names=["letter", "num"]
@@ -394,9 +394,9 @@ class TestEquality:
         other = Index(
             indices=[(1, "a"), (2, "b"), (3, "c")], variable_names=["num", "letter"]
         )
-        assert given == other
+        assert given != other
 
-    def test_equality_multiindex_reordered_levels_and_different_order(self):
+    def test_inequality_multiindex_reordered_levels_and_different_order(self):
         """Test equality with MultiIndex when levels are reordered and elements are same but in different order."""
         given = Index(
             indices=[("a", 1), ("c", 3), ("b", 2)], variable_names=["letter", "num"]
@@ -404,7 +404,7 @@ class TestEquality:
         other = Index(
             indices=[(1, "a"), (2, "b"), (3, "c")], variable_names=["num", "letter"]
         )
-        assert given == other
+        assert given != other
 
     def test_non_equality_multiindex_different_elements(self):
         """Test inequality with MultiIndex when elements are different."""

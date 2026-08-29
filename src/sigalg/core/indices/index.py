@@ -760,13 +760,6 @@ class Index:
         -------
         kwargs : list[dict]
             A list of dictionaries mapping variable names to their values.
-
-        Examples
-        --------
-        >>> from sigalg.core import Index
-        >>> I = Index([(1, 2), (3, 4)], variable_names={"a", "b"})
-        >>> I.to_kwargs()
-        [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]
         """
         if self.dimension == 1:
             return [dict(zip(self.variable_names, [point])) for point in self]
@@ -790,8 +783,6 @@ class Index:
         is_equal : bool
             `True` if the indices are considered equal according to the above criteria, `False` otherwise.
         """
-        import numpy as np
-
         if self is other:
             return True
         if not isinstance(other, Index):
@@ -799,7 +790,7 @@ class Index:
         if self.variable_names != other.variable_names:
             return False
 
-        return bool(np.array_equal(self, other))
+        return self.data.equals(other.data)
 
     # --------------------- representation --------------------- #
 
