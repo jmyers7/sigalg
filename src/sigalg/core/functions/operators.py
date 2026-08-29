@@ -1186,52 +1186,61 @@ class Operators:
 
         Examples
         --------
-        >>> import numpy as np
         >>> from sigalg.core import (
+        ...     Function,
         ...     Operators,
         ...     ProbabilityMeasure,
+        ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> rng = np.random.default_rng(42)
 
         Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
 
-        >>> Omega = SampleSpace.from_sequence(size=100)
-        >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
-        >>> P = ProbabilityMeasure.from_rand(
-        ...     domain=F,
-        ...     num_null_atoms=5,
-        ...     random_state=rng,
-        ... )
-        >>> X = RandomVector.from_rand(
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> P = ProbabilityMeasure(
         ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     dim=1,
-        ...     random_state=rng,
+        ...     mapping={
+        ...         0: 0.0,
+        ...         1: 0.0,
+        ...         2: 0.2,
+        ...         3: 0.2,
+        ...         4: 0.15,
+        ...         5: 0.45,
+        ...     },
         ... )
-        >>> Y = RandomVector.from_rand(
+        >>> X = RandomVariable(
         ...     domain=Omega,
-        ...     sig_alg=F,
         ...     measure=P,
-        ...     dim=2,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 3,
+        ...         3: 1,
+        ...         4: 5,
+        ...         5: 0,
+        ...     },
+        ... )
+        >>> Y = RandomVector(
+        ...     domain=Omega,
+        ...     measure=P,
+        ...     mapping={
+        ...         0: (1, 3),
+        ...         1: (2, 4),
+        ...         2: (3, 1),
+        ...         3: (1, 0),
+        ...         4: (5, 0),
+        ...         5: (0, 8),
+        ...     },
         ...     name="Y",
-        ...     random_state=rng,
         ... )
 
         Give aliases to the `integrate` and `expectation` methods, and get the constant random variable whose unique value is `1`.
 
         >>> E = Operators.expectation
         >>> integrate = Operators.integrate
-        >>> trivial = SigmaAlgebra.trivial(Omega)
-        >>> one = RandomVector.from_constant(
-        ...     domain=Omega,
-        ...     sig_alg=trivial,
-        ...     measure=P | trivial,
-        ...     constant=1,
-        ... )
+        >>> one = Function.from_constant(domain=Omega, constant=1)
 
         Check that the unconditional expectation of the random variable `X` is equal to the constant random variable whose unique value is the Lebesgue integral of the random variable.
 
@@ -1243,40 +1252,32 @@ class Operators:
         >>> all(E_Y_i == integrate(Y_i) * one for E_Y_i, Y_i in zip(E(Y), Y))
         True
 
-        Define a sub-sigma-algebra of `F` for conditional expectations.
+        Define a sigma-algebra for conditional expectations.
 
-        >>> G = SigmaAlgebra.from_rand(
-        ...     num_atoms=8,
-        ...     super=F,
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     },
         ...     name="G",
-        ...     random_state=rng,
         ... )
 
         Check that the conditional expectation of the random variable `X` is equal to its Fourier expansion.
 
-        >>> np.allclose(E(X, G), sum(integrate(X, B) / P(B) * B.indicator for B in G if P(B) != 0))
+        >>> E(X, G) == sum(integrate(X, B) / P(B) * B.indicator for B in G if P(B) != 0)
         True
 
         Check the same for the components of the conditional expectation of the random vector `Y`.
 
-        >>> all(E_Y_i_G == sum(integrate(Y_i, B) / P(B) * B.indicator for B in G if P(B) != 0) for E_Y_i_G, Y_i in zip(E(Y, G), Y))
-        True
-
-        Check that passing an explict measure--different from the one carried by the random variable--into the `expectation` method works:
-
-        >>> Q = ProbabilityMeasure.from_rand(
-        ...     domain=F,
-        ...     num_null_atoms=4,
-        ...     name="Q",
-        ...     random_state=rng,
+        >>> all(
+        ...     E_Y_i_G == sum(integrate(Y_i, B) / P(B) * B.indicator for B in G if P(B) != 0)
+        ...     for E_Y_i_G, Y_i in zip(E(Y, G), Y)
         ... )
-        >>> one = RandomVector.from_constant(
-        ...     domain=Omega,
-        ...     sig_alg=trivial,
-        ...     measure=Q | trivial,
-        ...     constant=1,
-        ... )
-        >>> E(X, measure=Q) == integrate(X, measure=Q) * one
         True
 
         Notes
@@ -1428,39 +1429,53 @@ class Operators:
 
         Examples
         --------
-        >>> import numpy as np
         >>> from sigalg.core import (
         ...     Operators,
         ...     ProbabilityMeasure,
+        ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> rng = np.random.default_rng(42)
 
         Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
 
-        >>> Omega = SampleSpace.from_sequence(size=100)
-        >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
-        >>> P = ProbabilityMeasure.from_rand(
-        ...     domain=F,
-        ...     num_null_atoms=5,
-        ...     random_state=rng,
-        ... )
-        >>> X = RandomVector.from_rand(
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> P = ProbabilityMeasure(
         ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     dim=1,
-        ...     random_state=rng,
+        ...     mapping={
+        ...         0: 0.0,
+        ...         1: 0.0,
+        ...         2: 0.2,
+        ...         3: 0.2,
+        ...         4: 0.15,
+        ...         5: 0.45,
+        ...     },
         ... )
-        >>> Y = RandomVector.from_rand(
+        >>> X = RandomVariable(
         ...     domain=Omega,
-        ...     sig_alg=F,
         ...     measure=P,
-        ...     dim=2,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 3,
+        ...         3: 1,
+        ...         4: 5,
+        ...         5: 0,
+        ...     },
+        ... )
+        >>> Y = RandomVector(
+        ...     domain=Omega,
+        ...     measure=P,
+        ...     mapping={
+        ...         0: (1, 3),
+        ...         1: (2, 4),
+        ...         2: (3, 1),
+        ...         3: (1, 0),
+        ...         4: (5, 0),
+        ...         5: (0, 8),
+        ...     },
         ...     name="Y",
-        ...     random_state=rng,
         ... )
 
         Give aliases to the `variance` and `expectation` methods.
@@ -1468,38 +1483,40 @@ class Operators:
         >>> V = Operators.variance
         >>> E = Operators.expectation
 
-        Check that the unconditional variance is equal to its definition and that it can be computed using the "shortcut formula."
+        Check that the variance may be computed via the "short-cut" formula.
 
-        >>> np.allclose(V(X), E((X - E(X)) ** 2))
-        True
-        >>> np.allclose(V(X), E(X**2) - E(X) ** 2)
+        >>> V(X) == E(X**2) - E(X) ** 2
         True
 
-        Compute the unconditional variance of the random vector `Y`, and check that its components are the unconditional variances of the components of `Y`.
+        Check the same for `Y`.
 
-        >>> all(np.allclose(V_Y_i, E((Y_i - E(Y_i)) ** 2)) for V_Y_i, Y_i in zip(V(Y), Y))
-        True
-        >>> all(np.allclose(V_Y_i, E(Y_i**2) - E(Y_i) ** 2) for V_Y_i, Y_i in zip(V(Y), Y))
+        >>> V(Y) == E(Y**2) - E(Y) ** 2
         True
 
-        Define a sub-sigma-algebra of `F` for conditional variances.
+        Define a sigma-algebra for conditional variances.
 
-        >>> G = SigmaAlgebra.from_rand(
-        ...     num_atoms=8,
-        ...     super=F,
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     },
         ...     name="G",
-        ...     random_state=rng,
         ... )
 
         Check that the conditional variance of the random variable `X` is equal to a linear combination of indicators weighted by unconditional variances.
 
-        >>> np.allclose(V(X, G), sum(V(X | B).item() * B.indicator for B in G if P(B) > 0))
+        >>> V(X, G) == sum(V(X | B).item() * B.indicator for B in G if P(B) > 0)
         True
 
         Check the same for the random vector `Y`.
 
         >>> all(
-        ...     np.allclose(V_Y_i_G, sum(V(Y_i | B).item() * B.indicator for B in G if P(B) > 0))
+        ...     V_Y_i_G == sum(V(Y_i | B).item() * B.indicator for B in G if P(B) > 0)
         ...     for V_Y_i_G, Y_i in zip(V(Y, G), Y)
         ... )
         True
@@ -1580,39 +1597,53 @@ class Operators:
 
         Examples
         --------
-        >>> import numpy as np
         >>> from sigalg.core import (
         ...     Operators,
         ...     ProbabilityMeasure,
+        ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> rng = np.random.default_rng(42)
 
         Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
 
-        >>> Omega = SampleSpace.from_sequence(size=100)
-        >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
-        >>> P = ProbabilityMeasure.from_rand(
-        ...     domain=F,
-        ...     num_null_atoms=5,
-        ...     random_state=rng,
-        ... )
-        >>> X = RandomVector.from_rand(
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> P = ProbabilityMeasure(
         ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     dim=1,
-        ...     random_state=rng,
+        ...     mapping={
+        ...         0: 0.0,
+        ...         1: 0.0,
+        ...         2: 0.2,
+        ...         3: 0.2,
+        ...         4: 0.15,
+        ...         5: 0.45,
+        ...     },
         ... )
-        >>> Y = RandomVector.from_rand(
+        >>> X = RandomVariable(
         ...     domain=Omega,
-        ...     sig_alg=F,
         ...     measure=P,
-        ...     dim=2,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 3,
+        ...         3: 1,
+        ...         4: 5,
+        ...         5: 0,
+        ...     },
+        ... )
+        >>> Y = RandomVector(
+        ...     domain=Omega,
+        ...     measure=P,
+        ...     mapping={
+        ...         0: (1, 3),
+        ...         1: (2, 4),
+        ...         2: (3, 1),
+        ...         3: (1, 0),
+        ...         4: (5, 0),
+        ...         5: (0, 8),
+        ...     },
         ...     name="Y",
-        ...     random_state=rng,
         ... )
 
         Give aliases to the `variance` and `std` methods.
@@ -1625,18 +1656,24 @@ class Operators:
         >>> std(X) == V(X) ** 0.5
         True
 
-        Compute the unconditional standard deviation of the random vector `Y`, and check that its components are the unconditional standard deviations of the components of `Y`.
+        Check the same for `Y`.
 
-        >>> all(std_Y_i == V(Y_i) ** 0.5 for std_Y_i, Y_i in zip(std(Y), Y))
+        >>> std(Y) == V(Y) ** 0.5
         True
 
-        Define a sub-sigma-algebra of `F` for conditional standard deviations.
+        Define a sigma-algebra for conditional standard deviations.
 
-        >>> G = SigmaAlgebra.from_rand(
-        ...     num_atoms=8,
-        ...     super=F,
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     },
         ...     name="G",
-        ...     random_state=rng,
         ... )
 
         Check that the conditional standard deviation of the random variable `X` is equal to a linear combination of indicators weighted by unconditional standard deviations.
@@ -1647,11 +1684,7 @@ class Operators:
         Check the same for the random vector `Y`.
 
         >>> all(
-        ...     np.allclose(
-        ...         std_Y_i_G.data,
-        ...         sum(std(Y_i | B).item() * B.indicator for B in G if P(B) > 0).data,
-        ...         atol=1e-7,
-        ...     )
+        ...     std_Y_i_G == sum(std(Y_i | B).item() * B.indicator for B in G if P(B) != 0)
         ...     for std_Y_i_G, Y_i in zip(std(Y, G), Y)
         ... )
         True
@@ -1731,39 +1764,52 @@ class Operators:
 
         Examples
         --------
-        >>> import numpy as np
         >>> from sigalg.core import (
         ...     Operators,
         ...     ProbabilityMeasure,
-        ...     RandomVector,
+        ...     RandomVariable,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> rng = np.random.default_rng(42)
 
         Define a probability space along with two random variables.
 
-        >>> Omega = SampleSpace.from_sequence(size=100)
-        >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
-        >>> P = ProbabilityMeasure.from_rand(
-        ...     domain=F,
-        ...     num_null_atoms=5,
-        ...     random_state=rng,
-        ... )
-        >>> X = RandomVector.from_rand(
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> P = ProbabilityMeasure(
         ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     dim=1,
-        ...     random_state=rng,
+        ...     mapping={
+        ...         0: 0.0,
+        ...         1: 0.0,
+        ...         2: 0.2,
+        ...         3: 0.2,
+        ...         4: 0.15,
+        ...         5: 0.45,
+        ...     },
         ... )
-        >>> Y = RandomVector.from_rand(
+        >>> X = RandomVariable(
         ...     domain=Omega,
-        ...     sig_alg=F,
         ...     measure=P,
-        ...     dim=1,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 3,
+        ...         3: 1,
+        ...         4: 5,
+        ...         5: 0,
+        ...     },
+        ... )
+        >>> Y = RandomVariable(
+        ...     domain=Omega,
+        ...     measure=P,
+        ...     mapping={
+        ...         0: 3,
+        ...         1: 4,
+        ...         2: 1,
+        ...         3: 0,
+        ...         4: 0,
+        ...         5: 8,
+        ...     },
         ...     name="Y",
-        ...     random_state=rng,
         ... )
 
         Give aliases to the `expectation` and `cov` methods.
@@ -1776,13 +1822,19 @@ class Operators:
         >>> cov(X, Y) == E(X * Y) - E(X) * E(Y)
         True
 
-        Define a sub-sigma-algebra of `F` for conditional covariance.
+        Define a sigma-algebra for conditional covariance.
 
-        >>> G = SigmaAlgebra.from_rand(
-        ...     num_atoms=8,
-        ...     super=F,
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     },
         ...     name="G",
-        ...     random_state=rng,
         ... )
 
         Check that the conditional covariance of the random variables is equal to a linear combination of indicators weighted by unconditional covariances.
@@ -1862,39 +1914,52 @@ class Operators:
 
         Examples
         --------
-        >>> import numpy as np
         >>> from sigalg.core import (
         ...     Operators,
         ...     ProbabilityMeasure,
-        ...     RandomVector,
+        ...     RandomVariable,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> rng = np.random.default_rng(42)
 
         Define a probability space along with two random variables.
 
-        >>> Omega = SampleSpace.from_sequence(size=100)
-        >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
-        >>> P = ProbabilityMeasure.from_rand(
-        ...     domain=F,
-        ...     num_null_atoms=5,
-        ...     random_state=rng,
-        ... )
-        >>> X = RandomVector.from_rand(
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> P = ProbabilityMeasure(
         ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     dim=1,
-        ...     random_state=rng,
+        ...     mapping={
+        ...         0: 0.0,
+        ...         1: 0.0,
+        ...         2: 0.2,
+        ...         3: 0.2,
+        ...         4: 0.15,
+        ...         5: 0.45,
+        ...     },
         ... )
-        >>> Y = RandomVector.from_rand(
+        >>> X = RandomVariable(
         ...     domain=Omega,
-        ...     sig_alg=F,
         ...     measure=P,
-        ...     dim=1,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 3,
+        ...         3: 1,
+        ...         4: 5,
+        ...         5: 0,
+        ...     },
+        ... )
+        >>> Y = RandomVariable(
+        ...     domain=Omega,
+        ...     measure=P,
+        ...     mapping={
+        ...         0: 3,
+        ...         1: 4,
+        ...         2: 1,
+        ...         3: 0,
+        ...         4: 0,
+        ...         5: 8,
+        ...     },
         ...     name="Y",
-        ...     random_state=rng,
         ... )
 
         Give aliases to the `std`, `cov`, and `corr` methods.
@@ -1908,13 +1973,19 @@ class Operators:
         >>> corr(X, Y) == cov(X, Y) / (std(X) * std(Y))
         True
 
-        Define a sub-sigma-algebra of `F` for conditional correlation.
+        Define a sigma-algebra for conditional correlation.
 
-        >>> G = SigmaAlgebra.from_rand(
-        ...     num_atoms=8,
-        ...     super=F,
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     },
         ...     name="G",
-        ...     random_state=rng,
         ... )
 
         Check that the conditional correlation of the random variables is equal to a linear combination of indicators weighted by unconditional correlations.
@@ -2887,49 +2958,58 @@ class OperatorsMethods:
 
         Examples
         --------
-        >>> import numpy as np
         >>> from sigalg.core import (
+        ...     Function,
         ...     ProbabilityMeasure,
+        ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> rng = np.random.default_rng(42)
 
         Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
 
-        >>> Omega = SampleSpace.from_sequence(size=100)
-        >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
-        >>> P = ProbabilityMeasure.from_rand(
-        ...     domain=F,
-        ...     num_null_atoms=5,
-        ...     random_state=rng,
-        ... )
-        >>> X = RandomVector.from_rand(
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> P = ProbabilityMeasure(
         ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     dim=1,
-        ...     random_state=rng,
+        ...     mapping={
+        ...         0: 0.0,
+        ...         1: 0.0,
+        ...         2: 0.2,
+        ...         3: 0.2,
+        ...         4: 0.15,
+        ...         5: 0.45,
+        ...     },
         ... )
-        >>> Y = RandomVector.from_rand(
+        >>> X = RandomVariable(
         ...     domain=Omega,
-        ...     sig_alg=F,
         ...     measure=P,
-        ...     dim=2,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 3,
+        ...         3: 1,
+        ...         4: 5,
+        ...         5: 0,
+        ...     },
+        ... )
+        >>> Y = RandomVector(
+        ...     domain=Omega,
+        ...     measure=P,
+        ...     mapping={
+        ...         0: (1, 3),
+        ...         1: (2, 4),
+        ...         2: (3, 1),
+        ...         3: (1, 0),
+        ...         4: (5, 0),
+        ...         5: (0, 8),
+        ...     },
         ...     name="Y",
-        ...     random_state=rng,
         ... )
 
         Get the constant random variable whose unique value is `1`.
 
-        >>> trivial = SigmaAlgebra.trivial(Omega)
-        >>> one = RandomVector.from_constant(
-        ...     domain=Omega,
-        ...     sig_alg=trivial,
-        ...     measure=P | trivial,
-        ...     constant=1,
-        ... )
+        >>> one = Function.from_constant(domain=Omega, constant=1)
 
         Check that the unconditional expectation of the random variable `X` is equal to the constant random variable whose unique value is the Lebesgue integral of the random variable.
 
@@ -2941,40 +3021,32 @@ class OperatorsMethods:
         >>> all(E_Y_i == Y_i.integrate() * one for E_Y_i, Y_i in zip(Y.expectation(), Y))
         True
 
-        Define a sub-sigma-algebra of `F` for conditional expectations.
+        Define a sigma-algebra for conditional expectations.
 
-        >>> G = SigmaAlgebra.from_rand(
-        ...     num_atoms=8,
-        ...     super=F,
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     },
         ...     name="G",
-        ...     random_state=rng,
         ... )
 
         Check that the conditional expectation of the random variable `X` is equal to its Fourier expansion.
 
-        >>> np.allclose(X.expectation(given=G), sum(X.integrate(B) / P(B) * B.indicator for B in G if P(B) != 0))
+        >>> X.expectation(given=G) == sum(X.integrate(B) / P(B) * B.indicator for B in G if P(B) != 0)
         True
 
         Check the same for the components of the conditional expectation of the random vector `Y`.
 
-        >>> all(E_Y_i_G == sum(Y_i.integrate(B) / P(B) * B.indicator for B in G if P(B) != 0) for E_Y_i_G, Y_i in zip(Y.expectation(given=G), Y))
-        True
-
-        Check that passing an explict measure--different from the one carried by the random variable--into the `expectation` method works:
-
-        >>> Q = ProbabilityMeasure.from_rand(
-        ...     domain=F,
-        ...     num_null_atoms=4,
-        ...     name="Q",
-        ...     random_state=rng,
+        >>> all(
+        ...     E_Y_i_G == sum(Y_i.integrate(B) / P(B) * B.indicator for B in G if P(B) != 0)
+        ...     for E_Y_i_G, Y_i in zip(Y.expectation(G), Y)
         ... )
-        >>> one = RandomVector.from_constant(
-        ...     domain=Omega,
-        ...     sig_alg=trivial,
-        ...     measure=Q | trivial,
-        ...     constant=1,
-        ... )
-        >>> X.expectation(measure=Q) == X.integrate(measure=Q) * one
         True
 
         Notes
@@ -3045,76 +3117,89 @@ class OperatorsMethods:
 
         Examples
         --------
-        >>> import numpy as np
         >>> from sigalg.core import (
         ...     ProbabilityMeasure,
+        ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> rng = np.random.default_rng(42)
 
         Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
 
-        >>> Omega = SampleSpace.from_sequence(size=100)
-        >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
-        >>> P = ProbabilityMeasure.from_rand(
-        ...     domain=F,
-        ...     num_null_atoms=5,
-        ...     random_state=rng,
-        ... )
-        >>> X = RandomVector.from_rand(
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> P = ProbabilityMeasure(
         ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     dim=1,
-        ...     random_state=rng,
+        ...     mapping={
+        ...         0: 0.0,
+        ...         1: 0.0,
+        ...         2: 0.2,
+        ...         3: 0.2,
+        ...         4: 0.15,
+        ...         5: 0.45,
+        ...     },
         ... )
-        >>> Y = RandomVector.from_rand(
+        >>> X = RandomVariable(
         ...     domain=Omega,
-        ...     sig_alg=F,
         ...     measure=P,
-        ...     dim=2,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 3,
+        ...         3: 1,
+        ...         4: 5,
+        ...         5: 0,
+        ...     },
+        ... )
+        >>> Y = RandomVector(
+        ...     domain=Omega,
+        ...     measure=P,
+        ...     mapping={
+        ...         0: (1, 3),
+        ...         1: (2, 4),
+        ...         2: (3, 1),
+        ...         3: (1, 0),
+        ...         4: (5, 0),
+        ...         5: (0, 8),
+        ...     },
         ...     name="Y",
-        ...     random_state=rng,
         ... )
 
-        Check that the unconditional variance is equal to its definition and that it can be computed using the "shortcut formula."
+        Check that the variance may be computed via the "short-cut" formula.
 
-        >>> np.allclose(X.variance(), ((X - X.expectation()) ** 2).expectation())
-        True
-        >>> np.allclose(X.variance(), (X**2).expectation() - X.expectation() ** 2)
+        >>> X.variance() == (X**2).expectation() - X.expectation() ** 2
         True
 
-        Compute the unconditional variance of the random vector `Y`, and check that its components are the unconditional variances of the components of `Y`.
+        Check the same for `Y`.
 
-        >>> all(np.allclose(V_Y_i, ((Y_i - Y_i.expectation()) ** 2).expectation()) for V_Y_i, Y_i in zip(Y.variance(), Y))
-        True
-        >>> all(np.allclose(V_Y_i, (Y_i**2).expectation() - Y_i.expectation() ** 2) for V_Y_i, Y_i in zip(Y.variance(), Y))
+        >>> Y.variance() == (Y**2).expectation() - Y.expectation() ** 2
         True
 
-        Define a sub-sigma-algebra of `F` for conditional variances.
+        Define a sigma-algebra for conditional variances.
 
-        >>> G = SigmaAlgebra.from_rand(
-        ...     num_atoms=8,
-        ...     super=F,
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     },
         ...     name="G",
-        ...     random_state=rng,
         ... )
 
         Check that the conditional variance of the random variable `X` is equal to a linear combination of indicators weighted by unconditional variances.
 
-        >>> np.allclose(X.variance(given=G), sum((X | B).variance().item() * B.indicator for B in G if P(B) > 0))
+        >>> X.variance(G) == sum((X | B).variance().item() * B.indicator for B in G if P(B) > 0)
         True
 
         Check the same for the random vector `Y`.
 
         >>> all(
-        ...     np.allclose(
-        ...         V_Y_i_G,
-        ...         sum((Y_i | B).variance().item() * B.indicator for B in G if P(B) > 0),
-        ...     )
-        ...     for V_Y_i_G, Y_i in zip(Y.variance(given=G), Y)
+        ...     V_Y_i_G == sum((Y_i | B).variance().item() * B.indicator for B in G if P(B) > 0)
+        ...     for V_Y_i_G, Y_i in zip(Y.variance(G), Y)
         ... )
         True
 
@@ -3177,38 +3262,52 @@ class OperatorsMethods:
 
         Examples
         --------
-        >>> import numpy as np
         >>> from sigalg.core import (
         ...     ProbabilityMeasure,
+        ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> rng = np.random.default_rng(42)
 
         Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
 
-        >>> Omega = SampleSpace.from_sequence(size=100)
-        >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
-        >>> P = ProbabilityMeasure.from_rand(
-        ...     domain=F,
-        ...     num_null_atoms=5,
-        ...     random_state=rng,
-        ... )
-        >>> X = RandomVector.from_rand(
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> P = ProbabilityMeasure(
         ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     dim=1,
-        ...     random_state=rng,
+        ...     mapping={
+        ...         0: 0.0,
+        ...         1: 0.0,
+        ...         2: 0.2,
+        ...         3: 0.2,
+        ...         4: 0.15,
+        ...         5: 0.45,
+        ...     },
         ... )
-        >>> Y = RandomVector.from_rand(
+        >>> X = RandomVariable(
         ...     domain=Omega,
-        ...     sig_alg=F,
         ...     measure=P,
-        ...     dim=2,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 3,
+        ...         3: 1,
+        ...         4: 5,
+        ...         5: 0,
+        ...     },
+        ... )
+        >>> Y = RandomVector(
+        ...     domain=Omega,
+        ...     measure=P,
+        ...     mapping={
+        ...         0: (1, 3),
+        ...         1: (2, 4),
+        ...         2: (3, 1),
+        ...         3: (1, 0),
+        ...         4: (5, 0),
+        ...         5: (0, 8),
+        ...     },
         ...     name="Y",
-        ...     random_state=rng,
         ... )
 
         Check that the unconditional standard deviation is equal to its definition.
@@ -3216,34 +3315,38 @@ class OperatorsMethods:
         >>> X.std() == X.variance() ** 0.5
         True
 
-        Compute the unconditional standard deviation of the random vector `Y`, and check that its components are the unconditional standard deviations of the components of `Y`.
+        Check the same for `Y`
 
-        >>> all(std_Y_i == Y_i.variance() ** 0.5 for std_Y_i, Y_i in zip(Y.std(), Y))
+        >>> Y.std() == Y.variance() ** 0.5
         True
 
         Define a sub-sigma-algebra of `F` for conditional standard deviations.
 
-        >>> G = SigmaAlgebra.from_rand(
-        ...     num_atoms=8,
-        ...     super=F,
+        Define a sigma-algebra for conditional standard deviations.
+
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     },
         ...     name="G",
-        ...     random_state=rng,
         ... )
 
         Check that the conditional standard deviation of the random variable `X` is equal to a linear combination of indicators weighted by unconditional standard deviations.
 
-        >>> X.std(given=G) == sum((X | B).std().item() * B.indicator for B in G if P(B) > 0)
+        >>> X.std(G) == sum((X | B).std().item() * B.indicator for B in G if P(B) > 0)
         True
 
         Check the same for the random vector `Y`.
 
         >>> all(
-        ...     np.allclose(
-        ...         std_Y_i_G.data,
-        ...         sum((Y_i | B).std().item() * B.indicator for B in G if P(B) > 0).data,
-        ...         atol=1e-7,
-        ...     )
-        ...     for std_Y_i_G, Y_i in zip(Y.std(given=G), Y)
+        ...     std_Y_i_G == sum((Y_i | B).std().item() * B.indicator for B in G if P(B) != 0)
+        ...     for std_Y_i_G, Y_i in zip(Y.std(G), Y)
         ... )
         True
 
