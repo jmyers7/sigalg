@@ -51,7 +51,7 @@ class TestConstructor:
         """Test the constructor with only the sigma-algebra."""
         measurable_space = MeasurableSpace(sig_alg=F)
 
-        assert measurable_space.domain is F.domain
+        assert measurable_space.domain == F.domain
         assert measurable_space.sig_alg is F
 
 

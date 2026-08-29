@@ -77,7 +77,7 @@ class TestConstructor:
         """Test constructing ProbabilitySpace with only prob_measure."""
         prob_space = ProbabilitySpace(measure=P)
 
-        assert prob_space.domain is P.sig_alg.domain
+        assert prob_space.domain == P.sig_alg.domain
         assert prob_space.sig_alg is P.sig_alg
         assert prob_space.measure is P
 
@@ -102,7 +102,7 @@ class TestConstructor:
         """Test constructing ProbabilitySpace with sig_alg and prob_measure."""
         prob_space = ProbabilitySpace(sig_alg=F, measure=P)
 
-        assert prob_space.domain is P.sig_alg.domain
+        assert prob_space.domain == P.sig_alg.domain
         assert prob_space.sig_alg is F
         assert prob_space.measure is P
 
