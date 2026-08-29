@@ -19,20 +19,19 @@ class MeasurableSpace(SigmaAlgebraMethods):
 
     See the Notes section below for the mathematical details.
 
-    If both `domain` and `sig_alg` are provided during initialization, the `domain` of the provided `sig_alg` must match the provided `domain`. If only one of them is provided, the other will be automatically created to be compatible with it (i.e. if only `domain` is given, a power-set sigma-algebra will be created on that domain; if only `sig_alg` is given, the domain will be taken from the sigma-algebra).
-
     Parameters
     ----------
     domain : IndexLike | None, default=None
         The domain of the measurable space.
     sig_alg : SigmaAlgebra | None, default=None
-        The sigma-algebra of the measurable space.
+        The sigma-algebra of the measurable space. If `domain` is given but `sig_alg` is `None`, the power-set sigma-algebra on the domain will be set as the default.
 
     Examples
     --------
+    >>> from sigalg.core import Domain, MeasurableSpace, SigmaAlgebra
+
     Define a domain and sigma-algebra.
 
-    >>> from sigalg.core import Domain, MeasurableSpace, SigmaAlgebra
     >>> X = Domain.from_sequence(size=3)
     >>> F = SigmaAlgebra(
     ...     domain=X,
@@ -113,9 +112,10 @@ class MeasurableSpace(SigmaAlgebraMethods):
 
         Examples
         --------
+        >>> from sigalg.core import Domain, MeasurableSpace, SigmaAlgebra
+
         Define a domain and sigma-algebra.
 
-        >>> from sigalg.core import Domain, MeasurableSpace, SigmaAlgebra
         >>> X = Domain.from_sequence(size=4)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -160,9 +160,10 @@ class MeasurableSpace(SigmaAlgebraMethods):
 
         Examples
         --------
+        >>> from sigalg.core import Domain, Measure, MeasurableSpace, SigmaAlgebra
+
         Create an instance of `MeasurableSpace`.
 
-        >>> from sigalg.core import Domain, Measure, MeasurableSpace, SigmaAlgebra
         >>> X = Domain.from_sequence(size=3)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -245,8 +246,6 @@ class MeasurableSpace(SigmaAlgebraMethods):
 
     def __iter__(self):
         """Allow unpacking of measurable space components.
-
-        Enables syntax like: `X, F = measurable_space`, where `X` is the domain of the measurable space and `F` is its sigma-algebra.
 
         Yields
         ------
@@ -347,36 +346,3 @@ class MeasurableSpace(SigmaAlgebraMethods):
             raise TypeError("other must be a MeasurableSpace.")
 
         return self.domain == other.domain and self.sig_alg == other.sig_alg
-
-    # --------------------- validation methods --------------------- #
-
-    @staticmethod
-    def _validate_parameters(domain: Domain | None, sig_alg: SigmaAlgebra | None):
-        """Validate measurable space construction parameters.
-
-        Parameters
-        ----------
-        domain : Domain | None
-            The domain to validate.
-        sig_alg : SigmaAlgebra | None
-            The sigma-algebra to validate.
-
-        Raises
-        ------
-        TypeError
-            If `domain` is not a `Domain` instance or `sig_alg`
-            is not a `SigmaAlgebra` instance (when provided).
-        ValueError
-            If `sig_alg`'s domain does not match the provided
-            `domain`.
-        """
-        from ..sigma_algebras import SigmaAlgebra
-        from .domain import Domain
-
-        if domain is not None and not isinstance(domain, Domain):
-            raise TypeError("domain must be a Domain instance, if given.")
-        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be a SigmaAlgebra instance, if given.")
-
-        if domain is not None and sig_alg is not None and sig_alg.domain != domain:
-            raise ValueError("sig_alg's domain must match the provided domain.")
