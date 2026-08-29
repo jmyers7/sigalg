@@ -302,5 +302,3 @@ class RandomVector(MeasurableVector):
             index_name=self.index.name if self.index is not None else None,
             name=self.name,
         )
-
-    # --------------------- arithmetic operations --------------------- #

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
 from typing import TYPE_CHECKING, Literal
 
 from .measurable_function import MeasurableFunction
 from .random_vector import RandomVector
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from ...typing.index_like import IndexLike
     from ...typing.mapping_like import MappingLike
     from ..measures.probability_measure import ProbabilityMeasure
