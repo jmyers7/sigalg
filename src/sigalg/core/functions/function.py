@@ -3636,11 +3636,14 @@ class Function:
             kind="any",
             domain_kind=type(self.domain).__name__,
             domain_name=self.domain.name,
-            index_kind=type(self.index).__name__ if self.index else "Index",
-            index_name=self.index.name if self.index else None,
+            index_kind=type(self.index).__name__ if self.index is not None else "Index",
+            index_name=self.index.name if self.index is not None else None,
             name=name,
             sig_alg=getattr(self, "sig_alg", None),
             measure=getattr(self, "measure", None),
+            complete_domain_name=self.domain.name,
+            parameter_domain_name=getattr(self, "parameter_domain_name", None),
+            parameter_names=getattr(self, "parameter_names", None),
         )
 
     def to_numpy(self, multi_dim: bool = False, dtype=None, copy=None) -> np.ndarray:
@@ -4652,6 +4655,9 @@ class Function:
                 name=name,
                 sig_alg=getattr(self, "sig_alg", None),
                 measure=getattr(self, "measure", None),
+                complete_domain_name=self.domain.name,
+                parameter_domain_name=getattr(self, "parameter_domain_name", None),
+                parameter_names=getattr(self, "parameter_names", None),
                 **kwargs,
             )
 

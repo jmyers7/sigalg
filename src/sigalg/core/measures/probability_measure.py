@@ -657,7 +657,7 @@ class ProbabilityMeasure(Measure):
         name: Hashable | None = None,
         tol: float = 1e-8,
     ) -> MeasurableFunction | ParametrizedMeasurableFunction:
-        r"""Compute the Radon-Nikodym derivative with respect to a base measure, optionally conditioned on a sigma-algebra.
+        r"""Compute the Radon-Nikodym derivative with respect to a base measure, optionally conditioned on a sigma-algebra or random vector.
 
         See the Notes section below for the mathematical details.
 
@@ -669,6 +669,8 @@ class ProbabilityMeasure(Measure):
             The optional sigma-algebra or random vector on which to condition the derivative.
         name : Hashable | None, default=None
             The name of the derivative. If `None`, a default name is generated.
+        tol : float, default=1e-8
+            Tolerance for testing for absolute continuity.
 
         Returns
         -------
@@ -677,8 +679,6 @@ class ProbabilityMeasure(Measure):
 
         Examples
         --------
-        >>> from itertools import product
-        >>> import numpy as np
         >>> from sigalg.core import (
         ...     Measure,
         ...     Operators,
@@ -766,7 +766,7 @@ class ProbabilityMeasure(Measure):
         ...     name="G",
         ... )
 
-        In SigALg, conditional derivatives are instances of `ParametrizedMeasurableFunction`.
+        In SigAlg, conditional derivatives are instances of `ParametrizedMeasurableFunction`.
 
         >>> P.derivative(mu, G)
         ParametrizedMeasurableFunction(parameters=(G), measurable_vars=(omega), domain=Omega, sig_alg=F, measure=mu, name=dP(-|G)_dmu)
@@ -846,7 +846,7 @@ class ProbabilityMeasure(Measure):
 
         for all $U\in \mathcal{F}$. We often write $dP/d\mu$ for $h$.
 
-        Now suppose that $\mathcal{G}$ is a sub-$\sigma$-algebra of $\mathcal{F}$. A *conditional Radon-Nikodym derivative* of $P$ given $\mathcal{G}$ is any $(\mathcal{F} \otimes \mathcal{G})$-measurable function $h: \Omega \times \Omega \to \mathbb{R}$ for which
+        Now suppose that $\mathcal{G}$ is a sub-$\sigma$-algebra of $\mathcal{F}$. A *conditional Radon-Nikodym derivative* of $P$ given $\mathcal{G}$ (with respect to $\mu$) is any $(\mathcal{F} \otimes \mathcal{G})$-measurable function $h: \Omega \times \Omega \to \mathbb{R}$ for which
 
         $$
         P(U\cap V) = \int_{U\times V} h(\omega, \omega') \, d(\mu \otimes P)(\omega, \omega')
@@ -939,25 +939,177 @@ class ProbabilityMeasure(Measure):
         name: Hashable | None = None,
         tol: float = 1e-8,
     ) -> MeasurableFunction | ParametrizedMeasurableFunction:
-        """Compute the surprisal of the probability measure with respect to a base measure, optionally conditioned on a sigma-algebra or random vector.
+        r"""Compute the surprisal of the probability measure with respect to a base measure, optionally conditioned on a sigma-algebra or random vector.
 
         See the Notes section below for the mathematical details.
 
         Parameters
         ----------
         base_measure : Measure
-            The base measure with respect to which the surprisal is computed.
+            The base measure with respect to which the surprisal is computed. If `None`, the counting measure is used.
         given : SigmaAlgebra | RandomVector | None, default=None
-            The sigma-algebra or random vector on which to condition the surprisal. If `None`, the surprisal is unconditional.
-        tol : float, default=1e-8
-            A tolerance level for checking absolute continuity.
+            The optional sigma-algebra or random vector on which to condition the surprisal.
+        base : Literal["e", "2", "10"], default="e"
+            The base of the logarithm used to compute the surprisal.
         name : Hashable | None, default=None
-            The name of the resulting measurable function representing the surprisal. If `None`, a default name is generated.
+            The name of the surprisal. If `None`, a default name is generated.
+        tol : float, default=1e-8
+            Tolerance for testing for absolute continuity.
 
         Returns
         -------
-        surprisal : MeasurableFunction
-            A measurable function representing the surprisal of the probability measure with respect to the base measure, optionally conditioned on the given sigma-algebra or random vector.
+        surprisal : MeasurableFunction | ParametrizedMeasurableFunction
+            Either an instance of `MeasurableFunction` if the surprisal is unconditional, or an instance of `ParametrizedMeasurableFunction`.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg.core import (
+        ...     Measure,
+        ...     ProbabilityMeasure,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+
+        Define a probability space and a base measure for surprisals. Notice that the sigma-algebra has null atoms.
+
+        >>> Omega = SampleSpace.from_sequence(size=7)
+        >>> F = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
+        ...         4: 3,  # P-null atom
+        ...         5: 4,  # P- and mu-null atom
+        ...         6: 4,  # P- and mu-null atom
+        ...     },
+        ... )
+        >>> P = ProbabilityMeasure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 0.2,
+        ...         1: 0.6,
+        ...         2: 0.2,
+        ...         3: 0.0,
+        ...         4: 0.0,
+        ...     },
+        ... )
+        >>> mu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 3,
+        ...         3: 4,
+        ...         4: 0,
+        ...     },
+        ... )
+
+        Compute the surprisal of `P` with respect to `mu`.
+
+        >>> P.surprisal(mu)
+        RandomVariable(parameters=(omega), domain=Omega, sig_alg=F, measure=P, name=s(P; mu))
+        >>> print(P.surprisal(mu))  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 's(P; mu)':
+               s(P; mu)
+        omega
+        0      1.609438
+        1      1.203973
+        2      2.708050
+        3      2.708050
+        4      0.000000
+        5      0.000000
+        6      0.000000
+
+        We may compare these values to the negative logarithm of the Radon-Nikodym derivative.
+
+        >>> with np.errstate(divide='ignore'):
+        ...     derivative = -np.log(P.derivative(mu))
+        >>> print(derivative)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function '(-log(dP_dmu))':
+               (-log(dP_dmu))
+        omega
+        0            1.609438
+        1            1.203973
+        2            2.708050
+        3            2.708050
+        4                 inf
+        5                 inf
+        6                 inf
+
+        Note that the `surprisal` method in SigAlg sets the surprisal equal to `0` where the Radon-Nikodym derivative is equal to `0`, instead of `inf`. Since the main use of the surprisal is to yield the entropy by integrating it, and since the Radon-Nikodym derivative only vanishes on `P`-null atoms, whether the surprisal is `0` or `inf` on null atoms will not matter.
+
+        Define a sub-sigma-algebra for conditional surprisals. Notice the null atom.
+
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,  # P-null atom
+        ...         5: 2,  # P-null atom
+        ...         6: 2,  # P-null atom
+        ...     },
+        ...     name="G",
+        ... )
+
+        Compute the conditional surprisal, which is an instance of `ParametrizedRandomVariable`.
+
+        >>> P.surprisal(mu, G)
+        ParametrizedRandomVariable(parameters=(G), measurable_vars=(omega), domain=Omega, sig_alg=F, measure=P, name=s(P|G; mu))
+        >>> print(P.surprisal(mu, G))  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized random variable 's(P|G; mu)':
+        G             0         1         2
+        omega
+        0      1.386294  0.000000  1.386294
+        1      0.980829  0.000000  2.079442
+        2      0.000000  1.098612  2.484907
+        3      0.000000  1.098612  2.484907
+        4      0.000000  0.000000  2.772589
+        5      0.000000  0.000000  0.000000
+        6      0.000000  0.000000  0.000000
+
+        Notice that the parameter space of the conditional surprisal is the set of atom identifiers of `G`. If we compare to the conditional Radon-Nikodym derivative of `P`, we note that the conditional surprisal is nothing but its negative logarithm, atom by atom.
+
+        >>> with np.errstate(divide='ignore'):
+        ...     derivative = -np.log(P.derivative(mu, G))
+        >>> print(derivative)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measurable function '(-log(dP(-|G)_dmu))':
+        G             0         1         2
+        omega
+        0      1.386294       inf  1.386294
+        1      0.980829       inf  2.079442
+        2           inf  1.098612  2.484907
+        3           inf  1.098612  2.484907
+        4           inf       inf  2.772589
+        5           inf       inf       inf
+        6           inf       inf       inf
+
+        Notes
+        -----
+        Let $P$ be a probability measure on a finite measurable space $(\Omega, \mathcal{F})$ that is absolutely continuous with respect to a second measure $\mu$. A *surprisal* of $P$ with respect to $\mu$ is an $\mathcal{F}$-measurable function $s(P;\mu):\Omega \to \mathbb{R} \cup\{\infty\}$ with values on the extended real line for which $e^{-s(P;\mu)}$ is a Radon-Nikodym derivative of $P$ with respect to $\mu$ and we take $e^{-\infty} = 0$ by convention.
+
+        If we select a version $dP/d\mu$ of the Radon-Nikodym derivative, we have
+
+        $$
+        s(P;\mu)(\omega) = -\log{ \left( \frac{dP}{d\mu}(\omega) \right)},
+        $$
+
+        for all $\omega \in \Omega$. Since a Radon-Nikodym derivative is only uniquely determined $\mu$-a.e., so too is a surprisal function.
+
+        Now suppose that $\mathcal{G}$ is a sub-$\sigma$-algebra of $\mathcal{F}$ for which $P(-\mid \mathcal{G})(\omega) \ll \mu$ for all $\omega \in \Omega$. We define a *conditional surprisal* of $P$ given $\mathcal{G}$ (with respect to $\mu$) to be any $(\mathcal{F} \otimes \mathcal{G})$-measurable function $s(P\mid \mathcal{G};\mu): \Omega \times \Omega \to \mathbb{R} \cup \{\infty\}$ with values on the extended real line for which $e^{-s(P\mid \mathcal{G};\mu)}$ is a conditional Radon-Nikodym derivative of $P$ given $\mathcal{G}$ (with respect to $\mu$) and we take $e^{-\infty}=0$ by convention.
+
+        If for each $\omega'\in \Omega$ we select a version $dP(-\mid \mathcal{G})(\omega')/d\mu$ of the Radon-Nikodym derivative, we have
+
+        $$
+        s(P\mid \mathcal{G};\mu)(\omega,\omega') = -\log{ \left( \frac{dP(-\mid \mathcal{G})(\omega')}{d\mu}(\omega) \right)}
+        $$
+
+        for all $\omega\in \Omega$.
         """
         from .._utils.measure_helpers import compute_surprisal
         from ..functions.measurable_function import MeasurableFunction
@@ -1027,13 +1179,138 @@ class ProbabilityMeasure(Measure):
         base: Literal["e", "2", "10"] = "e",
         name: Hashable | None = None,
         tol: float = 1e-8,
-    ) -> Real | MeasurableFunction:
-        """Pass."""
-        import pandas as pd
+    ) -> Real:
+        r"""Compute the entropy of the probability measure with respect to a base measure, optionally conditioned on a sigma-algebra or random vector.
 
-        from .._utils.function_helpers import ascend_from_atom_space
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        base_measure : Measure
+            The base measure with respect to which the entropy is computed. If `None`, the counting measure is used.
+        given : SigmaAlgebra | RandomVector | None, default=None
+            The optional sigma-algebra or random vector on which to condition the entropy.
+        base : Literal["e", "2", "10"], default="e"
+            The base of the logarithm used to compute the entropy.
+        name : Hashable | None, default=None
+            The name of the entropy. If `None`, a default name is generated.
+        tol : float, default=1e-8
+            Tolerance for testing for absolute continuity.
+
+        Returns
+        -------
+        entropy : Real
+            The entropy of the probability measure.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     Measure,
+        ...     ProbabilityMeasure,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+
+        Define a probability space and a base measure for entropies. Notice that the sigma-algebra has null atoms.
+
+        >>> Omega = SampleSpace.from_sequence(size=7)
+        >>> F = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
+        ...         4: 3,  # P-null atom
+        ...         5: 4,  # P- and mu-null atom
+        ...         6: 4,  # P- and mu-null atom
+        ...     },
+        ... )
+        >>> P = ProbabilityMeasure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 0.2,
+        ...         1: 0.6,
+        ...         2: 0.2,
+        ...         3: 0.0,
+        ...         4: 0.0,
+        ...     },
+        ... )
+        >>> mu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 3,
+        ...         3: 4,
+        ...         4: 0,
+        ...     },
+        ... )
+
+        Compute the entropy of `P` with respect to `mu`.
+
+        >>> P.entropy(mu)
+        1.5858813053028238
+
+        Check that the entropy is the integral of the surprisal function.
+
+        >>> P.surprisal(mu).integrate(measure=P)
+        1.5858813053028238
+
+        Define a sub-sigma-algebra for conditional entropies. Notice the null atom.
+
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,  # P-null atom
+        ...         5: 2,  # P-null atom
+        ...         6: 2,  # P-null atom
+        ...     },
+        ...     name="G",
+        ... )
+
+        Compute the conditional entropy.
+
+        >>> P.entropy(mu, G)
+        1.085478881764636
+
+        We check that this value coincides with the mathematical definition of the conditional entropy. First, we integrate the conditional entropy against the conditional distribution.
+
+        >>> inner_integral = P.surprisal(mu, G).integrate(measure=P.conditional(G))
+        >>> print(inner_integral)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'int s(P|G; mu) dP(-|G)':
+           int s(P|G; mu) dP(-|G)
+        G
+        0                1.082196
+        1                1.098612
+        2                1.744646
+
+        Notice that this is a function on the atom identifiers of `G`. We "ascend" to a function on the entire sample space using the `ascend` method, and then we integrate against `P`.
+
+        >>> inner_integral.ascend(G).integrate(measure=P)
+        1.085478881764636
+
+        Note this value coincides with the conditional entropy computed above.
+
+        Notes
+        -----
+        Let $(\Omega,\mathcal{F},P)$ be a finite probability space and $\mu$ a measure on $\mathcal{F}$ for which $P \ll \mu$. We define the \textit{entropy} of $P$ (with respect to $\mu$) to be the number
+
+        $$
+        H(P;\mu) = \int_\Omega s(P;\mu) \, dP.
+        $$
+
+        Now let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$ and suppose $P(-\mid \mathcal{G})(\omega) \ll \mu$ for all $\omega\in \Omega$. We define the *conditional entropy* of $P$ given $\mathcal{G}$ (with respect to $\mu$) to be the number
+
+        $$
+        H(P\mid \mathcal{G} ;\mu) = \int_\Omega \left[ \int_\Omega s(P\mid \mathcal{G};\mu)(\omega,\omega') \, d\left(P(-\mid \mathcal{G})(\omega')\right)(\omega) \right] \, dP(\omega').
+        $$
+        """
         from .._utils.measure_helpers import compute_entropy
-        from ..functions.measurable_function import MeasurableFunction
 
         if given is not None:
             given_name = given.name
@@ -1068,20 +1345,7 @@ class ProbabilityMeasure(Measure):
             base=base,
         )
 
-        if isinstance(data, pd.Series):
-            data = ascend_from_atom_space(self_data=data, sig_alg_data=given.data)
-
-            return MeasurableFunction._from_validated(
-                data=data,
-                sig_alg=given,
-                measure=self | given,
-                index_kind="Index",
-                index_name=None,
-                name=name,
-            )
-
-        else:
-            return data.astype(Real)
+        return data.astype(Real)
 
     def divergence(
         self,
@@ -1105,10 +1369,7 @@ class ProbabilityMeasure(Measure):
 
         if (first_variables is None) != (second_variables is None):
             raise TypeError(
-                "Either both first_variables and second_variables must "
-                "be given, or neither given (in which case the "
-                "probability measure must be defined on a 2-dimesional "
-                "domain)."
+                "Either both first_variables and second_variables must be given, or neither given (in which case the probability measure must be defined on a 2-dimesional domain)."
             )
         if first_variables is None:
             first_variables = [self.variable_names[0]]
@@ -1117,13 +1378,11 @@ class ProbabilityMeasure(Measure):
             raise ValueError("The first and second sets of variables must be disjoint.")
         if set(first_variables) | set(second_variables) != set(self.variable_names):
             raise ValueError(
-                "The union of the first and second sets of variable names "
-                "must equal the set of all variable names of the probability measure."
+                "The union of the first and second sets of variable names must equal the set of all variable names of the probability measure."
             )
         if not self.sig_alg.is_power_set:
             raise ValueError(
-                "The mutual_info method is only defined for probability"
-                " measures defined on power-set sigma-algebras."
+                "The mutual_info method is only defined for probability measures defined on power-set sigma-algebras."
             )
 
         left_marginal = (

@@ -84,6 +84,7 @@ def compute_radon_nikodym(
     atom_data: pd.Series | pd.DataFrame | None = None,
     restricted_self_data: pd.Series | None = None,
     ascend: bool = True,
+    return_conditional_data: bool = False,
 ) -> pd.Series:
     """Pass."""
     from .function_helpers import ascend_from_atom_space
@@ -111,18 +112,28 @@ def compute_radon_nikodym(
             base_measure_data=base_measure_data,
         )
 
-        conditional_data = conditional_data.divide(base_measure_data, axis=0)
-        data = conditional_data.fillna(0.0, inplace=True).sort_index()
+        data = conditional_data.divide(base_measure_data, axis=0)
+        data = data.fillna(0.0, inplace=True).sort_index()
 
         if ascend:
-            return ascend_from_atom_space(
-                self_data=data,
-                sig_alg_data=sig_alg_data,
-                parameter_names=given_variable_names,
-            )
+            if return_conditional_data:
+                return ascend_from_atom_space(
+                    self_data=data,
+                    sig_alg_data=sig_alg_data,
+                    parameter_names=given_variable_names,
+                ), conditional_data
+            else:
+                return ascend_from_atom_space(
+                    self_data=data,
+                    sig_alg_data=sig_alg_data,
+                    parameter_names=given_variable_names,
+                )
 
         else:
-            return data
+            if return_conditional_data:
+                return data, conditional_data
+            else:
+                return data
 
 
 def compute_surprisal(
@@ -136,21 +147,37 @@ def compute_surprisal(
     restricted_self_data: pd.Series | None = None,
     base: Literal["e", "2", "10"] = "e",
     ascend: bool = True,
+    return_conditional_data: bool = False,
 ) -> Real | pd.Series:
     """Pass."""
     import numpy as np
 
-    data = compute_radon_nikodym(
-        self_data=self_data,
-        base_measure_data=base_measure_data,
-        sig_alg_data=sig_alg_data,
-        parameter_names=parameter_names,
-        given_data=given_data,
-        given_variable_names=given_variable_names,
-        atom_data=atom_data,
-        restricted_self_data=restricted_self_data,
-        ascend=ascend,
-    )
+    if return_conditional_data:
+        data, conditional_data = compute_radon_nikodym(
+            self_data=self_data,
+            base_measure_data=base_measure_data,
+            sig_alg_data=sig_alg_data,
+            parameter_names=parameter_names,
+            given_data=given_data,
+            given_variable_names=given_variable_names,
+            atom_data=atom_data,
+            restricted_self_data=restricted_self_data,
+            ascend=ascend,
+            return_conditional_data=True,
+        )
+    else:
+        data = compute_radon_nikodym(
+            self_data=self_data,
+            base_measure_data=base_measure_data,
+            sig_alg_data=sig_alg_data,
+            parameter_names=parameter_names,
+            given_data=given_data,
+            given_variable_names=given_variable_names,
+            atom_data=atom_data,
+            restricted_self_data=restricted_self_data,
+            ascend=ascend,
+            return_conditional_data=False,
+        )
 
     if base == "e":
         log = np.log
@@ -162,7 +189,10 @@ def compute_surprisal(
     with np.errstate(divide="ignore"):
         data = -log(data)
 
-    return data.mask(np.isinf(data), 0)
+    if return_conditional_data:
+        return data.mask(np.isinf(data), 0), conditional_data
+    else:
+        return data.mask(np.isinf(data), 0)
 
 
 def compute_entropy(
@@ -178,22 +208,55 @@ def compute_entropy(
     """Pass."""
     from .function_helpers import compute_integral
 
-    data = compute_surprisal(
-        self_data=self_data,
-        base_measure_data=base_measure_data,
-        sig_alg_data=sig_alg_data,
-        given_data=given_data,
-        given_variable_names=given_variable_names,
-        atom_data=atom_data,
-        restricted_self_data=restricted_self_data,
-        base=base,
-        ascend=False,
-    )
+    if given_data is None:
+        data = compute_surprisal(
+            self_data=self_data,
+            base_measure_data=base_measure_data,
+            sig_alg_data=sig_alg_data,
+            given_data=given_data,
+            given_variable_names=given_variable_names,
+            atom_data=atom_data,
+            restricted_self_data=restricted_self_data,
+            base=base,
+            ascend=False,
+        )
 
-    return compute_integral(
-        function_atom_data=data,
-        measure_data=self_data,
-        indicator_data=None,
-        function_parameter_names=None,
-        measure_parameter_names=None,
-    )
+        return compute_integral(
+            function_atom_data=data,
+            measure_data=self_data,
+            indicator_data=None,
+            function_parameter_names=None,
+            measure_parameter_names=None,
+        )
+
+    else:
+        data, conditional_data = compute_surprisal(
+            self_data=self_data,
+            base_measure_data=base_measure_data,
+            sig_alg_data=sig_alg_data,
+            given_data=given_data,
+            given_variable_names=given_variable_names,
+            atom_data=atom_data,
+            restricted_self_data=restricted_self_data,
+            base=base,
+            ascend=False,
+            return_conditional_data=True,
+        )
+
+        function_atom_data = data.unstack(level=given_variable_names)
+
+        inner_integral = compute_integral(
+            function_atom_data=function_atom_data,
+            measure_data=conditional_data,
+            indicator_data=None,
+            function_parameter_names=given_variable_names,
+            measure_parameter_names=given_variable_names,
+        )
+
+        return compute_integral(
+            function_atom_data=inner_integral,
+            measure_data=restricted_self_data,
+            indicator_data=None,
+            function_parameter_names=None,
+            measure_parameter_names=None,
+        )
