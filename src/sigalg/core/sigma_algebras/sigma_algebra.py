@@ -28,23 +28,23 @@ class SigmaAlgebra:
 
     Parameters
     ----------
-    domain: IndexLike | None, default=None
+    domain : IndexLike | None, default=None
         The domain over which the sigma-algebra is defined.
-    mapping: MappingLike | None, default=None
+    mapping : MappingLike | None, default=None
         The mapping from points to atom identifiers.
-    variable_names: list[Hashable] | None, default=None
+    variable_names : list[Hashable] | None, default=None
         The variables names of the atom identifiers of the sigma-algebra. If `None`, defaults will be generated.
-    domain_kind: Literal["Domain", "SampleSpace"], default="Domain"
+    domain_kind : Literal["Domain", "SampleSpace"], default="Domain"
         The type of domain of the sigma-algebra.
-    domain_name: Hashable | None, default=None
+    domain_name : Hashable | None, default=None
         The name of the domain of the sigma-algebra. If `None`, a default will be generated.
-    output_name: Hashable | None, default=None
+    output_name : Hashable | None, default=None
         The name of the output mapping of the sigma-algebra. If `None`, a default will be generated.
-    index: IndexLike | None, default=None
+    index : IndexLike | None, default=None
         The index of the atom identifiers of the sigma-algebra. If `None`, a default will be generated.
-    index_kind: Literal["Index", "Time"], default="Index"
+    index_kind : Literal["Index", "Time"], default="Index"
         The type of index of the sigma-algebra.
-    index_name: Hashable | None, default=None
+    index_name : Hashable | None, default=None
         The name of the index of the sigma-algebra. If `None`, a default will be generated.
     name : Hashable, default="F"
         The name of the sigma-algebra.
@@ -189,11 +189,11 @@ class SigmaAlgebra:
         ----------
         domain : IndexLike
             The domain over which to create the power-set sigma-algebra.
-        domain_kind: Literal["Domain", "SampleSpace"], default="Domain"
+        domain_kind : Literal["Domain", "SampleSpace"], default="Domain"
             The type of domain of the sigma-algebra.
-        domain_name: Hashable | None, default=None
+        domain_name : Hashable | None, default=None
             The name of the domain of the sigma-algebra. If `None`, a default will be generated.
-        index_name: Hashable, default="I"
+        index_name : Hashable, default="I"
             The name of the index of the sigma-algebra. If `None`, a default will be generated.
         name : Hashable, default="R"
             Name identifier for the sigma algebra.
@@ -305,11 +305,11 @@ class SigmaAlgebra:
         ----------
         domain : Domain | IndexLike
             The domain over which to create the trivial sigma-algebra.
-        domain_kind: Literal["Domain", "SampleSpace"], default="Domain"
+        domain_kind : Literal["Domain", "SampleSpace"], default="Domain"
             The type of domain of the sigma-algebra.
-        domain_name: Hashable | None, default=None
+        domain_name : Hashable | None, default=None
             The name of the domain of the sigma-algebra. If `None`, a default will be generated.
-        variable_name: Hashable | None, default=None
+        variable_name : Hashable | None, default=None
             The variable name of the sigma-algebra. If `None`, a default will be generated.
         name : Hashable, default="T"
             Name identifier for the sigma-algebra.
@@ -405,33 +405,33 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        domain: IndexLike | None, default=None
+        domain : IndexLike | None, default=None
             The domain over which to create the sigma-algebra. If `None`, then `super` must be provided and the domain will be obtained from it.
-        super: SigmaAlgebra | None, default=None
+        super : SigmaAlgebra | None, default=None
             If provided, the randomly generated sigma-algebra will be a sub-sigma-algebra of `super`.
-        num_atoms: int, default=1
+        num_atoms : int, default=1
             The number of atoms in the sigma-algebra.
-        dim: int, default=1
+        dim : int, default=1
             The dimension of the atom identifiers.
-        atom_ID_range: tuple[int, int] | None, default=None
+        atom_ID_range : tuple[int, int] | None, default=None
             A tuple of the form (min, max), or `None`. If not `None`, the atom identifiers will be drawn from the range `[min, max)`. If `None`, the atom identifiers will be drawn from the range `[0, num_atoms)`.
-        variable_names: list[Hashable] | None, default=None
+        variable_names : list[Hashable] | None, default=None
             A list of variable names for the atom identifiers. If `None`, defaults will be generated.
-        domain_kind: Literal["Domain", "SampleSpace"], default="Domain"
+        domain_kind : Literal["Domain", "SampleSpace"], default="Domain"
             The type of domain of the sigma-algebra.
-        domain_name: Hashable | None, default=None
+        domain_name : Hashable | None, default=None
             The name of the domain of the sigma-algebra. If `None`, a default will be generated.
-        output_name: Hashable | None, default=None
+        output_name : Hashable | None, default=None
             The name of the output mapping of the sigma-algebra. If `None`, a default will be generated.
-        index: IndexLike | None, default=None
+        index : IndexLike | None, default=None
             The index of the atom identifiers of the sigma-algebra. If `None`, a default will be generated.
-        index_kind: Literal["Index", "Time"], default="Index"
+        index_kind : Literal["Index", "Time"], default="Index"
             The type of index of the sigma-algebra.
-        index_name: Hashable | None, default=None
+        index_name : Hashable | None, default=None
             The name of the index of the sigma-algebra. If `None`, a default will be generated.
-        name: Hashable, default="F"
+        name : Hashable, default="F"
             Name identifier for the sigma-algebra.
-        random_state: int | np.random.Generator | None, default=None
+        random_state : int | np.random.Generator | None, default=None
             An optional seed for the random number generator.
 
         Returns
@@ -656,7 +656,7 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        function: Function
+        function : Function
             The function from which to generate the sigma-algebra.
 
         Returns
@@ -751,19 +751,19 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        factors: list[SigmaAlgebra]
+        factors : list[SigmaAlgebra]
             The factors of the tensor product.
-        variable_names: list[Hashable] | None, default=None
+        variable_names : list[Hashable] | None, default=None
             The variable names of the atom identifiers of the resulting sigma-algebra. If `None`, the variable names will be generated automatically.
-        domain_name: Hashable | None, default=None
+        domain_name : Hashable | None, default=None
             The name of the domain of the sigma-algebra. If `None`, a default will be generated.
-        index: IndexLike | None, default=None
+        index : IndexLike | None, default=None
             The index of the atom identifiers of the sigma-algebra. If `None`, a default will be generated.
-        index_kind: Literal["Index", "Time"], default="Index"
+        index_kind : Literal["Index", "Time"], default="Index"
             The type of index of the sigma-algebra.
-        index_name: Hashable | None, default=None
+        index_name : Hashable | None, default=None
             The name of the index of the sigma-algebra. If `None`, a default will be generated.
-        name: Hashable | None, default=None
+        name : Hashable | None, default=None
             The name of the resulting sigma-algebra. If `None`, the name will be generated automatically.
 
         Returns
@@ -964,9 +964,9 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        sig_alg: SigmaAlgebra
+        sig_alg : SigmaAlgebra
             The base of the tensor power.
-        n: int
+        n : int
             The power of the tensor power.
 
         Returns
@@ -1059,7 +1059,7 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        n: int
+        n : int
             The power of the tensor power.
 
         Returns
@@ -2014,9 +2014,9 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        indices: list[Hashable]
+        indices : list[Hashable]
             List of points to include in the measurable set.
-        name: Hashable, default="A"
+        name : Hashable, default="A"
             Name identifier for the set.
 
         Returns
@@ -2077,11 +2077,11 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        num_atoms: int
+        num_atoms : int
             The number of atoms to include in the random measurable set.
-        name: Hashable, default="A"
+        name : Hashable, default="A"
             Name identifier for the set.
-        random_state: int | np.random.Generator | None, default=None
+        random_state : int | np.random.Generator | None, default=None
             The random state for reproducibility.
 
         Returns
@@ -2134,7 +2134,7 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        point: Hashable
+        point : Hashable
             The point for which to retrieve the containing atom.
 
         Returns
@@ -2174,7 +2174,7 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        measure: Measure
+        measure : Measure
             A measure defined on a super-sigma-algebra of this sigma-algebra.
 
         Examples
@@ -2227,11 +2227,11 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        subset: Set | list[Hashable]
+        subset : Set | list[Hashable]
             The measurable subset to restrict the sigma-algebra to.
-        subset_name: Hashable, default="A"
+        subset_name : Hashable, default="A"
             The name of the measurable subset. Ignored if `subset` is an instance of `Set`.
-        name: Hashable | None, default=None
+        name : Hashable | None, default=None
             The name of the restriction. If `None`, a default will be generated.
 
         Returns
@@ -2287,7 +2287,7 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        name: Hashable
+        name : Hashable
             The new name for the sigma-algebra.
 
         Returns
@@ -2337,7 +2337,7 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        candidate: Set | list[Hashable]
+        candidate : Set | list[Hashable]
             The set to check for measurability.
 
         Returns
@@ -2422,7 +2422,7 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        candidate: Set | list[Hashable]
+        candidate : Set | list[Hashable]
             The set to check for measurability.
 
         Returns
@@ -2510,7 +2510,7 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        other: SigmaAlgebra
+        other : SigmaAlgebra
             The other sigma-algebra to compare with.
 
         Returns

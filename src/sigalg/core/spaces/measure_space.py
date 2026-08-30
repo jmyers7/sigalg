@@ -5,12 +5,12 @@ from __future__ import annotations
 from functools import cached_property
 from typing import TYPE_CHECKING, Literal
 
+import numpy as np
+
 from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
-
-    import numpy as np
 
     from ...typing.measure_domain import MeasureDomain
     from ..measures.measure import Measure
@@ -222,7 +222,7 @@ class MeasureSpace(SigmaAlgebraMethods):
             The subset on which to create the measure space
         measure : Measure
             The measure to use for the measure space.
-        normalize: bool, default=False
+        normalize : bool, default=False
             Whether to normalize the measure to create a probability space.
 
         Returns
@@ -528,8 +528,6 @@ class MeasureSpace(SigmaAlgebraMethods):
         2 2   8
         0 0   7
         """
-        import numpy as np
-
         from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .domain import Domain
@@ -744,11 +742,6 @@ class MeasureSpace(SigmaAlgebraMethods):
         in_place : bool, default=False
             If `True`, convert the current measure space to a probability space in place. If `False`, return a new `ProbabilitySpace` instance without modifying the current measure space.
 
-        Raises
-        ------
-        ValueError
-            If `measure` is provided and is not a `ProbabilityMeasure` instance.
-
         Returns
         -------
         prob_space: ProbabilitySpace | None
@@ -836,8 +829,6 @@ class MeasureSpace(SigmaAlgebraMethods):
         0     0.2
         1     0.8
         """
-        import numpy as np
-
         from ..measures.probability_measure import ProbabilityMeasure
         from .probability_space import ProbabilitySpace
 
@@ -876,11 +867,6 @@ class MeasureSpace(SigmaAlgebraMethods):
         ----------
         other : MeasureSpace
             The other measure space to compare with.
-
-        Raises
-        ------
-        TypeError
-            If `other` is not a `MeasureSpace` instance.
 
         Returns
         -------
@@ -1178,14 +1164,6 @@ class MeasureSpace(SigmaAlgebraMethods):
             The sigma-algebra to validate.
         measure : Measure | None
             The measure to validate.
-
-        Raises
-        ------
-        TypeError
-            If `domain` is not a `Domain` instance (when provided), `sig_alg` is not a `SigmaAlgebra` instance (when provided), or `measure` is not a `Measure` instance (when provided).
-        ValueError
-            If `sig_alg` or `measure` have domains that do
-            not match the provided `domain`.
         """
         from ..measures import Measure
         from ..sigma_algebras import SigmaAlgebra

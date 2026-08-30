@@ -343,7 +343,7 @@ class Measure(Function):
             The maximum value for uniform integer sampling when `distribution='uniform'`. Integers are sampled from the interval `[1, max_value)`.
         rate : float, default=5.0
             The rate parameter for Poisson sampling when `distribution='poisson'`.
-        output_name: Hashable | None = None
+        output_name : Hashable | None = None
             Output name of measure. If `None`, a default will be generated.
         name : Hashable | None, default=None
             The name of the measure. If `None`, a default will be generated.
@@ -633,7 +633,7 @@ class Measure(Function):
 
     # --------------------- measure methods --------------------- #
 
-    def equal_ae(
+    def equal_almost_everywhere(
         self,
         first: Function,
         second: Function,

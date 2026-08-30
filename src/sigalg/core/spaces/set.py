@@ -27,11 +27,11 @@ class Set(Index):
 
     Parameters
     ----------
-    indices: IndexLike
+    indices : IndexLike
         The items that belong to the set.
-    domain: Domain
+    domain : Domain
         The domain containing the set.
-    name: Hashable | None, default=None
+    name : Hashable | None, default=None
         The name of the set. If `None`, a default will be generated.
 
     Examples
@@ -85,9 +85,9 @@ class Set(Index):
 
         Parameters
         ----------
-        factors: list[Set]
+        factors : list[Set]
             The factors of the Cartesian product.
-        name: Hashable | None, default=None
+        name : Hashable | None, default=None
             The name of the Cartesian product. If `None`, a default will be generated.
 
         Examples
@@ -487,7 +487,7 @@ class Set(Index):
 
         Parameters
         ----------
-        sig_alg: SigmaAlgebra
+        sig_alg : SigmaAlgebra
             The sigma-algebra with respect to which the set is measurable.
 
         Returns
@@ -690,11 +690,6 @@ class Set(Index):
         other : Set
             Another set from the same domain.
 
-        Raises
-        ------
-        ValueError
-            If sets are from different domains.
-
         Returns
         -------
         set : Set
@@ -722,11 +717,6 @@ class Set(Index):
         other : Set
             Another set from the same domain.
 
-        Raises
-        ------
-        ValueError
-            If sets are from different domains.
-
         Returns
         -------
         set : Set
@@ -753,11 +743,6 @@ class Set(Index):
         ----------
         other : Set
             Another set from the same domain.
-
-        Raises
-        ------
-        ValueError
-            If sets are from different domains.
 
         Returns
         -------
@@ -788,11 +773,6 @@ class Set(Index):
         other : Set
             Another set from the same domain.
 
-        Raises
-        ------
-        ValueError
-            If sets are from different domains.
-
         Returns
         -------
         is_le : bool
@@ -810,11 +790,6 @@ class Set(Index):
         ----------
         other : Set
             Another set from the same domain.
-
-        Raises
-        ------
-        ValueError
-            If sets are from different domains.
 
         Returns
         -------
@@ -834,11 +809,6 @@ class Set(Index):
         other : Set
             Another set from the same domain.
 
-        Raises
-        ------
-        ValueError
-            If sets are from different domains.
-
         Returns
         -------
         is_ge : bool
@@ -856,11 +826,6 @@ class Set(Index):
         ----------
         other : Set
             Another set from the same domain.
-
-        Raises
-        ------
-        ValueError
-            If sets are from different domains.
 
         Returns
         -------

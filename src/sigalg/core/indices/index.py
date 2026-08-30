@@ -294,8 +294,8 @@ class Index:
             The factors of the Cartesian product.
         variable_names : list[Hashable] | None, default=None
             A list of variable names for the resulting index. If `None`, defaults will be generated.
-        name: Hashable | None, default=None
-            The name of the Cartesian product. If `None`, a defult will be generated.
+        name : Hashable | None, default=None
+            The name of the Cartesian product. If `None`, a default will be generated.
 
         Returns
         -------
@@ -828,11 +828,6 @@ class Index:
         ----------
         other : Index
             Another index from the same sample space.
-
-        Raises
-        ------
-        TypeError
-            If `other` is not an instance of `Index`.
 
         Returns
         -------

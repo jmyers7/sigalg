@@ -246,14 +246,6 @@ class ProbabilitySpace(MeasureSpace):
             The sigma-algebra to validate.
         measure : ProbabilityMeasure | None
             The probability measure to validate.
-
-        Raises
-        ------
-        TypeError
-            If `domain` is not a `SampleSpace` instance (when provided), `sig_alg` is not a `SigmaAlgebra` instance (when provided), or `measure` is not a `ProbabilityMeasure` instance (when provided).
-        ValueError
-            If `sig_alg` or `measure` have domains that do
-            not match the provided `domain`.
         """
         from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras import SigmaAlgebra
