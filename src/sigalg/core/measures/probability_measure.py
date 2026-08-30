@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
+
+import numpy as np
+import pandas as pd
 
 from .measure import Measure
 
 if TYPE_CHECKING:
-    import numpy as np
+    from collections.abc import Hashable
 
     from ...typing.mapping_like import MappingLike
     from ...typing.measure_domain import MeasureDomain
@@ -36,21 +38,20 @@ class ProbabilityMeasure(Measure):
     Parameters
     ----------
     domain : MeasureDomain | None, default=None
-        The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`; in the latter case the domain will be set to the-power set of the `Domain` instance.
+        The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`. In the latter case, the domain will be set to the power set of the domain.
     mapping : MappingLike | None, default=None
         A mapping from the domain to the probability values.
-    output_name : str, default="probability"
-        The name of the output variable of the measure.
-    name : Hashable, default="P"
-        The name of the measure.
-    **kwargs
-        Keyword arguments to catch unexpected parameters.
+    output_name : Hashable | None, default=None
+        The name of the output variable of the measure. If `None`, a default will be generated.
+    name : Hashable | None, default=None
+        The name of the measure. If `None`, a default will be generated.
 
     Examples
     --------
+    >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
+
     Define a probability measure on a sigma-algebra with two atoms.
 
-    >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
     >>> Omega = SampleSpace.from_sequence(size=3)
     >>> F = SigmaAlgebra(
     ...    domain=Omega,
@@ -122,7 +123,7 @@ class ProbabilityMeasure(Measure):
 
     Notes
     -----
-    Let $(\Omega, \mathcal{F})$ be a measurable space consisting of a $\sigma$-algebra $\mathcal{F}$ on a nonempty set $\Omega$. A *probability measure* $P$ is a countably additive function $P: \mathcal{F} \to [0,\infty)$ such that $P(\Omega) = 1$. Here, *countable additivity* means that
+    Let $(\Omega, \mathcal{F})$ be a measurable space. A *probability measure* $P$ is a countably additive function $P: \mathcal{F} \to [0,\infty)$ such that $P(\Omega) = 1$. Here, *countable additivity* means that
 
     $$
     P \left( \bigcup_{k=1}^\infty A_k \right) = \sum_{k=1}^\infty P(A_k)
@@ -142,7 +143,7 @@ class ProbabilityMeasure(Measure):
         domain: MeasureDomain | None = None,
         mapping: MappingLike | None = None,
         output_name: Hashable | None = None,
-        name: Hashable = "P",
+        name: Hashable | None = None,
     ) -> None:
 
         super().__init__(
@@ -168,7 +169,9 @@ class ProbabilityMeasure(Measure):
         Parameters
         ----------
         domain : MeasureDomain
-            The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`; in the latter case the domain will be set to the power set of the `Domain` instance.
+            The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`; in the latter case, the domain will be set to the power set of the `Domain` instance.
+        output_name : Hashable | None, default=None
+            The name of the output variable of the measure. If `None`, a default will be generated.
         name : Hashable, default="U"
             A name for the measure.
 
@@ -180,6 +183,9 @@ class ProbabilityMeasure(Measure):
         Examples
         --------
         >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
+
+        Define a measurable space with a sigma-algebra having three atoms.
+
         >>> Omega = SampleSpace.from_sequence(size=4)
         >>> F = SigmaAlgebra(
         ...     domain=Omega,
@@ -190,6 +196,9 @@ class ProbabilityMeasure(Measure):
         ...         3: 2,
         ...     },
         ... )
+
+        Define a uniform probability measure on the sigma-algebra. Each atom is given equal probability `1/3`.
+
         >>> U = ProbabilityMeasure.uniform(domain=F)
         >>> print(U)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'U':
@@ -198,6 +207,9 @@ class ProbabilityMeasure(Measure):
         0   0.333333
         1   0.333333
         2   0.333333
+
+        Define a uniform probability measure directly on the sample space. This will create the power-set sigma-algebra by default, and each outcome is given equal probability `1/4`.
+
         >>> V = ProbabilityMeasure.uniform(domain=Omega, name="V")
         >>> print(V)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'V':
@@ -244,7 +256,10 @@ class ProbabilityMeasure(Measure):
     # --------------------- dunder operators --------------------- #
 
     def __matmul__(self, other):
-        """Pass."""
+        """Return the tensor product of this probability measure with another.
+
+        Internally calls the `ProbabilityMeasure.tensor_product` method. See the docstring there for more details.
+        """
         return ProbabilityMeasure.tensor_product([self, other])
 
     # --------------------- probability methods --------------------- #
@@ -314,9 +329,6 @@ class ProbabilityMeasure(Measure):
         2        0.260000
         0        0.246667
         """
-        import numpy as np
-        import pandas as pd
-
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.domain import Domain
         from ..spaces.measure_space import MeasureSpace
@@ -364,69 +376,6 @@ class ProbabilityMeasure(Measure):
 
         return MeasureSpace._from_validated(measure=measure)
 
-    def marginal(
-        self,
-        variables: list[Hashable] | Hashable,
-        name: Hashable | None = None,
-    ) -> ProbabilityMeasure:
-        """Pass."""
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        if not isinstance(variables, Hashable | list):
-            raise TypeError(
-                "variables must either be a single variable name or a "
-                "list of variable names."
-            )
-        if not isinstance(variables, Hashable) and not all(
-            isinstance(x, Hashable) for x in variables
-        ):
-            raise TypeError(
-                "If variables is not a single variable name, it must be a "
-                "list of variable names."
-            )
-        if isinstance(variables, Hashable):
-            variables = [variables]
-        if len(variables) == 0:
-            return self
-        if not set(variables) <= set(self.variable_names):
-            raise ValueError(
-                "The set of variable names must be a subset of the set of all variable "
-                "names."
-            )
-        if not self.sig_alg.is_power_set:
-            raise ValueError(
-                "The marginal distributions are currently only defined for probability "
-                "measures on power-set sigma-algebras."
-            )
-
-        if name is None:
-            if len(variables) == 1:
-                name = f"{self.name}_{variables[0]}"
-                domain_name = f"{self.sig_alg.domain.name}_{variables[0]}"
-            else:
-                variables_str = "(" + ", ".join(variables) + ")"
-                name = f"{self.name}_{variables_str}"
-                domain_name = f"{self.sig_alg.domain.name}_{variables_str}"
-
-        data = self.data.groupby(level=variables).sum().rename(name)
-
-        sig_alg = SigmaAlgebra._from_validated(
-            data=data.index.to_frame().squeeze(axis=1),
-            variable_names=variables,
-            domain_kind=type(self.sig_alg.domain).__name__,
-            domain_name=domain_name,
-            index_kind="Index",
-            index_name="I",
-            name="R",
-        )
-
-        return ProbabilityMeasure._from_validated(
-            data=data,
-            kind="probability",
-            sig_alg=sig_alg,
-            name=name,
-        )
-
     def conditional(
         self,
         given: SigmaAlgebra | Set | MeasurableVector,
@@ -434,28 +383,30 @@ class ProbabilityMeasure(Measure):
         base_measure: Measure | None = None,
         name: Hashable | None = None,
     ) -> RandomVariable | ParametrizedProbabilityMeasure:
-        r"""Compute a conditional probability measure.
+        r"""Compute a conditional probability.
+
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
-        condition : SigmaAlgebra | MeasurableSet | MeasurableVector
+        given : SigmaAlgebra | Set | MeasurableVector
             The given condition, which can be a sigma-algebra, an event, or a random vector.
+        subset : Set | None, default=None
+            This method will either return a `RandomVariable` or a `ParametrizedProbabilityMeasure` depending on whether this parameter is `None` or not. See the Notes and Examples section below.
+        base_measure : Measure | None, default=None
+            If the given sigma-algebra contains null atoms, a default probability measure will be generated for those atoms. This parameter is an optional measure with respect to which these default distributions will be absolutely continuous. See the Notes and Examples section below.
         name : Hashable | None, default=None
-            The name of the resulting parametrized probability measure.
-
-        Raises
-        ------
-        TypeError
-            If `condition` is not a `SigmaAlgebra`, `MeasurableSet`, or `MeasurableVector` instance.
+            The name of the resulting parametrized probability measure. If `None`, a default will be generated.
 
         Returns
         -------
-        cond_prob_measure : ParametrizedProbabilityMeasure
-            A parametrized probability measure representing the conditional probability given `condition`.
+        cond_prob_measure : RandomVariable | ParametrizedProbabilityMeasure
+            A random variable or a parametrized probability measure representing the conditional probability.
 
         Examples
         --------
         >>> from sigalg.core import (
+        ...     Measure,
         ...     Operators,
         ...     ProbabilityMeasure,
         ...     RandomVariable,
@@ -509,9 +460,9 @@ class ProbabilityMeasure(Measure):
         We first compute the conditional probability with an explit `subset` parameter, returning an instance of `RandomVariable`.
 
         >>> U = Set([1, 2, 3], domain=Omega, name="U")
-        >>> P.conditional(given=G, subset=U)
+        >>> P.conditional(G, subset=U)
         RandomVariable(parameters=(omega), domain=Omega, sig_alg=G, measure=P|G, name=P(U|G))
-        >>> print(P.conditional(given=G, subset=U))  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(P.conditional(G, subset=U))  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'P(U|G)':
                P(U|G)
         omega
@@ -523,19 +474,13 @@ class ProbabilityMeasure(Measure):
         5        0.00
         6        0.00
 
-        Notice the random variable takes the constant value `0.00` on the null atom of `G`. (This is the default SigAlg behavior.) The other values of the random variable are obtained from the familiar formula for conditional probability.
-
-        >>> B_0, B_1 = (P | G).non_null_atoms
-        >>> P(U & B_0) / P(B_0)
-        0.7499999999999999
-        >>> P(U & B_1) / P(B_1)
-        1.0
+        Notice the random variable takes the constant value `0.00` on the null atom of `G`. (This is the default SigAlg behavior.)
 
         If the `subset` parameter of the `conditional` method is left as its default value `None`, then the method will return an instance of `ParametrizedProbabilityMeasure`.
 
-        >>> P.conditional(given=G)
+        >>> P.conditional(G)
         ParametrizedProbabilityMeasure(parameters=(G), domain_vars=(F), sig_alg=F, name=P(-|G))
-        >>> print(P.conditional(given=G))  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(P.conditional(G))  # doctest: +NORMALIZE_WHITESPACE
         Parametrized probability measure 'P(-|G)':
         G     0    1    2
         F
@@ -547,9 +492,34 @@ class ProbabilityMeasure(Measure):
 
         Notice that the parameter space for the measure is the set of atom identifiers of the sub-sigma-algebra `G`. The null atom of `G` has identifier `2` (the third column). The mathematical theory does not place any restrictions on the probability distribution given a null atom, just as long as it is *some* valid distribution. The default in SigAlg is to create the uniform one.
 
-        We may call the parametrized measure on the subset `U` from above.
+        However, sometimes it is useful for this distribution to be chosen absolutely continuous with respect to a base measure. We create a base measure.
 
-        >>> print(P.conditional(given=G)(U))  # doctest: +NORMALIZE_WHITESPACE
+        >>> mu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 3,
+        ...         4: 4,
+        ...     }
+        ... )
+
+        Notice that `mu` vanishes on the atom with identifier `0`. The default uniform measure `P.conditional(G)` when `G=2` is not absolutely continuous with respect to `mu`, but we can generate one that *is* by passing `mu` as the `base_measure` parameter into the `conditional` method.
+
+        >>> print(P.conditional(G, base_measure=mu))  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'P(-|G)':
+        G     0    1     2
+        F
+        0  0.25  0.0  0.00
+        1  0.75  0.0  0.25
+        2  0.00  1.0  0.25
+        3  0.00  0.0  0.25
+        4  0.00  0.0  0.25
+
+        In any case, we may call either of these parametrized measures on the subset `U` from above.
+
+        >>> print(P.conditional(G)(U))  # doctest: +NORMALIZE_WHITESPACE
         Function 'P(-|G)(U)':
            P(-|G)(U)
         G
@@ -557,9 +527,9 @@ class ProbabilityMeasure(Measure):
         1       1.00
         2       0.40
 
-        Notice the difference between `P.conditional(given=G, subset=U)` from above and this last printout of `P.conditional(given=G)(U)`. The former is a random variable defined on the sample space `Omega`, while the latter is a function defined on the set of atom identifiers of `G`. We may "ascend" the latter to a function on the sample space by calling the `to_measurable_vector` method with the `ascend` parameter set to `True`. (Essentially, we are "broadcasting" the values of the function from the atom identifiers to the entire sample space).
+        Notice the difference between `P.conditional(G, subset=U)` from above and this last printout of `P.conditional(G)(U)`. The former is a random variable defined on the sample space `Omega`, while the latter is a function defined on the set of atom identifiers of `G`. We may "ascend" the latter to a function on the sample space by calling the `ascend` method. (Essentially, we are "broadcasting" the values of the function from the atom identifiers to the entire sample space).
 
-        >>> print(P.conditional(given=G)(U).ascend(G))  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(P.conditional(G)(U).ascend(G))  # doctest: +NORMALIZE_WHITESPACE
         Measurable function 'P(-|G)(U)':
                P(-|G)(U)
         omega
@@ -571,13 +541,46 @@ class ProbabilityMeasure(Measure):
         5           0.40
         6           0.40
 
-        To recap, we have created the same instance of `RandomVariable` in two ways (at least up to almost-sure equality). In the first, we passed an explicit parameter `subset=U` into the `conditional` method, directly creating an instance of `RandomVariable`. In the second, we left the `subset` parameter as its default value `None`, which created an instance of `ParametrizedProbabilityMeasure`. We called this measure on `U`, which created a function on the atom identifiers of the conditioning sigma-algebra. "Ascending" from its atom identifers created a `RandomVariable` that coincided with the first (again, at least up to almost-sure equality).
+        We check that these two ways of creating a random variable are equal `P`-a.s.
 
-        Finally, we check that the conditional probability computed by SigAlg has its defining "orthogonality" property. (See the Notes below.)
+        >>> P.equal_almost_surely(P.conditional(G)(U).ascend(G), P.conditional(G, subset=U))
+        True
+
+        Finally, we check the law of total probability. (See the Notes section below.)
 
         >>> integrate = Operators.integrate
         >>> all(P(U & B) == integrate(P.conditional(G, U), B, measure=P) for B in G)
         True
+
+        Notes
+        -----
+        Let $(\Omega, \mathcal{F}, P)$ be a probability space, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional probability* of an event $U\in \mathcal{G}$, given $\mathcal{G}$, is any $\mathcal{G}$-measurable random variable $P(U\mid \mathcal{G})$ such that
+
+        $$
+        P(U \cap V) = \int_V P(U \mid \mathcal{G}) \, dP,
+        $$
+
+        for all $V\in \mathcal{G}$. This equation is called the *law of total probability*. In particular, we may take
+
+        $$
+        P(U\mid \mathcal{G}) = E(I_U \mid \mathcal{G}),
+        $$
+
+        where $I_U$ is the indicator function of $U$.
+
+        Suppose now that $\Omega$ is finite. From the Fourier expansion of the conditional expectation, we see that
+
+        $$
+        P(U \mid \mathcal{G}) = \sum_B \frac{P(U\cap B)}{P(B)} I_B,
+        $$
+
+        $P$-almost surely, where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability. Using this formula, one may show that for each $\omega\in \Omega$ not contained in a $P$-null atom of $\mathcal{G}$, the function
+
+        $$
+        P(- \mid \mathcal{G})(\omega): \mathcal{F} \to [0,1], \quad U \mapsto P(U\mid \mathcal{G})(\omega),
+        $$
+
+        is a probability measure on $\mathcal{F}$. If $\omega$ is in a $P$-null atom, then we suppose that some fixed probability measure is assigned to $P(- \mid \mathcal{G})(\omega)$. It may be arbitrarily assigned — it just needs to be a valid measure. In applications, it is sometimes convenient to select these measures to be absolutely continuous with respect to a given base measure.
         """
         from .._utils.function_helpers import compute_expectation
         from .._utils.measure_helpers import compute_conditional_prob_measure
@@ -650,7 +653,7 @@ class ProbabilityMeasure(Measure):
     def derivative(
         self,
         base_measure: Measure | None = None,
-        given: SigmaAlgebra | MeasurableVector | Set | None = None,
+        given: SigmaAlgebra | MeasurableVector | None = None,
         name: Hashable | None = None,
         tol: float = 1e-8,
     ) -> MeasurableFunction | ParametrizedMeasurableFunction:
@@ -663,14 +666,14 @@ class ProbabilityMeasure(Measure):
         base_measure : Measure | None, default=None
             The base measure with respect to which the derivative is computed. If `None`, the counting measure is used.
         given : SigmaAlgebra | MeasurableVector | None, default=None
-            The sigma-algebra or random vector on which to condition the derivative. If `None`, the unconditional probability mass function is computed.
+            The optional sigma-algebra or random vector on which to condition the derivative.
         name : Hashable | None, default=None
-            The name of the resulting measurable function representing the derivative. If `None`, a default name is generated.
+            The name of the derivative. If `None`, a default name is generated.
 
         Returns
         -------
-        derivative : RadonNikodym | ParametrizedMeasurableFunction
-            Either an instance of `RadonNikodym` if the derivative is unconditional, or an instance of `ParametrizedMeasurableFunction`.
+        derivative : MeasurableFunction | ParametrizedMeasurableFunction
+            Either an instance of `MeasurableFunction` if the derivative is unconditional, or an instance of `ParametrizedMeasurableFunction`.
 
         Examples
         --------
@@ -686,7 +689,7 @@ class ProbabilityMeasure(Measure):
         ...     SigmaAlgebra,
         ... )
 
-        Define a probability space and a base measure for Radon-Nikodym derivatives. Notice that the sigma-algebra has two null atoms with identifiers `3` and `4`.
+        Define a probability space and a base measure for Radon-Nikodym derivatives. Notice that the sigma-algebra has null atoms.
 
         >>> Omega = SampleSpace.from_sequence(size=7)
         >>> F = SigmaAlgebra(
@@ -696,9 +699,9 @@ class ProbabilityMeasure(Measure):
         ...         1: 1,
         ...         2: 2,
         ...         3: 2,
-        ...         4: 3,  # null atom
-        ...         5: 4,  # null atom
-        ...         6: 4,  # null atom
+        ...         4: 3,  # P-null atom
+        ...         5: 4,  # P- and mu-null atom
+        ...         6: 4,  # P- and mu-null atom
         ...     },
         ... )
         >>> P = ProbabilityMeasure(
@@ -718,11 +721,11 @@ class ProbabilityMeasure(Measure):
         ...         1: 2,
         ...         2: 3,
         ...         3: 4,
-        ...         4: 0,  # null atom
+        ...         4: 0,
         ...     },
         ... )
 
-        Compute the Radon-Nikodym derivative of `P` with respect to `mu`. Notice that the default measure attached to the derivative is the base measure.
+        Compute the Radon-Nikodym derivative of `P` with respect to `mu`.
 
         >>> P.derivative(mu)
         MeasurableFunction(parameters=(omega), domain=Omega, sig_alg=F, measure=mu, name=dP_dmu)
@@ -737,6 +740,8 @@ class ProbabilityMeasure(Measure):
         4    0.000000
         5    0.000000
         6    0.000000
+
+        Notice that the derivative is `0.0` on the `mu`-null atom. This is the default SigAlg behavior.
 
         Extract a set from the sigma-algebra and check that the derivative has its defining property.
 
@@ -754,9 +759,9 @@ class ProbabilityMeasure(Measure):
         ...         1: 0,
         ...         2: 1,
         ...         3: 1,
-        ...         4: 2,  # null atom
-        ...         5: 2,  # null atom
-        ...         6: 2,  # null atom
+        ...         4: 2,  # P-null atom
+        ...         5: 2,  # P-null atom
+        ...         6: 2,  # P-null atom
         ...     },
         ...     name="G",
         ... )
@@ -778,6 +783,23 @@ class ProbabilityMeasure(Measure):
         6      0.000  0.000000  0.000000
 
         Note that the parameter space for the function is the set of atom identifiers of the conditioning sigma-algebra `G`.
+
+        The integral of the conditional Radon-Nikodym derivative is supposed to coincide (`P`-almost surely) with the conditional probability distribution. We check this, using the set `U` from above.
+
+        >>> integrate(P.derivative(mu, G), U, measure=mu)
+        Function(parameters=(G), domain=G, name=int_U dP(-|G)_dmu dmu)
+        >>> print(integrate(P.derivative(mu, G), U, measure=mu))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'int_U dP(-|G)_dmu dmu':
+           int_U dP(-|G)_dmu dmu
+        G
+        0                   0.75
+        1                   1.00
+        2                   0.50
+
+        This is a `Function` instance defined on the atom identifiers of `G`. We may "ascend" to a function on the entire sample space by calling the `ascend` method. (Essentially, broadcasting the values of the function from the atom identifers to the entire sample space.) We check that this function coincides with the conditional distribution.
+
+        >>> P.equal_almost_surely(integrate(P.derivative(mu, G), U, measure=mu).ascend(G), P.conditional(G, subset=U))
+        True
 
         Now define a random variable to demonstrate the connnection with expectations.
 
@@ -808,55 +830,47 @@ class ProbabilityMeasure(Measure):
         >>> integrate(X * P.derivative(mu, G), measure=mu)
         Function(parameters=(G), domain=G, name=int (X * dP(-|G)_dmu) dmu)
 
-        This is a function on the atom identifiers of the sigma-algebra `G`. As above, it naturally "ascends" to a function on the sample space, which we obtain using the `to_measurable_vector` method with `ascend=True`.
-
-        >>> measurable = integrate(X * P.derivative(mu, G), measure=mu)
-        >>> measurable
-        Function(parameters=(G), domain=G, name=int (X * dP(-|G)_dmu) dmu)
-
-        To recap: `measurable` represents a function on the sample space whose value on a sample point is the integral of `X` against the probability measure obtained from `P.derivative(mu, G)` evaluated at the atom identifier containing that sample point. If the reader now looks at the Notes section below, they'll see that `measure` is supposed to be the conditional expectation of `X` given `G` (almost surely).
+        This is a function on the atom identifiers of the sigma-algebra `G`. As above, it naturally "ascends" to a function on the sample space, which we obtain using the `ascend` method. The mathematical theory says that this function is equal to the conditional expectation (at least `P`-almost surely).
 
         >>> E = Operators.expectation
-        >>> P.equal_almost_surely(E(X, G), measurable.ascend(G))
+        >>> P.equal_almost_surely(E(X, G), integrate(X * P.derivative(mu, G), measure=mu).ascend(G))
         True
 
         Notes
         -----
-        Let $P$ be a probability measure on a measurable space $(\Omega, \mathcal{F})$ that is absolutely continuous with respect to a second measure $\mu$. A *Radon-Nikodym derivative* of $P$ with respect to $\mu$ is an $\mathcal{F}$-measurable function $dP/d\mu$ for which
+        Let $P$ be a probability measure on a finite measurable space $(\Omega, \mathcal{F})$ that is absolutely continuous with respect to a second measure $\mu$. A *Radon-Nikodym derivative* of $P$ with respect to $\mu$ is an $\mathcal{F}$-measurable function $h:\Omega \to \mathbb{R}$ for which
 
         $$
-        P(U) = \int_\Omega \frac{dP}{d\mu} \, d\mu
+        P(U) = \int_\Omega h \, d\mu
         $$
 
-        for all $U\in \mathcal{F}$.
+        for all $U\in \mathcal{F}$. We often write $dP/d\mu$ for $h$.
 
-        Now suppose $\mathcal{G}$ is a sub-$\sigma$-algebra of $\mathcal{F}$, let $U\in \mathcal{F}$, and let $P(U \mid \mathcal{G})$ be the conditional probability distribution (which is a $\mathcal{G}$-measurable function). Provided that $\Omega$ is "nice" (as it always is in SigAlg, because it is finite), then for each $\omega\in \Omega$ the function
-
-        $$
-        P(- \mid \mathcal{G})(\omega):\mathcal{F} \to [0,1], \quad U \mapsto P(U \mid \mathcal{G})(\omega),
-        $$
-
-        is a probability measure on $\mathcal{F}$. A *conditional Radon-Nikodym derivative* of $P$ given $\mathcal{G}$ is an $\mathcal{F}$-measurable function for which
+        Now suppose that $\mathcal{G}$ is a sub-$\sigma$-algebra of $\mathcal{F}$. A *conditional Radon-Nikodym derivative* of $P$ given $\mathcal{G}$ is any $(\mathcal{F} \otimes \mathcal{G})$-measurable function $h: \Omega \times \Omega \to \mathbb{R}$ for which
 
         $$
-        P(U\mid\mathcal{G})(\omega) = \int_\Omega \frac{dP(-\mid\mathcal{G})(\omega)}{d\mu} \, d\mu
+        P(U\cap V) = \int_{U\times V} h(\omega, \omega') \, d(\mu \otimes P)(\omega, \omega')
         $$
 
-        for all $U\in \mathcal{F}$.
-
-        If $X$ is a random variable, it follows from standard properties of Radon-Nikodym derivatives that
+        for all $U\in \mathcal{F}$ and $V\in \mathcal{G}$. By Fubini's theorem, we may write this latter equation as
 
         $$
-        \int_\Omega X \, dP(-\mid \mathcal{G})(\omega) = \int_\Omega X \frac{dP(-\mid \mathcal{G})(\omega)}{d\mu} \, d\mu
+        P(U\cap V) = \int_V \left[ \int_U h(\omega, \omega') \, d\mu(\omega) \right] \, dP(\omega'),
         $$
 
-        for every $\omega\in \Omega$. But the integral on the left is exactly the conditional expectation of $X$ given $\mathcal{G}$, and so we have
+        from which it follows that
 
         $$
-        E(X \mid \mathcal{G})(\omega) = \int_\Omega X \frac{dP(-\mid \mathcal{G})(\omega)}{d\mu} \, d\mu
+        P(U\mid \mathcal{G})(\omega') = \int_U h(\omega, \omega') \, d\mu(\omega),
         $$
 
-        as well.
+        where the equality holds for all $\omega'$ $P$-almost surely. It thus follows that for all such $\omega'$, the partial function
+
+        $$
+        h(-, \omega') : \Omega \to \mathbb{R}, \quad \omega \mapsto h(\omega, \omega'),
+        $$
+
+        is a Radon-Nikodym derivative of the probability measure $P(- \mid \mathcal{G})(\omega')$ with respect to $\mu$.
         """
         from .._utils.measure_helpers import compute_radon_nikodym
         from ..functions.measurable_function import MeasurableFunction
@@ -1307,7 +1321,6 @@ class ProbabilityMeasure(Measure):
         self,
         first: MeasurableVector,
         second: MeasurableVector,
-        tol: float = 1e-8,
         rtol: float = 1e-5,
         atol: float = 1e-8,
     ) -> bool:
@@ -1424,8 +1437,8 @@ class ProbabilityMeasure(Measure):
         P \left( \{\omega \in \Omega : X(\omega) \neq Y(\omega)\} \right) = 0.
         $$
         """
-        return self.equal_ae(
-            first=first, second=second, tol=tol, rtol=rtol, atol=atol
+        return self.equal_almost_everywhere(
+            first=first, second=second, rtol=rtol, atol=atol
         )
 
     # --------------------- utils --------------------- #
