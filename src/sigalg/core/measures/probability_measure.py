@@ -751,15 +751,15 @@ class ProbabilityMeasure(Measure):
             1         1
         >>> P.are_independent(X_1, X_2)
         True
-        >>> Y = (X_1 + X_2).with_name("Y")
+        >>> Y = X_1 + X_2
         >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'Y':
-                        Y
+        Random variable '(X_1 + X_2)':
+                 (X_1 + X_2)
         s_0 s_1
-        0   0         0
-            1         1
-        1   0         1
-            1         2
+        0   0              0
+            1              1
+        1   0              1
+            1              2
         >>> P.are_independent(X_1, Y)
         False
 
