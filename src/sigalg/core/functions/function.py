@@ -10,9 +10,10 @@ from itertools import combinations
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
+import numpy as np
+import pandas as pd
+
 if TYPE_CHECKING:
-    import numpy as np
-    import pandas as pd
     from numpy.typing import ArrayLike
 
     from ...typing.index_like import IndexLike
@@ -33,8 +34,8 @@ class Function:
     Mathematically, a function requires three items: A domain set, a codomain set, and a rule defining the function. For instances of `Function`:
 
     * The domain of the function is passed as the parameter `domain`, but this parameter is *not* required. This allows for the creation of functions whose domains are supposed to be continuous.
-    * The codomain of an instance of `Function` is always assumed to be the set of real numbers.
-    * The rule defining the function may be passed into the constructor as the parameter `mapping`. If `mapping` is a callable, its parameters **must** be keyword-only.
+    * The codomain of an instance of `Function` is always assumed to be a Cartesian power of the real line.
+    * The rule defining the function may be passed into the constructor as the parameter `mapping`.
 
     Parameters
     ----------
@@ -42,8 +43,24 @@ class Function:
         The domain of the function.
     mapping : MappingLike | None, default=None
         The underlying rule defining the function. If a `Callable`, its parameters must either all be keyword-only, or all positional only.
-    kind : Literal["any", "measure", "probability"], default="any"
-        The kind of outputs of the function. The options `measure` and `probability` are meant to be used by measures.
+    kind : Literal["any", "measure", "probability", "param_measure", "param_probability"], default="any"
+        The kind of outputs of the function.
+    domain_kind : Literal["Domain", "SampleSpace"], default="Domain"
+        The type of the domain.
+    domain_name : Hashable | None, default=None
+        The name of the domain.
+    multi_dim_outputs : bool, default=True
+        Whether the outputs of the function are 1-dimensional or multi-dimensional.
+    parameter_names : list[Hashable] | None, default=None
+        A list of parameter names of the function.
+    output_name : Hashable | None, default=None
+        The name of the outputs of the function. If `None`, a default will be generated.
+    index : IndexLike | None, default=None
+        The index for the outputs of the function. Only used if the outputs are multi-dimensional.
+    index_kind : Literal["Index", "Time"], default="Index"
+        The kind of index. Only used if the outputs are multi-dimensional.
+    index_name : Hashable | None, default=None
+        The name of the index. Only used if the outputs are multi-dimensional.
     name : Hashable | None, default=None
         The name of the function. If `None`, a default name will be generated.
     **kwargs
@@ -51,10 +68,11 @@ class Function:
 
     Examples
     --------
-    Define a `Function` with an explicit `domain` and a `mapping` expressed as a lambda function. Note that the parameters to the lambda function are keyword-only.
-
     >>> import pandas as pd
     >>> from sigalg.core import Domain, Function
+
+    Define a `Function` with an explicit `domain` and a `mapping` expressed as a lambda function. Note that the parameters to the lambda function are keyword-only.
+
     >>> X = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
     >>> f = Function(domain=X, mapping=lambda *, x, y: 2 * x + y**2)
     >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
@@ -118,13 +136,13 @@ class Function:
         domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
         domain_name: Hashable | None = None,
         multi_dim_outputs: bool = True,
+        parameter_names: list[Hashable] | None = None,
         output_name: Hashable | None = None,
         index: IndexLike | None = None,
         index_kind: Literal["Index", "Time"] = "Index",
         index_name: Hashable | None = None,
-        parameter_names: list[Hashable]
-        | None = None,  # TODO: remove this and use kwargs for subclasses
         name: Hashable | None = None,
+        **kwargs,
     ) -> None:
         from ...validation.domain_index_validator import DomainIndexValidator
         from ...validation.mapping_validator import MappingValidator
@@ -202,9 +220,9 @@ class Function:
         arr: ArrayLike,
         variable_names: list[Hashable] | None = None,
         kind: Literal["any", "measure", "probability"] = "any",
-        name: Hashable | None = None,
         domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
         domain_name: Hashable | None = None,
+        name: Hashable | None = None,
     ) -> Function:
         """Create a function from a NumPy array.
 
@@ -217,25 +235,21 @@ class Function:
         variable_names : list[Hashable] | None, default=None
             The names of the variables. If `None`, defaults will be generated.
         kind : Literal["any", "measure", "probability"], default="any"
-            The kind of outputs of the function. The options `measure` and `probability` are meant to be used by measures.
+            The kind of outputs of the function.
+        domain_kind: Literal["Domain", "SampleSpace"], default="Domain"
+            The type of domain.
+        domain_name: Hashble | None, default=None
+            The name of the domain.
         name : Hashable | None, default=None
             The name of the function. If `None`, a default name will be generated.
-        domain_class: Literal["Domain", "SampleSpace"], default="Domain
-            The class of the underlying domain.
-        domain_name: Hashble | None, default=None
-            The name of the domain. If `None`, a default will be generated.
-
-        Raises
-        ------
-        TypeError
-            If `arr` is not a NumPy array or if `variable_names` is not a list of hashable items or `None`.
-        ValueError
-            If the length of `variable_names` does not match the number of dimensions of `arr`.
 
         Examples
         --------
         >>> import numpy as np
         >>> from sigalg.core import Function
+
+        Construct a function from a NumPy array of shape `(2, 2)`. The function is constructed so that `f(i, j) = arr[i, j]`.
+
         >>> arr = np.array([[1, 2], [3, 4]])
         >>> f = Function.from_numpy(arr=arr, name="f")
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
@@ -246,37 +260,34 @@ class Function:
             1     2
         1   0     3
             1     4
-        >>> g = Function.from_numpy(arr=arr, name="g", domain_kind="SampleSpace")
-        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'g':
-                            g
-        omega_0 omega_1
-              0       0     1
-                      1     2
-              1       0     3
-                      1     4
-        """
-        import numpy as np
-        import pandas as pd
 
+        Evaluate the function.
+
+        >>> f(x_0=0, x_1=0)
+        1
+        >>> f(x_0=0, x_1=1)
+        2
+        >>> f(x_0=1, x_1=0)
+        3
+        >>> f(x_0=1, x_1=1)
+        4
+        """
         from ..spaces.domain import Domain
         from ..spaces.sample_space import SampleSpace
 
         try:
             arr = np.array(arr)
         except Exception as e:
-            raise TypeError("Failed to convert `arr` to a NumPy array.") from e
+            raise TypeError("Failed to convert arr to a NumPy array.") from e
         if (
             variable_names is not None
             and not isinstance(variable_names, list)
             and not all(isinstance(name, Hashable) for name in variable_names)
         ):
-            raise TypeError(
-                "`variable_names` must be a list of hashable items or None."
-            )
+            raise TypeError("variable_names must be a list of hashable items or None.")
         if variable_names is not None and len(variable_names) != arr.ndim:
             raise ValueError(
-                "The length of `variable_names` must match the number of dimensions of `arr`."
+                "The length of variable_names must match the number of dimensions of arr."
             )
 
         if name is None:
@@ -326,6 +337,29 @@ class Function:
     ) -> Function:
         """Create a function that maps every point in the domain to the same constant output value.
 
+        Parameters
+        ----------
+        domain : IndexLike
+            The domain of the function.
+        constant : Hashable | None
+            The constant output value of the function. If a `tuple`, the function will have multi-dimensional outputs.
+        domain_kind : Literal["Domain", "SampleSpace"], default="Domain"
+            The type of the domain.
+        domain_name : Hashable | None, default=None
+            The name of the domain.
+        output_name : Hashable | None, default=None
+            The name of the outputs of the function. If `None`, a default will be generated.
+        index : IndexLike | None, default=None
+            The index for the outputs of the function. Only used if the outputs are multi-dimensional.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index. Only used if the outputs are multi-dimensional.
+        index_name : Hashable | None, default=None
+            The name of the index. Only used if the outputs are multi-dimensional.
+        name : Hashable | None, default=None
+            The name of the function. If `None`, a default name will be generated.
+        **kwargs
+            Additional keyword arguments passed to subclasses.
+
         Returns
         -------
         const_func : Function
@@ -358,8 +392,6 @@ class Function:
         1       2
         2       2
         """
-        import pandas as pd
-
         from ...validation.domain_index_validator import DomainIndexValidator
         from ..indices.index import Index
         from ..indices.time import Time
@@ -439,21 +471,24 @@ class Function:
 
         Parameters
         ----------
-        domain: IndexLike
-            The domain of the measurable vector.
-        sig_alg: SigmaAlgebra | None, default=None
-            The sigma-algebra of the underlying measurable space. The sigma-algebra must be the power-set. This parameter is here only for consistency with other constructors.
-        measure: Measure | None, default=None
-            An optional measure carried by the measurable vector.
+        domain : IndexLike
+            The domain of the function.
+        domain_kind : Literal["Domain", "SampleSpace"], default="Domain"
+            The type of the domain.
+        domain_name : Hashable | None, default=None
+            The name of the domain.
+        output_name : Hashable | None, default=None
+            The name of the outputs of the function. If `None`, a default will be generated.
         index : IndexLike | None, default=None
-            The index of the measurable vector.
+            The index for the outputs of the function. Only used if the outputs are multi-dimensional.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index. Only used if the outputs are multi-dimensional.
+        index_name : Hashable | None, default=None
+            The name of the index. Only used if the outputs are multi-dimensional.
         name : Hashable | None, default=None
-            The name of the measurable vector. If `None`, a default will be generated.
-
-        Raises
-        ------
-        ValueError
-            If the sigma-algebra is not the power set (if given), or if the length of the index (if given) does not match the dimension of the domain.
+            The name of the function. If `None`, a default name will be generated.
+        **kwargs
+            Additional keyword arguments passed to subclasses.
 
         Returns
         -------
@@ -589,12 +624,10 @@ class Function:
 
         Parameters
         ----------
-        domain_dims : tuple[int] | int
-            The dimensions of the domain of the function.
-        variable_names : list[Hashable] | None, default=None
-            The names of the variables. If `None`, defaults will be generated.
-        variable_name_prefix : str | None, default=None
-            The prefix for generating variable names. If `None`, either default names will be generated or `variable_names` must be provided.
+        domain : IndexLike | None, default=None
+            The domain of the function.
+        dim : int | None, default=None
+            The dimension of the outputs of the function.
         distribution : Literal["uniform", "normal"], default="uniform"
             The distribution to use for generating random values.
         min_value : int, default=0
@@ -605,12 +638,20 @@ class Function:
             The mean for the normal distribution.
         scale : float, default=1.0
             The standard deviation for the normal distribution.
-        name : Hashable | None, default=None
-            The name of the function. If `None`, a default name will be used.
-        domain_class: Literal["Domain", "SampleSpace"], default="Domain
-            The class of the underlying domain.
+        domain_kind : Literal["Domain", "SampleSpace"], default="Domain"
+            The type of the domain.
         domain_name: Hashble | None, default=None
             The name of the domain. If `None`, a default will be generated.
+        output_name : Hashable | None, default=None
+            The name of the outputs of the function. If `None`, a default will be generated.
+        index : IndexLike | None, default=None
+            The index for the outputs of the function. Only used if the outputs are multi-dimensional.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index. Only used if the outputs are multi-dimensional.
+        index_name : Hashable | None, default=None
+            The name of the index. Only used if the outputs are multi-dimensional.
+        name : Hashable | None, default=None
+            The name of the function. If `None`, a default name will be used.
         random_state : int | np.random.Generator | None, default=None
             The random state for reproducibility.
 
@@ -657,9 +698,6 @@ class Function:
         2  7
 
         """
-        import numpy as np
-        import pandas as pd
-
         from ...validation.domain_index_validator import DomainIndexValidator
         from ..indices.index import Index
         from ..indices.time import Time
@@ -751,30 +789,27 @@ class Function:
     @classmethod
     def concatenate(
         cls,
-        factors: list[Function | Real],
+        factors: list[Function],
         index: IndexLike | None = None,
         index_kind: Literal["Index", "Time"] = "Index",
         index_name: Hashable | None = None,
         name: Hashable | None = None,
         **kwargs,
     ) -> Function:
-        """Concatenate a list of measurable vectors or scalars into a single measurable vector.
+        """Concatenate a list of functions into a function with multi-dimensional outputs.
 
         Parameters
         ----------
-        factors : list[MeasurableFunction | MeasurableVector | Real]
-            A list of measurable vectors or scalars to combine.
+        factors : list[Function]
+            A list of functions to concatenate.
         index : IndexLike | None, default=None
-            The index of the resulting measurable vector. If `None`, the index will be generated by concatenating the indices of the input measurable vectors, provided that they are disjoint; otherwise, a new default index will be generated.
+            The index of the resulting function. If `None`, the method will attempt to join the indices of the factors, but the indices must be pairwise disjoint.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index.
+        index_name : Hashable | None, default=None
+            The name of the index.
         name : Hashable | None, default=None
-            The name of the resulting measurable vector. If `None`, the name will be generated by concatenating the names of the input measurable vectors.
-
-        Raises
-        ------
-        TypeError
-            If `factors` is not a list, if any element of `factors` is not a `MeasurableFunction`, `MeasurableVector`, or scalar, or if `name` is not a `Hashable` or `None`.
-        ValueError
-            If there is not at least one `MeasurableVector` instance in `factors`, or if the measurable vectors in `factors` are not defined on the same measurable space.
+            The name of the resulting measurable vector. If `None`, a default will be generated.
 
         Returns
         -------
@@ -859,8 +894,6 @@ class Function:
         2  0  1  0  0  1  1
         3  0  1  1  0  1  0
         """
-        import pandas as pd
-
         from ...validation.domain_index_validator import DomainIndexValidator
         from ..indices.index import Index
         from ..indices.time import Time
@@ -900,7 +933,7 @@ class Function:
 
         if len(set(index_variable_names)) > 1:
             raise ValueError(
-                "The variable names of the indicies of the factors in the concatenation must be identical."
+                "The variable names of the indices of the factors in the concatenation must be identical."
             )
 
         if any(len(idx1 & idx2) >= 1 for idx1, idx2 in combinations(indices, 2)):
@@ -942,8 +975,8 @@ class Function:
         cls,
         factors: list[Function],
         variable_names: list[Hashable] | None = None,
-        name: Hashable | None = None,
         domain_name: Hashable | None = None,
+        name: Hashable | None = None,
     ) -> Function:
         r"""Compute the tensor product of a list of functions.
 
@@ -955,17 +988,10 @@ class Function:
             The factors of the tensor product.
         variable_names : list[Hashable] | None, default=None
             The variable names of the resulting function. If `None`, the variable names will be inferred from the input functions.
-        name : Hashable | None, default=None
-            The name of the resulting function. If `None`, a default name will be generated from the names of the input functions.
         domain_name: Hashble | None, default=None
             The name of the domain. If `None`, a default will be generated.
-
-        Raises
-        ------
-        TypeError
-            If any element of `factors` is not a `Function`, or if `variable_names` is not a list or `None`, or if any element of `variable_names` is not hashable (if given), or if `name` is not hashable (if given).
-        ValueError
-            If the length of `variable_names` does not match the total number of arguments in `factors`.
+        name : Hashable | None, default=None
+            The name of the resulting function. If `None`, a default will be generated.
 
         Returns
         -------
@@ -1027,8 +1053,6 @@ class Function:
         f \otimes g: X \times Y \to \mathbb{R}, \quad (f \otimes g)(x,y) = f(x)g(y).
         $$
         """
-        import pandas as pd
-
         from .._utils.utils import subscript_var_names
         from ..measures.measure import Measure
         from ..measures.probability_measure import ProbabilityMeasure
@@ -1129,13 +1153,6 @@ class Function:
         n : int
             The power of the tensor power.
 
-        Raises
-        ------
-        TypeError
-            If `n` is not an integer or `function` is not a `Function`.
-        ValueError
-            If `n` is not positive.
-
         Returns
         -------
         tensor_power : Function
@@ -1143,9 +1160,10 @@ class Function:
 
         Examples
         --------
+        >>> from sigalg.core import Domain, Function
+
         Define a function.
 
-        >>> from sigalg.core import Domain, Function
         >>> X = Domain([1, 2, 3], variable_names=["x"])
         >>> f = Function(
         ...     domain=X,
@@ -1190,24 +1208,24 @@ class Function:
         name: Hashable | None = None,
         **kwargs,
     ) -> Function:
-        r"""Form the Cartesian product of a list of measurable vectors.
+        r"""Form the Cartesian product of a list of functions.
 
         See the Notes section below for the mathematical details.
 
         Parameters
         ----------
-        factors : list[MeasurableVector]
+        factors : list[Function]
             The factors of the Cartesian product.
+        domain_name : Hashable | None, default=None
+            The name of the domain of the Cartesian product.
         index : IndexLike | None, default=None
-            The index of the Cartesian product. If `None`, a default index will be generated.
+            The index of the Cartesian product.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index.
+        index_name : Hashable | None, default=None
+            The name of the index.
         name : Hashable | None, default=None
             The name of the Cartesian product. If `None`, a default will be generated.
-        domain_name : Hashable | None, default=None
-            The name of the domain of the Cartesian product. If `None`, a default will be generated.
-        sig_alg_name : Hashable | None, default=None
-            The name of the sigma-algebra of the Cartesian product. If `None`, a default will be generated.
-        measure_name : Hashable | None, default=None
-            The name of the measure of the Cartesian product. If `None`, a default will be generated.
 
         Returns
         -------
@@ -1262,8 +1280,6 @@ class Function:
 
         Here, $\mathcal{F} \times \mathcal{G}$ is the product $\sigma$-algebra.
         """
-        import pandas as pd
-
         from ...validation.domain_index_validator import DomainIndexValidator
         from .._utils.utils import subscript_var_names
         from ..indices.index import Index
@@ -1334,29 +1350,26 @@ class Function:
     @classmethod
     def cartesian_power(
         cls,
-        vector: Function,
+        function: Function,
         n: int,
         index: IndexLike | None = None,
         index_kind: Literal["Index", "Time"] = "Index",
         index_name: Hashable | None = None,
     ) -> Function:
-        """Form the Cartesian power of a measurable vector.
+        """Form the Cartesian power of a function.
 
         Parameters
         ----------
-        vector : MeasurableVector
+        function : Function
             The base of the Cartesian power.
         n : int
             The power of the Cartesian power.
         index : IndexLike | None, default=None
-            The index of the Cartesian power. If `None`, a default index will be generated.
-
-        Raises
-        ------
-        TypeError
-            If `vector` is not a `MeasurableVector` or if `n` is not an integer.
-        ValueError
-            If `n` is not positive.
+            The index of the Cartesian power.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index. Only used if the outputs are multi-dimensional.
+        index_name : Hashable | None, default=None
+            The name of the index. Only used if the outputs are multi-dimensional.
 
         Examples
         --------
@@ -1419,11 +1432,11 @@ class Function:
         <BLANKLINE>
         [64 rows x 6 columns]
         """
-        name = f"{vector.name} ^ {n}"
-        domain_name = f"{vector.domain.name} ^ {n}"
+        name = f"{function.name} ^ {n}"
+        domain_name = f"{function.domain.name} ^ {n}"
 
         return cls.cartesian_product(
-            factors=[vector] * n,
+            factors=[function] * n,
             domain_name=domain_name,
             index=index,
             index_kind=index_kind,
@@ -1433,10 +1446,10 @@ class Function:
 
     # --------------------- dunder operators --------------------- #
 
-    def __or__(self, other: Function | Real | Set) -> Function:
-        """Concatenate the current instance with a second measurable vector, a constant measurable function (represented as a `Real`), or restrict the measurable vector to a measurable subset.
+    def __or__(self, other: Function | Set) -> Function:
+        """Concatenate the current instance with a second function or restrict the function to a subset of its domain.
 
-        Calls `MeasurableVector.concatenate` if `other` is a `MeasurableVector`, `MeasurableFunction`, or scalar, or calls `MeasurableVector.restrict_to` if `other` is a `MeasurableSet`. See the documentation for those methods for more details.
+        Internally calls `Function.concatenate` if `other` is a `Function`, or calls `Function.restrict_to` if `other` is a `Set`. See the docstrings there for more details.
         """
         from ..spaces.set import Set
 
@@ -1446,25 +1459,25 @@ class Function:
             return type(self).concatenate([self, other])
 
     def __ror__(self, other: Function | Real) -> Function:
-        """Concatenate the current instance with a second measurable vector or a constant measurable function (represented as a `Real`).
+        """Concatenate the current instance with a second function.
 
-        Calls `MeasurableVector.concatenate`.
+        Internally calls `Function.concatenate`. See the docstring there for more details.
         """
         return type(self).concatenate([other, self])
 
     def __matmul__(self, other: Function) -> Function:
-        """Form the Cartesian product of a pair of measurable vectors.
+        """Form the Cartesian product of a pair of functions.
 
-        Calls the `MeasurableVector.cartesian_product` method. See the documentation of that method for details.
+        Internally calls the `Function.cartesian_product` method. See the docstring there for more details.
         """
         return type(self).cartesian_product([self, other])
 
     def __xor__(self, power: int) -> Function:
-        """Form the Cartesian power of this instance of `MeasurableVector`.
+        """Form the Cartesian power of this function.
 
-        Calls the `MeasurableVector.cartesian_power` method. See the documentation of that method for details.
+        Internally calls the `Function.cartesian_power` method. See the docstring there for more details.
         """
-        return type(self).cartesian_power(vector=self, n=power)
+        return type(self).cartesian_power(function=self, n=power)
 
     # --------------------- properties --------------------- #
 
@@ -1495,8 +1508,6 @@ class Function:
         >>> print(g.variable_names)
         ['x']
         """
-        import pandas as pd
-
         PandasLike = pd.Series | pd.DataFrame
 
         if isinstance(self.data, PandasLike):
@@ -1557,8 +1568,6 @@ class Function:
         >>> print(f.signature)
         (*, x, y)
         """
-        import pandas as pd
-
         PandasLike = pd.Series | pd.DataFrame
 
         if isinstance(self.data, PandasLike):
@@ -1602,8 +1611,6 @@ class Function:
          2  3
          1  4
         """
-        import pandas as pd
-
         from ..spaces.domain import Domain
         from ..spaces.sample_space import SampleSpace
 
@@ -1623,8 +1630,8 @@ class Function:
 
         Returns
         -------
-        domain : Domain | None
-            The domain of the function if defined, otherwise `None`.
+        index : Index | None
+            The index of the function if defined, otherwise `None`.
 
         Examples
         --------
@@ -1649,8 +1656,6 @@ class Function:
          1
          2
         """
-        import pandas as pd
-
         from ..indices.index import Index
         from ..indices.time import Time
 
@@ -1695,8 +1700,6 @@ class Function:
         >>> g.dimension
         1
         """
-        import pandas as pd
-
         if isinstance(self.data, pd.DataFrame):
             return self.data.shape[1]
         elif isinstance(self.data, pd.Series):
@@ -1710,8 +1713,8 @@ class Function:
 
         Returns
         -------
-        component_names : list[Hashable] | None
-            A list of the names of the component functions of the function if it has multi-dimensional outputs, or `None`.
+        component_names : dict[Hashable] | None
+            A dictionary of the names of the component functions of the function if it has multi-dimensional outputs, or `None`.
 
         Examples
         --------
@@ -1727,8 +1730,6 @@ class Function:
         >>> f.component_names
         {1: 'f_1', 2: 'f_2'}
         """
-        import pandas as pd
-
         if isinstance(self.data, pd.DataFrame):
             if not hasattr(self, "_component_names"):
                 return {
@@ -1741,30 +1742,26 @@ class Function:
 
     @component_names.setter
     def component_names(self, names: dict[Hashable, Hashable]) -> None:
-        """Pass."""
+        """Set the component names of the function."""
         self._component_names = names
 
     @cached_property
     def components(self) -> list[Function] | None:
-        r"""Get the component measurable functions of the measurable vector.
+        r"""Get the component functions of the function.
 
         See the Notes section below for the mathematical details.
 
-        Raises
-        ------
-        ValueError
-            If `self` has an empty `data` attribute.
-
         Returns
         -------
-        components : list[MeasurableFunction] | None
-            A list of the component measurable functions of the measurable vector.
+        components : list[Function] | None
+            A list of the component functions of the function.
 
         Examples
         --------
-        Extract the component functions of a 2-dimensional measurable vector.
-
         >>> from sigalg.core import Domain, Function
+
+        Define a function.
+
         >>> X = Domain.from_sequence(size=3)
         >>> f = Function(
         ...     domain=X,
@@ -1781,6 +1778,9 @@ class Function:
         0   1  4
         1   2  5
         2   3  6
+
+        Extract the component functions of the function.
+
         >>> for component in f.components:
         ...     print(component)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f_0':
@@ -1798,16 +1798,14 @@ class Function:
 
         Notes
         -----
-        If $f: X \to \mathbb{R}^d$ is a measurable vector, then for each $x \in X$ we may write
+        If $f: X \to \mathbb{R}^d$ is a function, then for each $x \in X$ we may write
 
         $$
         f(x) = (f_1(x),f_2(x),\ldots, f_d(x))
         $$
 
-        where $f_j: X \to \mathbb{R}$ is the *$j$-th component measurable function* of $f$.
+        where $f_j: X \to \mathbb{R}$ is the *$j$-th component function* of $f$.
         """
-        import pandas as pd
-
         if isinstance(self.data, pd.DataFrame):
             if self.dimension == 1:
                 return [self]
@@ -1820,7 +1818,7 @@ class Function:
 
     @cached_property
     def range(self) -> Domain | None:
-        """Return the range of the function if it is defined on an explicit domain.
+        """Return the range of the function.
 
         Returns
         -------
@@ -1865,8 +1863,6 @@ class Function:
          1
          4
         """
-        import pandas as pd
-
         from ..spaces.domain import Domain
 
         if hasattr(self, "is_identity") and self.is_identity:
@@ -1898,52 +1894,37 @@ class Function:
         Returns
         -------
         sig_alg : SigmaAlgebra | None
-            The sigma-algebra induced by the measurable vector.
+            The sigma-algebra induced by the function.
 
         Examples
         --------
-        Extract the generated sigma-algebra from a 2-dimensional measurable vector. Note that the atom identifiers are exactly the values of the vector.
-
         >>> from sigalg.core import (
         ...     Domain,
-        ...     MeasurableVector,
-        ...     SigmaAlgebra,
+        ...     Function,
         ... )
-        >>> X = Domain.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
+
+        Extract the generated sigma-algebra from a function with 2-dimensional outputs. Note that the atom identifiers are exactly the values of the function.
+
+        >>> X = Domain.from_sequence(size=3)
+        >>> f = Function(
         ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
-        ...         3: 2,
-        ...     },
-        ... )
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     sig_alg=F,
         ...     mapping={
         ...         0: (1, 2),
         ...         1: (3, 4),
         ...         2: (3, 4),
-        ...         3: (3, 4),
         ...     },
         ... )
-        >>> sig_f = f.generated_sig_alg
-        >>> print(sig_f)  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(f.generated_sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'sigma(f)':
         i      0    1
         x
         0      1    2
         1      3    4
         2      3    4
-        3      3    4
-        >>> print(sig_f <= F)
-        True
 
         Notes
         -----
-        A measurable vector $f: X \to \mathbb{R}^d$ on a measure space $(X, \mathcal{F},\mu)$ generates a $\sigma$-algebra denoted $\sigma(f)$. On a finite domain $X$, this $\sigma$-algebra is determined by its atoms, which are the nonempty preimages
+        A function $f: X \to \mathbb{R}^d$ generates a $\sigma$-algebra on $X$ denoted $\sigma(f)$. On a finite domain $X$, this $\sigma$-algebra is determined by its atoms, which are the nonempty preimages
 
         $$
         \{ x \in X : f(x) = y\},
@@ -1957,9 +1938,7 @@ class Function:
 
     @cached_property
     def lattice(self) -> Lattice:
-        r"""Get the (upward) lattice of sigma-algebras containing this function.
-
-        See the Notes section below for the mathematical details.
+        r"""Get the (upward) lattice of sigma-algebras containing the sigma-algebra generated by this function.
 
         Examples
         --------
@@ -2055,10 +2034,6 @@ class Function:
         False
         >>> f.lattice
         Lattice(base=sigma(f), type=upward, num_sig_algs=3)
-
-        Notes
-        -----
-        Let $f:X \to \mathbb{R}^d$ be a function on a set $X$. We shall say that a $\sigma$-algebra $\mathcal{F}$ on $X$ *contains* $f$ provided that $\sigma(f) \subset \mathcal{F}$, where $\sigma(f)$ is the $\sigma$-algebra generated by $f$. In other words, $\mathcal{F}$ contains $f$ if and only if $f$ is $\mathcal{F}$-measurable. There is thus an entire (upward) lattice of $\sigma$-algebras on $X$ that contain $f$.
         """
         from ..sigma_algebras.lattice import Lattice
 
@@ -2185,10 +2160,6 @@ class Function:
         >>> V(A_2)
         (3, 2)
         """
-        from numbers import Real
-
-        import pandas as pd
-
         from .._utils.function_helpers import compose_funcs
         from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.lattice import Lattice
@@ -2326,10 +2297,6 @@ class Function:
             )
 
     def _call_from_pandas(self, **kwargs) -> Real | Function:
-        from numbers import Real
-
-        import pandas as pd
-
         try:
             if isinstance(self.data.index, pd.MultiIndex):
                 data = self.data.xs(
@@ -2367,25 +2334,18 @@ class Function:
             index_name=None,
         )
 
-    def get_inverse_image(
-        self, value: Hashable | tuple[Hashable] | pd.Series
-    ) -> list[Hashable] | Set:
-        """Get the inverse image of a value under the measurable vector.
+    def get_inverse_image(self, value: Hashable | tuple[Hashable] | pd.Series) -> Set:
+        """Get the inverse image of a value under the function.
 
         Parameters
         ----------
         value : Hashable | tuple[Hashable] | pd.Series
-            The value to find the inverse image of. If the measurable vector is 1-dimensional, `value` should be a Hashable. If the measurable vector is multi-dimensional, `value` should be a tuple of hashables or a `pd.Series` with an index matching the variable names of the measurable vector.
-
-        Raises
-        ------
-        ValueError
-            If `value` is not in the range of the measurable vector.
+            The value to find the inverse image of.
 
         Returns
         -------
-        event : MeasurableSet
-            The event in the sigma-algebra corresponding to the inverse image of `value` under the measurable vector.
+        inverse_image : Set
+            The inverse image of `value` under the function.
 
         Examples
         --------
@@ -2394,6 +2354,9 @@ class Function:
         ...     Domain,
         ...     Function,
         ... )
+
+        Define a function.
+
         >>> X = Domain.from_sequence(size=4)
         >>> f = Function(
         ...     domain=X,
@@ -2442,8 +2405,6 @@ class Function:
          1
          3
         """
-        import pandas as pd
-
         from ..spaces.set import Set
 
         if not isinstance(value, (Hashable, tuple, pd.Series)):
@@ -2542,8 +2503,6 @@ class Function:
         -----
         Let $f: X \to \mathbb{R}^d$ be a function on a set $X$. In the case that $X$ is finite (as in SigAlg), the function $f$ is *measurable* with respect to a $\sigma$-algebra $\mathcal{F}$ on $X$ if $f$ is constant on the atoms of $\mathcal{F}$. When the identity of the $\sigma$-algebra needs to made explict, we shall say that $f$ is *$\mathcal{F}$-measurable*.
         """
-        import pandas as pd
-
         PandasLike = pd.Series | pd.DataFrame
 
         if isinstance(self.data, PandasLike):
@@ -2584,8 +2543,6 @@ class Function:
         >>> f.is_constant_on(V)
         False
         """
-        import pandas as pd
-
         from ..sigma_algebras.lattice import Lattice
 
         if isinstance(self.data, pd.Series | pd.DataFrame):
@@ -2597,26 +2554,21 @@ class Function:
             return None
 
     def restrict_to(
-        self,
-        subset: Set | list,
-        subset_name: Hashable | None = "A",
-        **kwargs,
+        self, subset: Set | list[Hashable], subset_name: Hashable | None = "A", **kwargs
     ) -> Function:
-        r"""Restrict the measurable vector to a measurable set.
-
-        See the Notes section below for the mathematical details.
+        """Restrict the function to a subset of its domain.
 
         Parameters
         ----------
-        measurable_set : MeasurableSet | list
+        subset : Set | list[Hashable]
             The set to restrict the measurable vector to.
-        set_name : Hashable | None, default="A"
-            The name to use for the measurable set in the name of the resulting restricted measurable vector. This parameter is only used if `measurable_set` is a list of points, and is otherwise ignored if `measurable_set` is a `MeasurableSet` instance.
+        subset_name : Hashable, default="A"
+            The name to use for the subset. Ignored if `subset` is an instance of `Set`.
 
         Returns
         -------
-        restricted_vec : MeasurableVector
-            A new `MeasurableVector` representing the restriction of the original measurable vector to the given set.
+        restrition : Function
+            The restriction of the function.
 
         Examples
         --------
@@ -2667,10 +2619,6 @@ class Function:
         1    2
         2    4
         3    1
-
-        Notes
-        -----
-        Let $f: X \to \mathbb{R}^d$ be a measurable vector on a measure space $(X, \mathcal{F}, \mu)$. If $A\in \mathcal{F}$ is an measurable set, then we may restrict the measurable vector to obtain the function $f|_A : A \to \mathbb{R}^d$ on $A$.
         """
         from ..spaces.set import Set
 
@@ -2701,29 +2649,42 @@ class Function:
             **kwargs,
         )
 
-    # TODO: stale docstring
     def atom_data(
         self, sig_alg: SigmaAlgebra | None = None
     ) -> pd.Series | pd.DataFrame | None:
-        """Get the (parametrized) unique values of the function on the atoms of the underlying sigma-algebra.
+        """Get the unique values of the function on the atoms of the underlying sigma-algebra.
+
+        Parameters
+        ----------
+        sig_alg : SigmaAlgebra | None, default=None
+            The sigma-algebra. If `None` and the function carries a `sig_alg` attribute, that sigma-algebra will be used.
 
         Returns
         -------
         atom_data : pd.Series | None
-            A `pd.Series` with multi-index containing the unique values of the function on the atom identifiers of the sigma-algebra.
+            A `pd.Series` or `pd.DataFrame` containing the unique values of the function on the atoms of the given sigma-algebra.
 
         Examples
         --------
         >>> from sigalg.core import (
         ...     Domain,
+        ...     Function,
         ...     ParametrizedMeasurableFunction,
         ...     SigmaAlgebra,
         ... )
 
-        Define a 1-dimensional parameter space, a 1-dimensional domain, and a sigma-algebra.
+        Define a function and a sigma-algebra.
 
-        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> X = Domain.from_sequence(size=4, variable_name="x")
+        >>> X = Domain.from_sequence(size=4)
+        >>> f = Function(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 3,
+        ...         2: 3,
+        ...         3: 8,
+        ...     }
+        ... )
         >>> F = SigmaAlgebra(
         ...     domain=X,
         ...     mapping={
@@ -2734,8 +2695,18 @@ class Function:
         ...     },
         ... )
 
-        Define a parametrized measurable function.
+        Get the unique values of the function on the atoms of `F`.
 
+        >>> print(f.atom_data(F))  # doctest: +NORMALIZE_WHITESPACE
+        F
+        0    1
+        1    3
+        2    8
+        Name: sigma(f), dtype: int64
+
+        The `atom_data` method also works with parametrized functions. To see this, define a 1-dimensional parameter space and a parametrized measurable function.
+
+        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
         >>> mapping = {
         ...     (0, 0): 1,  # (theta, x) = (0, 0), etc ...
         ...     (0, 1): 2,
@@ -2797,18 +2768,70 @@ class Function:
         """
         if self.data is not None:
             if sig_alg is None:
-                sig_alg = self.sig_alg
-            self.lattice.add(sig_alg)
+                if hasattr(self, "sig_alg"):
+                    sig_alg = self.sig_alg
+                else:
+                    return None
+            # self.lattice.add(sig_alg)
             return self.lattice.get_atom_data(sig_alg)
         else:
             return None
 
     def ascend(
-        self, sig_alg: SigmaAlgebra, measure: Measure | None = None
+        self,
+        sig_alg: SigmaAlgebra,
+        measure: Measure | None = None,
+        name: Hashable | None = None,
     ) -> MeasurableVector:
-        """Pass."""
-        import pandas as pd
+        """Ascend a function from a function on the atom identifiers of a sigma-algebra to the domain of the sigma-algebra.
 
+        Parameters
+        ----------
+        sig_alg : SigmaAlgebra
+            The given sigma-algebra.
+        measure : Measure | None, default=None
+            An optional measure for the function to carry.
+        name : Hashable | None, default=None
+            The name of the new function. If `None`, the name of the function will be used.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Function, SigmaAlgebra
+
+        Define a domain and sigma-algebra.
+
+        >>> X = Domain.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     },
+        ... )
+
+        Define a function on the atom identifiers of the sigma-algebra.
+
+        >>> f = Function(
+        ...     domain=F.atom_space,
+        ...     mapping={
+        ...         0: 2,
+        ...         1: 3,
+        ...     },
+        ... )
+
+        Ascend `f` from a function on the atom identifiers to a function on `X`. Effectively, this "broadcasts" the values of `f` across the atoms of `F`.
+
+        >>> f.ascend(F)
+        MeasurableFunction(parameters=(x), domain=X, sig_alg=F, name=f)
+        >>> print(f.ascend(F))  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function 'f':
+           f
+        x
+        0  2
+        1  3
+        2  3
+        """
         from .._utils.utils import add_subscript, to_df
         from .measurable_vector import MeasurableVector
 
@@ -2823,8 +2846,11 @@ class Function:
             .squeeze(axis=1)
         )
 
+        if name is None:
+            name = self.name
+
         if isinstance(data, pd.Series):
-            data.name = self.name
+            data.name = name
 
         return MeasurableVector._from_validated(
             data=data,
@@ -2832,26 +2858,18 @@ class Function:
             measure=measure,
             index_kind=type(self.index).__name__ if self.index is not None else None,
             index_name=self.index.name if self.index is not None else None,
-            name=self.name,
+            name=name,
         )
-
-    def descend(self, sig_alg: SigmaAlgebra) -> Function:
-        """Pass."""
 
     # --------------------- util methods --------------------- #
 
     def item(self) -> Hashable | pd.Series:
-        """Get the output value of a constant measurable vector.
+        """Get the output value of a constant function.
 
         Returns
         -------
         output : Hashable | pd.Series
-            The single output value of the measurable vector.
-
-        Raises
-        ------
-        ValueError
-            If the measurable vector is not constant.
+            The single output value of the function.
 
         Examples
         --------
@@ -2876,8 +2894,6 @@ class Function:
         >>> g.item()
         1
         """
-        import pandas as pd
-
         if self.data is None:
             raise ValueError("Cannot retrieve the item of an empty measurable vector.")
 
@@ -2890,13 +2906,15 @@ class Function:
 
         return tuple(result) if isinstance(result, pd.Series) else result.astype(Real)
 
-    def __round__(self, ndigits: int = None, **kwargs) -> Function:
-        """Round the outputs of the measurable vector to a specified number of decimal places.
+    def __round__(self, ndigits: int | None = None, **kwargs) -> Function:
+        """Round the outputs of the function to a specified number of decimal places.
 
         Parameters
         ----------
-        decimals : int, default=0
-            The number of decimal places to round to. Must be a non-negative integer.
+        ndigits : int | None, default=None
+            The number of decimal places to round to.
+        **kwargs
+            Keyword arguments.
 
         Examples
         --------
@@ -2932,8 +2950,6 @@ class Function:
         1     0.450
         2     0.675
         """
-        import pandas as pd
-
         if self.data is not None:
             data = self.data.round(decimals=ndigits if ndigits else 0)
 
@@ -2962,7 +2978,7 @@ class Function:
     # --------------------- data access methods --------------------- #
 
     def get_sub_vector(self, indices: list[Hashable]) -> Function:
-        r"""Get a sub-vector of the measurable vector by selecting a collection of component functions.
+        r"""Get a sub-vector of the function by selecting a collection of component functions by their indices.
 
         See the Notes section below for the mathematical details.
 
@@ -2973,21 +2989,17 @@ class Function:
 
         Returns
         -------
-        sub_vector : MeasurableVector
-            A new `MeasurableVector` containing only the specified component functions.
-
-        Raises
-        ------
-        ValueError
-            If any index is not found or if the measurable vector is 1-dimensional.
+        sub_vector : Function
+            A new `Function` containing only the specified component functions.
 
         Examples
         --------
-        Define a 3-dimensional measurable vector.
+        >>> from sigalg.core import Domain, Function
 
-        >>> from sigalg.core import Domain, MeasurableVector
+        Define a function with `3`-dimensional outputs.
+
         >>> X = Domain.from_sequence(size=2)
-        >>> f = MeasurableVector(
+        >>> f = Function(
         ...     domain=X,
         ...     mapping={
         ...         0: (1, 2, 3),
@@ -2995,7 +3007,7 @@ class Function:
         ...     },
         ... )
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
+        Function 'f':
         i  0  1  2
         x
         0  1  2  3
@@ -3005,7 +3017,7 @@ class Function:
 
         >>> f_sub = f.get_sub_vector([1, 2])
         >>> print(f_sub)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector '(f_1, f_2)':
+        Function '(f_1, f_2)':
         i  1  2
         x
         0  2  3
@@ -3015,7 +3027,7 @@ class Function:
 
         >>> f_sub = f[0, 1]
         >>> print(f_sub)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector '(f_0, f_1)':
+        Function '(f_0, f_1)':
         i  0  1
         x
         0  1  2
@@ -3023,13 +3035,13 @@ class Function:
 
         Notes
         -----
-        Given a measurable vector $f: X \to \mathbb{R}^d$ on a measure space $(X, \mathcal{F}, \mu)$, for each $x\in X$ we may write
+        Given a function $f: X \to \mathbb{R}^d$, for each $x\in X$ we may write
 
         $$
         f(x) = (f_1(x), f_2(x), \ldots, f_d(x)),
         $$
 
-        where $f_j: X \to \mathbb{R}$ are the component functions of $f$. We may create a *sub-vector* by choosing a collection of the component functions to get a measurable vector of smaller dimension. For example, we may select the first and last components to create the $2$-dimensional measurable vector
+        where $f_j: X \to \mathbb{R}$ are the component functions of $f$. We may create a *sub-vector* by choosing a collection of the component functions to get a function of smaller output dimension. For example, we may select the first and last components to create the function with $2$-dimensional outputs
 
         $$
         x \mapsto (f_1 (x), f_d(x)).
@@ -3119,7 +3131,7 @@ class Function:
         return result
 
     def get_component(self, index: Hashable) -> Function:
-        r"""Get a component function of the measurable vector.
+        r"""Get a component function of the function.
 
         See the Notes section below for the mathematical details.
 
@@ -3130,16 +3142,17 @@ class Function:
 
         Returns
         -------
-        component : MeasurableFunction
+        component : Function
             The desired component function.
 
         Examples
         --------
-        Define a 3-dimensional measurable vector.
+        >>> from sigalg.core import Domain, Function
 
-        >>> from sigalg.core import Domain, MeasurableVector
+        Define a function with 3-dimensional outputs.
+
         >>> X = Domain.from_sequence(size=2)
-        >>> f = MeasurableVector(
+        >>> f = Function(
         ...     domain=X,
         ...     mapping={
         ...         0: (1, 2, 3),
@@ -3147,7 +3160,7 @@ class Function:
         ...     },
         ... )
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
+        Function 'f':
         i   0  1  2
         x
         0   1  2  3
@@ -3157,7 +3170,7 @@ class Function:
 
         >>> f_1 = f.get_component(1)
         >>> print(f_1)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'f_1':
+        Function 'f_1':
            f_1
         x
         0    2
@@ -3167,7 +3180,7 @@ class Function:
 
         >>> f_0 = f[0]
         >>> print(f_0)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'f_0':
+        Function 'f_0':
            f_0
         x
         0    1
@@ -3175,78 +3188,128 @@ class Function:
 
         Notes
         -----
-        Given a measurable vector $f: X \to \mathbb{R}^d$ on a measurable space $(X, \mathcal{F})$, for each $x \in X$ we may write
+        Given a function $f: X \to \mathbb{R}^d$, for each $x \in X$ we may write
 
         $$
         f(x) = (f_1(x), f_2(x), \ldots, f_d(x)),
         $$
 
-        where $f_j: X \to \mathbb{R}$ are the component functions of $f$.
+        where $f_j: X \to \mathbb{R}$ are the *component functions* of $f$.
         """
         return self.get_sub_vector([index])
 
     def __getitem__(self, *args) -> Function:
-        """Get a sub-vector of the measurable vector by selecting a collection of component functions, or a single component function if only one index is provided.
+        """Get a sub-vector of the function by selecting a collection of component functions, or a single component function if only one index is provided.
 
-        Calls `get_sub_vector` with the provided indices. See the documentation of that method for details.
-
-        Parameters
-        ----------
-        *args : Hashable | tuple[Hashable]
-            The indices of the component functions to select for the sub-vector.
-
-        Returns
-        -------
-        sub_vector : MeasurableVector
-            A new `MeasurableVector` containing only the specified component functions.
+        Internally calls `get_sub_vector` with the provided indices. See the docstring there for more details.
         """
         indices = list(*args) if isinstance(args[0], tuple) else list(args)
         return self.get_sub_vector(indices=indices)
 
     def __iter__(self) -> Iterator[Function]:
-        """Iterate over the components of the measurable vector.
-
-        Returns
-        -------
-        iterator : Iterator[MeasurableFunction]
-            An iterator over the components of the measurable vector.
-        """
+        """Iterate over the components of the measurable vector."""
         return iter(self.components)
 
     # --------------------- conversion methods --------------------- #
 
     def to_measure(
         self,
-        sig_alg: SigmaAlgebra | None = None,
+        sig_alg: SigmaAlgebra,
         kind: Literal["measure", "probability"] = "measure",
         parameter_names: list[Hashable] | None = None,
         parameter_domain_name: Hashable | None = "Theta",
         name: Hashable | None = None,
     ) -> Measure | ParametrizedMeasure:
-        """Generate a parametrized measure from the function.
+        """Generate a (parametrized) measure from the function.
 
         Parameters
         ----------
-        measure_domain : SigmaAlgebra | IndexLike
-            The domain of the measure. Must be a `SigmaAlgebra` or an `IndexLike` object that can be converted to a `Domain`. In the latter case, the sigma-algebra will be the power-set sigma-algebra of the domain.
+        sig_alg : SigmaAlgebra
+            The domain of the measure.
         kind : Literal["measure", "probability"], default="measure"
-            The kind of measure to create. Must be either "measure" or "probability".
+            The kind of measure to create.
+        parameter_names : list[Hashable] | None, default=None
+            The list of (optional) parameter names to create a parametrized measure.
+        parameter_domain_name : Hashable | None, default=None
+            The name of the parameter domain.
         name : Hashable | None, default=None
-            The name of the resulting measure. If `None`, the name will be inherited from the function. If the function's name is also `None`, a default name will be generated.
-        in_place : bool, default=False
-            If `True`, the current instance will be converted to a measure in place. If `False`, a new measure instance will be returned.
+            The name of the resulting measure. If `None`, a default will be generated.
+
+        Returns
+        -------
+        measure : Measure | ParametrizedMeasure
+            Either a measure or parametrized measure produced from the current `Function` instance.
 
         Examples
         --------
         >>> from sigalg.core import Domain, Function, SigmaAlgebra
 
-        Define a 1-dimensional parameter domain and domain, and a sigma-algebra.
+        Define a measurable space.
+
+        >>> X = Domain.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     },
+        ... )
+
+        Define an instance of `Function`, and convert it to a measure.
+
+        >>> f = Function(
+        ...     domain=F.atom_space,
+        ...     mapping={
+        ...         0:1,
+        ...         1:2,
+        ...     },
+        ... )
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+           f
+        F
+        0  1
+        1  2
+        >>> f.to_measure(F)
+        Measure(domain=X, sig_alg=F, name=f)
+        >>> print(f.to_measure(F))  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'f':
+            f
+        F
+        0   1
+        1   2
+
+        We also manufacture probability measures from `Function` instances.
+
+        >>> g = Function(
+        ...     domain=F.atom_space,
+        ...     mapping={
+        ...         0:0.2,
+        ...         1:0.8,
+        ...     },
+        ...     name="g",
+        ... )
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+             g
+        F
+        0  0.2
+        1  0.8
+        >>> g.to_measure(g, kind="probability")
+        ProbabilityMeasure(domain=F, sig_alg=g, name=g)
+        >>> print(g.to_measure(F, kind="probability"))  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'g':
+             g
+        F
+        0  0.2
+        1  0.8
+
+        We may also create parametrized measures from `Function` instances. Define a 1-dimensional parameter domain.
 
         >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> X = Domain.from_sequence(size=3)
-        >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1])))
 
-        Define a function on a 2-dimensional domain.
+        Define a function on the Cartesian product of `Theta` and the atom space of `F`.
 
         >>> mapping = {
         ...     (0, 0): 2,  # (theta, F) = (0, 0), ...
@@ -3254,21 +3317,20 @@ class Function:
         ...     (1, 0): 0,
         ...     (1, 1): 3,
         ... }
-        >>> f = Function(domain=Theta @ F.atom_space, mapping=mapping)
-        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'f':
-                 f
+        >>> h = Function(domain=Theta @ F.atom_space, mapping=mapping, name="h")
+        >>> print(h)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'h':
+                 h
         theta F
         0     0  2
               1  1
         1     0  0
               1  3
 
-        Convert `f` to a parametrized measure.
+        Convert `h` to a parametrized measure.
 
-        >>> mu = f.to_measure(sig_alg=F, parameter_names=["theta"])
-        >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized measure 'mu':
+        >>> print(h.to_measure(sig_alg=F, parameter_names=["theta"]))  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measure 'h':
         theta  0  1
         F
         0      2  0
@@ -3282,61 +3344,24 @@ class Function:
         ...     (1, 0): 0.0,
         ...     (1, 1): 1.0,
         ... }
-        >>> g = Function(domain=Theta @ F.atom_space, mapping=mapping, name="g")
-        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'g':
-                   g
+        >>> k = Function(domain=Theta @ F.atom_space, mapping=mapping, name="k")
+        >>> print(k)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'k':
+                   k
         theta F
         0     0  0.1
               1  0.9
         1     0  0.0
               1  1.0
 
-        Convert `g` to a parametrized probability measure.
+        Convert `k` to a parametrized probability measure.
 
-        >>> P = g.to_measure(sig_alg=F, kind="probability", parameter_names=["theta"])
-        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized probability measure 'P':
+        >>> print(k.to_measure(sig_alg=F, kind="probability", parameter_names=["theta"]))  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'k':
         theta    0    1
         F
         0      0.1  0.0
         1      0.9  1.0
-
-        Define a function on a 1-dimensional domain and convert to a measure.
-
-        >>> h = Function(domain=F.atom_space, mapping=dict(zip(F.atom_space, [1, 2])), name="h")
-        >>> print(h)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'h':
-           h
-        F
-        0  1
-        1  2
-        >>> nu = h.to_measure(sig_alg=F, name="nu")
-        >>> print(nu)  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'nu':
-           nu
-        F
-        0   1
-        1   2
-
-        Define another function on a 1-dimensional domain and convert to a probability measure.
-
-        >>> k = Function(
-        ...     domain=F.atom_space, mapping=dict(zip(F.atom_space, [0.75, 0.25])), name="k"
-        ... )
-        >>> print(k)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'k':
-              k
-        F
-        0  0.75
-        1  0.25
-        >>> Q = k.to_measure(sig_alg=F, kind="probability", name="Q")
-        >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'Q':
-              Q
-        F
-        0  0.75
-        1  0.25
         """
         from ...validation.mapping_validator import MappingValidator
         from ..measures.measure import Measure
@@ -3345,7 +3370,7 @@ class Function:
 
         if self.domain is not None:
             if name is None:
-                name = "mu" if kind == "measure" else "P"
+                name = self.name
 
             if parameter_names:
                 kind = "param_measure" if kind == "measure" else "param_probability"
@@ -3508,8 +3533,6 @@ class Function:
         repr_str : str
             The string representation of the function.
         """
-        import pandas as pd
-
         PandasLike = pd.Series | pd.DataFrame
 
         if isinstance(self.data, PandasLike):
@@ -3536,8 +3559,6 @@ class Function:
         repr_str : str
             The string representation of the function.
         """
-        import pandas as pd
-
         if isinstance(self.data, pd.Series):
             return f"{type(self)._str_name} '{self.name}':\n{self.data.to_frame()}"
         elif isinstance(self.data, pd.DataFrame):
@@ -3549,7 +3570,6 @@ class Function:
 
     # --------------------- equality --------------------- #
 
-    # TODO: add an `equal_as_measures` method
     def __eq__(self, other: Function | Real) -> bool:
         """Check if two functions are equal.
 
@@ -3563,8 +3583,6 @@ class Function:
         are_equal : bool
             True if the two functions are equal, False otherwise.
         """
-        import pandas as pd
-
         if isinstance(other, Function):
             if self is other:
                 return True
@@ -3618,8 +3636,6 @@ class Function:
         1  2.718282
         2  7.389056
         """
-        import pandas as pd
-
         if method != "__call__" or ufunc.nin != 1 or "out" in kwargs:
             return NotImplemented
 
@@ -3661,8 +3677,6 @@ class Function:
         np.ndarray
             The function's data as a NumPy array.
         """
-        import numpy as np
-
         if multi_dim:
             arr = self.data.to_xarray().values
             if dtype is not None:
@@ -3688,8 +3702,6 @@ class Function:
         np.ndarray
             The function's data as a NumPy array.
         """
-        import numpy as np
-
         arr = self.data.values
         if dtype is not None:
             arr = np.asarray(arr, dtype=dtype)
@@ -3731,10 +3743,6 @@ class Function:
         func : Function
             A new function representing the result of the operation.
         """
-        from numbers import Real
-
-        import pandas as pd
-
         from .._utils.utils import pandas_all_equal, to_df
         from ..indices.index import Index
         from ..indices.time import Time
@@ -3983,8 +3991,6 @@ class Function:
         sum : Function
             The sum of the function and the object.
         """
-        import pandas as pd
-
         from .._utils.utils import to_df
 
         def operation(a, b):
@@ -4229,8 +4235,6 @@ class Function:
         difference : Function
             The difference of the function and the object.
         """
-        import pandas as pd
-
         from .._utils.utils import to_df
 
         def operation(a, b):
@@ -4336,8 +4340,6 @@ class Function:
         product : Function
             The product of the function and the object.
         """
-        import pandas as pd
-
         from .._utils.utils import to_df
 
         def operation(a, b):
@@ -4443,8 +4445,6 @@ class Function:
         quotient : Function
             The quotient of the function and the object.
         """
-        import pandas as pd
-
         from .._utils.utils import to_df
 
         def operation(a, b):
@@ -4550,8 +4550,6 @@ class Function:
         power : Function
             The power of the function and the object.
         """
-        import pandas as pd
-
         from .._utils.utils import to_df
 
         def operation(a, b):
@@ -4639,8 +4637,6 @@ class Function:
         negation : Function
             The negation of the function.
         """
-        import pandas as pd
-
         if name is None:
             name = f"(-{self.name})"
 
@@ -4964,8 +4960,6 @@ class Function:
         ValueError
             If the measurable vectors do not have the same domain or dimension.
         """
-        import pandas as pd
-
         from .._utils.utils import pandas_all_equal
         from ..indices.index import Index
         from ..indices.time import Time
