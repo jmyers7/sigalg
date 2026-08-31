@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable, Iterator
+from collections.abc import Callable, Hashable
 from functools import cached_property
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from ..sigma_algebras.lattice import Lattice
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.domain import Domain
-    from ..spaces.set import Set
     from .measure import Measure
 
 
@@ -734,26 +733,98 @@ class ParametrizedMeasure(Function):
         else:
             return None
 
-    # --------------------- methods --------------------- #
+    # --------------------- function methods --------------------- #
 
     def restrict_to(
-        self,
-        obj: SigmaAlgebra | Set | list[Hashable],
-        normalize: bool = False,
-        subset_name: Hashable | None = "A",
-        name: Hashable | None = None,
-    ) -> Measure:
-        """Pass."""
-        from .._utils.utils import to_df
+        self, sig_alg: SigmaAlgebra, name: Hashable | None = None
+    ) -> ParametrizedMeasure:
+        """Restrict the measure to a sub-sigma-algebra.
 
-        sig_alg = obj
+        Parameters
+        ----------
+        sig_alg : SigmaAlgebra
+            The sub-sigma-algebra that the measure will be restricted to.
+        name : Hashable | None, default=None
+            The name of the restriction. If `None`, a default will be generated.
+
+        Returns
+        -------
+        restriction : ParametrizedMeasure
+            The restricted measure.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
+
+        Define a parametrized measure.
+
+        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
+        >>> X = Domain.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ... )
+        >>> mu = ParametrizedMeasure.from_domains(
+        ...     measure_domain=F,
+        ...     parameter_domain=Theta,
+        ...     mapping={
+        ...         (0, 0): 0,  # (theta, F) = (0, 0), etc...
+        ...         (0, 1): 1,
+        ...         (0, 2): 8,
+        ...         (1, 0): 3,
+        ...         (1, 1): 4,
+        ...         (1, 2): 1,
+        ...     },
+        ... )
+        >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measure 'mu':
+        theta  0  1
+        F
+        0      0  3
+        1      1  4
+        2      8  1
+
+        Define a sub-sigma-algebra of `F` and restrict the measure.
+
+        >>> G = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 1,
+        ...     },
+        ...     name="G",
+        ... )
+        >>> print(mu.restrict_to(G))  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measure 'mu|G':
+        theta  0  1
+        G
+        0      0  3
+        1      9  5
+
+        Alternatively, we may restrict the measure using the `|` operator.
+
+        >>> print(mu | G)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measure 'mu|G':
+        theta  0  1
+        G
+        0      0  3
+        1      9  5
+        """
+        from .._utils.utils import to_df
 
         if sig_alg is self.sig_alg:
             return self
 
         if sig_alg not in self.lattice:
             raise TypeError(
-                "If given obj is a sigma-algebra, it must be a sub-sigma-algebra of the sigma-algebra of the measure."
+                "The given sigma-algebra must be a sub-sigma-algebra of the sigma-algebra of the measure."
             )
 
         atom_data = to_df(self.lattice.get_atom_data(sig_alg), "_alg")
@@ -786,38 +857,17 @@ class ParametrizedMeasure(Function):
 
     # --------------------- dunder operators --------------------- #
 
-    def __or__(
-        self,
-        obj: SigmaAlgebra | Set | list[Hashable],
-    ) -> ParametrizedMeasure:
+    def __or__(self, sig_alg: SigmaAlgebra) -> ParametrizedMeasure:
         """Restrict the measure to a sub-sigma-algebra.
 
-        Parameters
-        ----------
-        sig_alg : SigmaAlgebra
-            The sub-sigma-algebra to which to restrict the measure.
-
-        Returns
-        -------
-        measure : Measure
-            A new measure restricted to the new sigma-algebra.
+        Internally calls the `ParametrizedMeasure.restrict_to` method. See the docstring there for more details.
         """
-        return self.restrict_to(obj)
+        return self.restrict_to(sig_alg=sig_alg)
 
     def __rshift__(self, vec: MeasurableVector) -> ParametrizedMeasure:
         """Push forward the parametrized measure through a measurable vector.
 
-        Calls the method `Operators.pushforward`. See the documentation for that method for more details.
-
-        Parameters
-        ----------
-        vec : MeasurableVector
-            The measurable vector along which to push forward the measure.
-
-        Returns
-        -------
-        pushforward : ParametrizedMeasure
-            The parametrized measure pushed forward along the measurable vector.
+        Internally calls the method `Operators.pushforward`. See the docstring there for more details.
         """
         from ..functions.operators import Operators
 
@@ -848,11 +898,6 @@ class ParametrizedMeasure(Function):
             Positional arguments.
         **kwargs : dict
             Keyword arguments.
-
-        Raises
-        ------
-        ValueError
-            If an invalid combination of positional and keyword arguments is provided, or if the measurable set (if passed) is not in the sigma-algebra of the parametrized measure.
 
         Examples
         --------
@@ -1130,79 +1175,6 @@ class ParametrizedMeasure(Function):
                 raise ValueError(
                     "Error while evaluating the parametrized measure on the given arguments."
                 ) from e
-
-    @staticmethod
-    def _to_series(data: pd.Series | pd.DataFrame) -> pd.Series:
-        if isinstance(data, pd.Series):
-            return data
-        else:
-            return data.apply(tuple, axis=1)
-
-    def __iter__(self) -> Iterator[tuple[dict, Measure]]:
-        """Pass."""
-        unique_params = (
-            self.data.index.to_frame()[self.parameter_names]
-            .drop_duplicates()
-            .iterrows()
-        )
-        for _, params in unique_params:
-            yield params.to_dict(), self(**params.to_dict())
-
-    # --------------------- equality --------------------- #
-
-    # TODO: docstring!
-    def __eq__(self, other: ParametrizedMeasure) -> bool:
-        """Test equality of two parametrized measures."""
-        from .._utils.utils import add_subscript, to_df
-
-        if not isinstance(other, ParametrizedMeasure):
-            return False
-        if self.sig_alg != other.sig_alg:
-            return False
-        if self.parameter_names is None or other.parameter_names is None:
-            return TypeError(
-                "Cannot compare parametrized measures when one (or both) does not have parameter names."
-            )
-        if set(self.parameter_names) != set(other.parameter_names):
-            return False
-        if len(self.domain) != len(other.domain):
-            return False
-
-        parameter_names = self.parameter_names
-
-        self_data = self.data.reorder_levels(
-            parameter_names + self.measure_domain_names
-        ).sort_index(level=parameter_names)
-        other_data = other.data.reorder_levels(
-            parameter_names + other.measure_domain_names
-        ).sort_index(level=parameter_names)
-
-        self_sig_alg_variable_names_subscripted = add_subscript(
-            self.sig_alg.variable_names, "ID"
-        )
-
-        self_data = self_data.unstack(level=parameter_names)
-        self_data.columns = self_data.columns.to_flat_index()
-        self_data.index.names = self_sig_alg_variable_names_subscripted
-
-        other_data = other_data.unstack(level=parameter_names)
-        other_data.columns = other_data.columns.to_flat_index()
-
-        sig_alg_data = to_df(other.lattice.get_atom_data(self.sig_alg))
-        sig_alg_data.columns = self_sig_alg_variable_names_subscripted
-
-        self_data_with_other_sig_alg_ids = pd.merge(
-            left=sig_alg_data,
-            right=self_data,
-            left_on=self_sig_alg_variable_names_subscripted,
-            right_index=True,
-        ).drop(columns=self_sig_alg_variable_names_subscripted)
-
-        return bool(
-            (self_data_with_other_sig_alg_ids.reindex(other_data.index) == other_data)
-            .all()
-            .all()
-        )
 
     # --------------------- representation --------------------- #
 
