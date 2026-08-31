@@ -3426,7 +3426,56 @@ class Function:
         measure: Measure | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
-        """Pass."""
+        """Generate a measurable vector from the function.
+
+        Parameters
+        ----------
+        sig_alg : SigmaAlgebra
+            The sigma-algebra on the underlying measurable space.
+        measure : Measure | None, default=None
+            The optional measure carried by the measurable vector.
+        name : Hashable | None, default=None
+            The name of the measurable vector. If `None`, the name of the function will be used.
+
+        Returns
+        -------
+        measurable_vec : MeasurableVector
+            The current function instance converted to a measurable vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Function, SigmaAlgebra
+
+        Define a measurable space and a function.
+
+        >>> X = Domain.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     },
+        ... )
+        >>> f = Function(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 4,
+        ...         1: 3,
+        ...         2: 3,
+        ...     },
+        ... )
+
+        Convert to a measurable function.
+
+        >>> print(f.to_measurable_vector(F))  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function 'f':
+           f
+        x
+        0  4
+        1  3
+        2  3
+        """
         from ...validation.measurable_func_normalizer import MeasurableFuncNormalizer
         from .measurable_vector import MeasurableVector
 
@@ -3461,6 +3510,7 @@ class Function:
             name=name,
         )
 
+    # TODO: decide — deprecate? remove?
     def with_variable_names(self, variable_names: list[Hashable]) -> Function:
         """Return a new instance of the function with updated variable names."""
         from ..measures.measure import Measure
@@ -3506,22 +3556,6 @@ class Function:
             return type(self)(**params)
         else:
             return Function(**params)
-
-    def with_name(self, name: Hashable) -> Function:
-        """Set the name of the function and return self for chaining.
-
-        Parameters
-        ----------
-        name : Hashable
-            The new name for the function.
-
-        Returns
-        -------
-        self : Function
-            The instance of the function with the updated name.
-        """
-        self.name = name
-        return self
 
     # --------------------- representation --------------------- #
 
@@ -3570,18 +3604,18 @@ class Function:
 
     # --------------------- equality --------------------- #
 
-    def __eq__(self, other: Function | Real) -> bool:
-        """Check if two functions are equal.
+    def __eq__(self, other: Function | Real) -> bool | Set:
+        """Check if two functions are equal if `other` is a function, or generate the inverse image of `other` is a real.
 
         Parameters
         ----------
         other : Function | Real
-            The other function to compare with.
+            The other function to compare with, or the value whose inverse image will be computed.
 
         Returns
         -------
-        are_equal : bool
-            True if the two functions are equal, False otherwise.
+        result : bool | Set
+            Either a Boolean indicating whether the two functions are equal, if `other` is a function, or a `Set` instance if `other` is a real.
         """
         if isinstance(other, Function):
             if self is other:
@@ -3603,24 +3637,26 @@ class Function:
 
     # --------------------- numpy methods --------------------- #
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs) -> Function:
-        """Override numpy ufuncs to operate on `Function` instances.
+    def __array_ufunc__(
+        self, ufunc: np.ufunc, method: str, *inputs, **kwargs
+    ) -> Function:
+        """Override NumPy universal functions to operate on `Function` instances.
 
         Parameters
         ----------
         ufunc : numpy.ufunc
-            The ufunc object that was called.
+            The universal function that was called.
         method : str
-            A string indicating which ufunc method was called.
+            A string indicating which universal function method was called.
         inputs : tuple
-            A tuple of the input arguments to the ufunc.
+            A tuple of the input arguments to the universal function.
         kwargs : dict
-            A dictionary of keyword arguments passed to the ufunc.
+            Keyword arguments passed to the universal function.
 
         Returns
         -------
         result : Function
-            A new instance of `Function` containing the result of applying the ufunc to the outputs of the function.
+            A new instance of `Function` containing the result of applying the universal function to the outputs of the function.
 
         Examples
         --------
@@ -3662,13 +3698,13 @@ class Function:
             parameter_names=getattr(self, "parameter_names", None),
         )
 
-    def to_numpy(self, multi_dim: bool = False, dtype=None, copy=None) -> np.ndarray:
+    def to_numpy(self, dtype=None, copy=None) -> np.ndarray:
         """Return the function's data as a NumPy array.
 
         Parameters
         ----------
         dtype : data-type | None, default=None
-            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
+            The desired data-type for the array. If `None`, the data type of the underlying data is used.
         copy : bool | None, default=None
             Whether to return a copy of the data. If `None`, the default behavior is used.
 
@@ -3677,15 +3713,7 @@ class Function:
         np.ndarray
             The function's data as a NumPy array.
         """
-        if multi_dim:
-            arr = self.data.to_xarray().values
-            if dtype is not None:
-                arr = np.asarray(arr, dtype=dtype)
-            if copy:
-                arr = arr.copy()
-            return arr
-        else:
-            return self.__array__(dtype=dtype, copy=copy)
+        return self.__array__(dtype=dtype, copy=copy)
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """Return the function's data as a NumPy array.
@@ -3693,7 +3721,7 @@ class Function:
         Parameters
         ----------
         dtype : data-type | None, default=None
-            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
+            The desired data-type for the array. If `None`, the data type of the underlying data is used.
         copy : bool | None, default=None
             Whether to return a copy of the data. If `None`, the default behavior is used.
 
@@ -3729,14 +3757,26 @@ class Function:
 
         Parameters
         ----------
-        other : Function or scalar
+        other : Function | Real
             The other operand.
         operation : Callable
-            The operation to apply (e.g., lambda a, b: a + b).
+            The operation to apply.
         op_symbol : str
-            Symbol representing the operation (e.g., '+', '-', '*').
+            Symbol representing the operation.
         reverse : bool, default=False
-            Whether this is a reverse operation (e.g., __radd__ vs __add__).
+            Whether this is a reverse operation.
+        domain_name : Hashable | None, default=None
+            The name of the domain.
+        index : IndexLike | None, default=None
+            The index for the outputs of the function. Only used if the outputs are multi-dimensional.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index. Only used if the outputs are multi-dimensional.
+        index_name : Hashable | None, default=None
+            The name of the index. Only used if the outputs are multi-dimensional.
+        name : Hashable | None, default=None
+            The name of the function. If `None`, a default name will be generated.
+        **kwargs
+            Additional keyword arguments passed to subclasses.
 
         Returns
         -------
@@ -4937,28 +4977,31 @@ class Function:
         name: Hashable | None = None,
         **kwargs,
     ) -> Function:
-        """Apply a comparison operation to this measurable vector.
+        """Apply a comparison operation to this function.
 
         Parameters
         ----------
-        other : MeasurableVector | Real
-            The measurable vector or scalar to compare with.
+        other : Function | Real
+            The function or scalar to compare with.
         op : Callable
-            The numpy comparison to apply (e.g., ``operator.lt``).
+            The NumPy comparison to apply.
         op_symbol : str
-            Symbol representing the comparison (e.g., '<', '<=', '>', '>=').
+            Symbol representing the comparison.
+        index : IndexLike | None, default=None
+            The index for the outputs of the function. Only used if the outputs are multi-dimensional.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index. Only used if the outputs are multi-dimensional.
+        index_name : Hashable | None, default=None
+            The name of the index. Only used if the outputs are multi-dimensional.
+        name : Hashable | None, default=None
+            The name of the function. If `None`, a default name will be generated.
+        **kwargs
+            Additional keyword arguments passed to subclasses.
 
         Returns
         -------
-        result : MeasurableVector
-            A new measurable vector of booleans representing the comparison result.
-
-        Raises
-        ------
-        TypeError
-            If `other` is not a `MeasurableVector` or scalar.
-        ValueError
-            If the measurable vectors do not have the same domain or dimension.
+        result : Function
+            A new function of booleans representing the comparison result.
         """
         from .._utils.utils import pandas_all_equal
         from ..indices.index import Index
