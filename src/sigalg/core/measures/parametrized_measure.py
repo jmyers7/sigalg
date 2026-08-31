@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable
+from collections.abc import Callable, Hashable, Iterator
 from functools import cached_property
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
@@ -1175,6 +1175,16 @@ class ParametrizedMeasure(Function):
                 raise ValueError(
                     "Error while evaluating the parametrized measure on the given arguments."
                 ) from e
+
+    def __iter__(self) -> Iterator[tuple[dict, Measure]]:
+        """Pass."""
+        unique_params = (
+            self.data.index.to_frame()[self.parameter_names]
+            .drop_duplicates()
+            .iterrows()
+        )
+        for _, params in unique_params:
+            yield params.to_dict(), self(**params.to_dict())
 
     # --------------------- representation --------------------- #
 
