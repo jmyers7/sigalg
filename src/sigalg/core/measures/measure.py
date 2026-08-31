@@ -335,7 +335,7 @@ class Measure(Function):
             The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`; in the latter case, the domain will be set to the power set of the domain.
         num_null_atoms : int, default=0
             The number of atoms in the sigma-algebra that should be assigned a measure of 0.
-        kind : Literal["probability", "measure"], default="measure"
+        kind : Literal["measure", "probability"], default="measure"
             The kind of measure to generate. If `'probability'`, generates a probability measure using a Dirichlet distribution.
         distribution : Literal["uniform", "poisson", "dirichlet"], default="uniform"
             The type of distribution from which to sample the values of the measure.

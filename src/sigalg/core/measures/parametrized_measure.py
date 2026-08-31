@@ -7,12 +7,12 @@ from functools import cached_property
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
+import numpy as np
+import pandas as pd
+
 from ..functions.function import Function
 
 if TYPE_CHECKING:
-    import numpy as np
-    import pandas as pd
-
     from ...typing.mapping_like import MappingLike
     from ...typing.measure_domain import MeasureDomain
     from ..functions.measurable_vector import MeasurableVector
@@ -117,14 +117,22 @@ class ParametrizedMeasure(Function):
         ----------
         measure_domain : MeasureDomain
             The domain of the measure, if a `SigmaAlgebra` is provided. If an `IndexLike` object that can be coerced to a `Domain` is provided, the sigma-algebra of the measure will be the power-set sigma-algebra of the domain.
-        parameter_domain : IndexLike | None
+        parameter_domain : Domain | None, default=None
             The parameter domain for the measure.
-        mapping : MappingLike
+        complete_domain : Domain | None, default=None
+            If `measure_domain` and `parameter_domain` are specified, the domain of the parametrized measure will be the Cartesian product of the two. Alternativaly, the user may specify the domain of the measure directly through this parameter.
+        mapping : MappingLike | None, default=None
             The mapping of the parametrized measure.
-        kind : Literal["measure", "probability"], default="measure"
+        kind : Literal["param_measure", "param_probability"], default="param_measure"
             The kind of the parametrized measure.
-        output_name : str, default="measure"
-            The name of the output variable for the parametrized measure.
+        parameter_names : list[Hashable] | None, default=None
+            The names of the parameters of the measure.
+        complete_domain_name : Hashable | None, default=None
+            The name of the domain of the measure.
+        parameter_domain_name : Hashable | None, default=None
+            The name of the parameter domain.
+        output_name : Hashable | None, default=None
+            The name of the output variable for the parametrized measure. If `None`, a default will be generated.
         name : Hashable | None, default="mu"
             The name of the parametrized measure. If `None`, a default name will be assigned.
 
@@ -263,7 +271,7 @@ class ParametrizedMeasure(Function):
         parameter_domain: Domain | None = None,
         complete_domain: Domain | None = None,
         num_null_atoms: int = 0,
-        kind: Literal["measure", "probability"] = "measure",
+        kind: Literal["param_measure", "param_probability"] = "param_measure",
         distribution: Literal["uniform", "poisson", "dirichlet"] = "uniform",
         max_value: int = 10,
         rate: float = 5.0,
@@ -278,20 +286,30 @@ class ParametrizedMeasure(Function):
 
         Parameters
         ----------
-        domain_dims : tuple[int]
-            The dimensions of the domain of the function.
-        output_name : Hashable, default="measure"
-            The name of the outputs of the function.
-        variable_names : list[Hashable] | None, default=None
-            The names of the variables. If `None`, either `variable_name_prefix` will be used to generate names or default names will be generated.
-        variable_name_prefix : str | None, default=None
-            The prefix for generating variable names. If `None`, either default names will be generated or `variable_names` must be provided.
-        distribution : Literal["uniform", "poisson"], default="uniform"
-            The distribution to use for generating random values.
+        measure_domain : MeasureDomain
+            The domain of the measure, if a `SigmaAlgebra` is provided. If an `IndexLike` object that can be coerced to a `Domain` is provided, the sigma-algebra of the measure will be the power-set sigma-algebra of the domain.
+        parameter_domain : Domain | None, default=None
+            The parameter domain for the measure.
+        complete_domain : Domain | None, default=None
+            If `measure_domain` and `parameter_domain` are specified, the domain of the parametrized measure will be the Cartesian product of the two. Alternativaly, the user may specify the domain of the measure directly through this parameter.
+        num_null_atoms : int, default=0
+            The number of atoms in the sigma-algebra that should be assigned a measure of 0.
+        kind : Literal["param_measure", "param_probability"], default="param_measure"
+            The kind of measure to generate. If `'param_probability'`, generates a probability measure using a Dirichlet distribution.
+        distdistribution : Literal["uniform", "poisson", "dirichlet"], default="uniform"
+            The type of distribution from which to sample the values of the measure.
         max_value : int, default=10
-            The maximum value for the uniform distribution.
+            The maximum value for uniform integer sampling when `distribution='uniform'`. Integers are sampled from the interval `[1, max_value)`.
         rate : float, default=5.0
-            The rate parameter for the Poisson distribution.
+            The rate parameter for Poisson sampling when `distribution='poisson'`.
+        parameter_names : list[Hashable] | None, default=None
+            The names of the parameters of the measure.
+        complete_domain_name : Hashable | None, default=None
+            The name of the domain of the measure.
+        parameter_domain_name : Hashable | None, default=None
+            The name of the parameter domain.
+        output_name : Hashable | None, default=None
+            The name of the output variable for the parametrized measure. If `None`, a default will be generated.
         name : Hashable | None, default=None
             The name of the function. If `None`, a default name will be used.
         random_state : int | np.random.Generator | None, default=None
@@ -366,9 +384,6 @@ class ParametrizedMeasure(Function):
         2        0.000276  8.405348e-01  0.735544  0.776833
         3        0.341159  2.074313e-07  0.127139  0.185800
         """
-        import numpy as np
-        import pandas as pd
-
         from ...validation.measure_domain_normalizer import MeasureDomainNormalizer
         from ...validation.parametrized_domain_constructor import (
             ParametrizedDomainConstructor,
@@ -396,7 +411,7 @@ class ParametrizedMeasure(Function):
 
         if (
             cls is ParametrizedProbabilityMeasure
-            or kind == "probability"
+            or kind == "param_probability"
             or distribution == "dirichlet"
         ):
             kind = "param_probability"
@@ -493,6 +508,9 @@ class ParametrizedMeasure(Function):
         Examples
         --------
         >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
+
+        Define a parametrized measure.
+
         >>> Theta = Domain.cartesian_power(
         ...     [0, 1], n=2, variable_names=["theta_0", "theta_1"], name="Theta"
         ... )
@@ -527,6 +545,16 @@ class ParametrizedMeasure(Function):
         F_0 F_1
         0   1      0  2  4  5
         1   2      1  8  1  0
+
+        Print the parameter domain of the measure.
+
+        >>> print(mu.parameter_domain)  # doctest: +NORMALIZE_WHITESPACE
+        Domain 'Theta':
+         theta_0  theta_1
+               0        0
+               0        1
+               1        0
+               1        1
         """
         from ..spaces.domain import Domain
 
@@ -554,6 +582,9 @@ class ParametrizedMeasure(Function):
         Examples
         --------
         >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
+
+        Define a parametrized measure.
+
         >>> Theta = Domain.cartesian_power(
         ...     [0, 1], n=2, variable_names=["theta_0", "theta_1"], name="Theta"
         ... )
@@ -588,6 +619,9 @@ class ParametrizedMeasure(Function):
         F_0 F_1
         0   1    0  2  4  5
         1   2    1  8  1  0
+
+        Print the variable names of the measure domain.
+
         >>> mu.measure_domain_names
         ['F_0', 'F_1']
         """
@@ -595,7 +629,106 @@ class ParametrizedMeasure(Function):
 
     @cached_property
     def lattice(self) -> Lattice | None:
-        """Pass."""
+        """Return the downward lattice of all sigma-algebras contained in the domain sigma-algebra of the parametrized measure.
+
+        Returns
+        -------
+        down_lattice : Lattice | None
+            The downward lattice of all sigma-algebras contained in the domain sigma-algebra of the measure.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
+
+        Define a parametrized measure.
+
+        >>> Theta = Domain.cartesian_power(
+        ...     [0, 1], n=2, variable_names=["theta_0", "theta_1"], name="Theta"
+        ... )
+        >>> X = Domain.from_sequence(size=3, variable_name="x")
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: (0, 1),
+        ...         1: (1, 2),
+        ...         2: (1, 2),
+        ...     },
+        ... )
+        >>> mapping = {
+        ...     (0, 0, 0, 1): 0,  # (theta_0, theta_1, F_0, F_1) = (0, 0, 0, 1), etc...
+        ...     (0, 0, 1, 2): 1,
+        ...     (0, 1, 0, 1): 2,
+        ...     (0, 1, 1, 2): 8,
+        ...     (1, 0, 0, 1): 4,
+        ...     (1, 0, 1, 2): 1,
+        ...     (1, 1, 0, 1): 5,
+        ...     (1, 1, 1, 2): 0,
+        ... }
+        >>> mu = ParametrizedMeasure.from_domains(
+        ...     measure_domain=F,
+        ...     parameter_domain=Theta,
+        ...     mapping=mapping,
+        ... )
+        >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measure 'mu':
+        theta_0  0     1
+        theta_1  0  1  0  1
+        F_0 F_1
+        0   1    0  2  4  5
+        1   2    1  8  1  0
+
+        The lattice of the measure is initialized with the domain sigma-algebra `F`.
+
+        >>> mu.lattice
+        Lattice(base=F, type=downward, num_sig_algs=1)
+
+        Define a sub-sigma-algebra of `F` and check that it is in the lattice.
+
+        >>> G = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 0,
+        ...     },
+        ...     name="G",
+        ... )
+        >>> G in mu.lattice
+        True
+
+        Check that the lattice now includes `G`.
+
+        >>> mu.lattice
+        Lattice(base=F, type=downward, num_sig_algs=2)
+
+        Since `G` is a sub-sigma-algebra of `F`, we may restrict the measure `mu` to `G`.
+
+        >>> print(mu | G)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measure 'mu|G':
+        theta_0  0      1
+        theta_1  0   1  0  1
+        G
+        0        1  10  5  5
+
+        Define another sigma-algebra, and check if it is a sub-sigma-algebra of `F`.
+
+        >>> H = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ...     name="H",
+        ... )
+        >>> H in mu.lattice
+        False
+
+        Check that `H` was not added to the lattice.
+
+        >>> mu.lattice
+        Lattice(base=F, type=downward, num_sig_algs=2)
+        """
         if self.sig_alg is not None:
             return self.sig_alg.down_lattice
         else:
@@ -611,13 +744,10 @@ class ParametrizedMeasure(Function):
         name: Hashable | None = None,
     ) -> Measure:
         """Pass."""
-        import pandas as pd
-
         from .._utils.utils import to_df
 
         sig_alg = obj
 
-        # TODO: add fast path if pandas_all_equal
         if sig_alg is self.sig_alg:
             return self
 
@@ -654,25 +784,6 @@ class ParametrizedMeasure(Function):
             name=name,
         )
 
-    def __rshift__(self, vec: MeasurableVector) -> ParametrizedMeasure:
-        """Push forward the parametrized measure through a measurable vector.
-
-        Calls the method `Operators.pushforward`. See the documentation for that method for more details.
-
-        Parameters
-        ----------
-        vec : MeasurableVector
-            The measurable vector along which to push forward the measure.
-
-        Returns
-        -------
-        pushforward : ParametrizedMeasure
-            The parametrized measure pushed forward along the measurable vector.
-        """
-        from ..functions.operators import Operators
-
-        return Operators.pushforward(vec=vec, measure=self)
-
     # --------------------- dunder operators --------------------- #
 
     def __or__(
@@ -692,6 +803,25 @@ class ParametrizedMeasure(Function):
             A new measure restricted to the new sigma-algebra.
         """
         return self.restrict_to(obj)
+
+    def __rshift__(self, vec: MeasurableVector) -> ParametrizedMeasure:
+        """Push forward the parametrized measure through a measurable vector.
+
+        Calls the method `Operators.pushforward`. See the documentation for that method for more details.
+
+        Parameters
+        ----------
+        vec : MeasurableVector
+            The measurable vector along which to push forward the measure.
+
+        Returns
+        -------
+        pushforward : ParametrizedMeasure
+            The parametrized measure pushed forward along the measurable vector.
+        """
+        from ..functions.operators import Operators
+
+        return Operators.pushforward(vec=vec, measure=self)
 
     # --------------------- data access methods --------------------- #
 
@@ -838,8 +968,6 @@ class ParametrizedMeasure(Function):
         1   2                           0
         2   3                           7
         """
-        import pandas as pd
-
         from ..spaces.set import Set
         from .measure import Measure
         from .parametrized_probability_measure import ParametrizedProbabilityMeasure
@@ -1005,8 +1133,6 @@ class ParametrizedMeasure(Function):
 
     @staticmethod
     def _to_series(data: pd.Series | pd.DataFrame) -> pd.Series:
-        import pandas as pd
-
         if isinstance(data, pd.Series):
             return data
         else:
@@ -1027,8 +1153,6 @@ class ParametrizedMeasure(Function):
     # TODO: docstring!
     def __eq__(self, other: ParametrizedMeasure) -> bool:
         """Test equality of two parametrized measures."""
-        import pandas as pd
-
         from .._utils.utils import add_subscript, to_df
 
         if not isinstance(other, ParametrizedMeasure):
@@ -1110,8 +1234,6 @@ class ParametrizedMeasure(Function):
         repr_str : str
             The string representation of the measure.
         """
-        import pandas as pd
-
         if isinstance(self.data, pd.Series):
             return f"{type(self)._str_name} '{self.name}':\n{self.data.unstack(level=self.parameter_names)}"
         elif isinstance(self.data, Callable):
