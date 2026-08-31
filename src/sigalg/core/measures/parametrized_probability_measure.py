@@ -39,7 +39,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
     >>> Theta = Domain([0.0, 0.25, 0.75, 1.0], name="Theta", variable_names=["theta"])
     >>> Omega = SampleSpace.from_sequence(size=3, variable_name="omega")
 
-    Define a binomial probability distribution Bin(n=2,theta), parametrized by theta.
+    Define a binomial probability distribution Bin(n=2, theta), parametrized by theta.
 
     >>> def mapping(*, theta, omega):
     ...     omega = int(omega)
@@ -88,7 +88,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
     # --------------------- constructors --------------------- #
 
-    # TODO: change to _from_validated!
+    # TODO: change to from_validated
     @classmethod
     def from_scipy(
         cls,
@@ -110,13 +110,6 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         name : Hashable, default="P"
             The name of the parametrized probability measure.
 
-        Raises
-        ------
-        TypeError
-            If `dist` is not a discrete SciPy distribution, or if `parameter_domain` is not an instance of `Domain`, or if `support` is not a 2-tuple of a hashable name and a list of values.
-        ValueError
-            If `support` is not a 2-tuple of a hashable name and a list of values.
-
         Returns
         -------
         param_prob_measure : ParametrizedProbabilityMeasure
@@ -129,15 +122,21 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         ...     Domain,
         ...     ParametrizedProbabilityMeasure,
         ... )
-        >>> Theta_P = Domain(
+
+        We will build a parametrized binomial probability measure using the `binom` class from SciPy. First, we inspect the signature of the `pmf` method on the SciPy website and notice that the measure is parametrized by `n` and `p`. We build a parameter domain for these.
+
+        >>> Theta = Domain(
         ...     [(2, 0.25), (3, 0.75)],
-        ...     name="Theta_P",
         ...     variable_names=["n", "p"],
+        ...     name="Theta",
         ... )
+
+        The support variable of the `pmf` is `k`. We choose it to have support `[0, 1, 2, 3]`.
+
         >>> P = ParametrizedProbabilityMeasure.from_scipy(
         ...     dist=binom,
         ...     support=("k", [0, 1, 2, 3]),
-        ...     parameter_domain=Theta_P,
+        ...     parameter_domain=Theta,
         ... )
         >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized probability measure 'P':
@@ -148,20 +147,26 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         1  0.3750  0.140625
         2  0.0625  0.421875
         3  0.0000  0.421875
-        >>> Theta_Q = Domain(
+
+        For a second example, we build a parametrized hypergeometric distribution. Again, we inspect the signature of the `pmf` method on the SciPy website and note that it is parametrized by `M`, `n`, and `N`.
+
+        >>> Theta = Domain(
         ...     [(5, 3, 3), (10, 5, 5)],
-        ...     name="Theta_Q",
         ...     variable_names=["M", "n", "N"],
+        ...     name="Theta",
         ... )
+
+        The support variable of the `pmf` is again `k`.
+
         >>> Q = ParametrizedProbabilityMeasure.from_scipy(
         ...     dist=hypergeom,
         ...     support=("k", [0, 1, 2, 3, 4, 5]),
-        ...     parameter_domain=Theta_Q,
+        ...     parameter_domain=Theta,
         ...     name="Q",
         ... )
         >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized probability measure 'Q':
-        M   5         10
+        M    5        10
         n    3         5
         N    3         5
         k
