@@ -3527,6 +3527,8 @@ class Function:
         """Return a new instance of `Function` with the same data but a new name."""
         if isinstance(self.data, pd.Series):
             new_data = self.data.rename(name)
+        else:
+            new_data = self.data
 
         return type(self)._from_validated(
             data=new_data,
@@ -3751,7 +3753,7 @@ class Function:
 
         return NotImplemented
 
-    def to_numpy(self, dtype=None, copy=None) -> np.ndarray:
+    def to_numpy(self, multi_dim: bool = False, dtype=None, copy=None) -> np.ndarray:
         """Return the function's data as a NumPy array.
 
         Parameters
@@ -3766,7 +3768,15 @@ class Function:
         np.ndarray
             The function's data as a NumPy array.
         """
-        return self.__array__(dtype=dtype, copy=copy)
+        if multi_dim:
+            arr = self.data.to_xarray().values
+            if dtype is not None:
+                arr = np.asarray(arr, dtype=dtype)
+            if copy:
+                arr = arr.copy()
+            return arr
+        else:
+            return self.__array__(dtype=dtype, copy=copy)
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """Return the function's data as a NumPy array.
@@ -3874,9 +3884,25 @@ class Function:
                 index_name = index.name
 
                 if set(self.variable_names) & set(other.variable_names):
-                    self_data = to_df(self.data)
+                    self_names = self.data.index.names
+                    other_names = [
+                        name
+                        for name in other.data.index.names
+                        if name not in self_names
+                    ]
+
+                    self_data = to_df(self.data, "_self")
+                    self_cols = list(self_data.columns)
+                    other_data = to_df(other.data, "_other")
+                    other_cols = list(other_data.columns)
+
+                    data = pd.merge(
+                        left=self_data.reset_index(), right=other_data.reset_index()
+                    ).set_index(self_names + other_names)
+
+                    self_data = data[self_cols]
                     self_data.columns = index.data
-                    other_data = to_df(other.data)
+                    other_data = data[other_cols]
                     other_data.columns = index.data
 
                     if not reverse:
@@ -4242,8 +4268,8 @@ class Function:
         Function '(f + g)':
                (f + g)
         u v w
-        1 2 7     15.0
-        3 4 8     11.0
+        1 2 7       15
+        3 4 8       11
 
         For functions whose domains have completely disjoint variable names, the `add` method forms the Cartesian product of the domains and then adds.
 
