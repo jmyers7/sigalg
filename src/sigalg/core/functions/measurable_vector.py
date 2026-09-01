@@ -179,8 +179,6 @@ class MeasurableVector(Function, OperatorsMethods):
         index_name: Hashable | None = None,
         name: Hashable | None = None,
     ) -> None:
-        import pandas as pd
-
         from ...validation.measurable_func_normalizer import MeasurableFuncNormalizer
 
         PandasLike = pd.Series | pd.DataFrame
@@ -1240,6 +1238,8 @@ class MeasurableVector(Function, OperatorsMethods):
     def _reset_class(self) -> None:
         import pandas as pd
 
+        from ...processes.base import StochasticProcess
+        from ..indices.time import Time
         from ..measures.probability_measure import ProbabilityMeasure
         from .measurable_function import MeasurableFunction
         from .random_variable import RandomVariable
@@ -1256,7 +1256,11 @@ class MeasurableVector(Function, OperatorsMethods):
                 self.data = self.data.squeeze(axis=1)
 
         elif isinstance(self.measure, ProbabilityMeasure):
-            self.__class__ = RandomVector
+            if isinstance(self.index, Time):
+                self.__class__ = StochasticProcess
+
+            else:
+                self.__class__ = RandomVector
 
         else:
             self.__class__ = MeasurableVector
