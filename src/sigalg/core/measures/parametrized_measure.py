@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from ...typing.mapping_like import MappingLike
     from ...typing.measure_domain import MeasureDomain
     from ..functions.measurable_vector import MeasurableVector
+    from ..indices.index import Index
     from ..sigma_algebras.lattice import Lattice
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.domain import Domain
@@ -1186,6 +1187,20 @@ class ParametrizedMeasure(Function):
         for _, params in unique_params:
             yield params.to_dict(), self(**params.to_dict())
 
+    # --------------------- conversion methods --------------------- #
+
+    def to_function(self) -> Function:
+        """Promote to a `Function` instance."""
+        return Function._from_validated(
+            data=self.data,
+            kind="any",
+            domain_kind=type(self.domain).__name__,
+            domain_name=self.domain.name,
+            index_kind="Index",
+            index_name=None,
+            name=self.name,
+        )
+
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
@@ -1222,3 +1237,35 @@ class ParametrizedMeasure(Function):
             return self.__repr__()
         else:
             return f"{type(self)._str_name} '{self.name}': empty"
+
+    # --------------------- arithmetic operations --------------------- #
+
+    def _apply_binary_operation(
+        self,
+        other: Function | Real,
+        operation: Callable,
+        op_symbol: str,
+        reverse: bool = False,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Apply a binary operation to this measure.
+
+        See the method `Function._apply_binary_operation` for more details on the parameters and behavior.
+        """
+        return Function._apply_binary_operation(
+            self=self.to_function(),
+            other=other,
+            operation=operation,
+            op_symbol=op_symbol,
+            reverse=reverse,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+        )
