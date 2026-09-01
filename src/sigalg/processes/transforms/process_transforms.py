@@ -9,10 +9,9 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
-from ...core.indices.time import Time
-
 if TYPE_CHECKING:
     from ...core.functions.random_variable import RandomVariable
+    from ...core.indices.time import Time
     from ..base.stochastic_process import StochasticProcess
     from ..stopping_times.stopping_time import StoppingTime
 
