@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Hashable  # noqa: TC003
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import Annotated, Any
 
 import pandas as pd
 from pydantic import (
@@ -13,8 +13,7 @@ from pydantic import (
 )
 from pydantic_core import core_schema
 
-if TYPE_CHECKING:
-    from ..core.indices.time import Time
+from ..core.indices.time import Time  # noqa: TC001
 
 
 class _FiltrationLikeValidator:
