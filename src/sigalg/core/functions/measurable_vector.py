@@ -6,14 +6,14 @@ from functools import cached_property
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
+import numpy as np
+import pandas as pd
+
 from .function import Function
 from .operators import OperatorsMethods
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Hashable
-
-    import numpy as np
-    import pandas as pd
 
     from ...typing.index_like import IndexLike
     from ...typing.mapping_like import MappingLike
@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from ..spaces.measurable_space import MeasurableSpace
     from ..spaces.measure_space import MeasureSpace
     from ..spaces.set import Set
-    from .measurable_function import MeasurableFunction
 
     PandasLike = pd.Series | pd.DataFrame
 
@@ -36,17 +35,27 @@ class MeasurableVector(Function, OperatorsMethods):
     Parameters
     ----------
     domain : IndexLike | None, default=None
-        The domain of the underlying measurable space.
+        The domain of the function.
     sig_alg : SigmaAlgebra | None, default=None
         The sigma-algebra of the underlying measurable space.
     measure : Measure | None, default=None
-        An optional measure carried by the measurable vector.
+        An optional measure carried by the function.
     mapping : MappingLike | None, default=None
-        The mapping defining the measureable vector.
+        The underlying rule defining the function.
+    domain_kind : Literal["Domain", "SampleSpace"], default="Domain"
+        The type of the domain.
+    domain_name : Hashable | None, default=None
+        The name of the domain.
+    output_name : Hashable | None, default=None
+        The name of the outputs of the function. If `None`, a default will be generated.
     index : IndexLike | None, default=None
-        The index of the measurable vector.
-    name : Hashable, default="f"
-        The name of the measurable vector.
+        The index for the outputs of the function. Only used if the outputs are multi-dimensional.
+    index_kind : Literal["Index", "Time"], default="Index"
+        The kind of index. Only used if the outputs are multi-dimensional.
+    index_name : Hashable | None, default=None
+        The name of the index. Only used if the outputs are multi-dimensional.
+    name : Hashable | None, default=None
+        The name of the function. If `None`, a default name will be generated.
 
     Examples
     --------
@@ -221,7 +230,6 @@ class MeasurableVector(Function, OperatorsMethods):
         name: Hashable,
         **kwargs,
     ) -> MeasurableVector:
-
         if measure is not None:
             sig_alg = measure.sig_alg
 
@@ -264,16 +272,26 @@ class MeasurableVector(Function, OperatorsMethods):
         ----------
         domain: IndexLike
             The domain of the measurable vector.
+        constant : Hashable | None
+            The constant output value of the function. If a `tuple`, the function will have multi-dimensional outputs.
         sig_alg: SigmaAlgebra | None, default=None
             The sigma-algebra of the underlying measurable space. If `None`, the power set sigma-algebra is used.
         measure: Measure | None, default=None
-            An optional measure carried by the measurable vector.
-        constant : Hashable | None, default=None
-            The constant output vector that every point in the domain maps to.
+            An optional measure carried by the function.
+        domain_kind : Literal["Domain", "SampleSpace"], default="Domain"
+            The type of the domain.
+        domain_name : Hashable | None, default=None
+            The name of the domain.
+        output_name : Hashable | None, default=None
+            The name of the outputs of the function. If `None`, a default will be generated.
         index : IndexLike | None, default=None
-            The index of the measurable vector.
+            The index for the outputs of the function. Only used if the outputs are multi-dimensional.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index. Only used if the outputs are multi-dimensional.
+        index_name : Hashable | None, default=None
+            The name of the index. Only used if the outputs are multi-dimensional.
         name : Hashable | None, default=None
-            The name of the measurable vector. If `None`, a default will be generated.
+            The name of the function. If `None`, a default name will be generated.
 
         Returns
         -------
@@ -282,9 +300,10 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Examples
         --------
+        >>> from sigalg.core import Domain, MeasurableVector
+
         Create a constant 2-dimensional measurable vector.
 
-        >>> from sigalg.core import Domain, MeasurableVector
         >>> X = Domain.from_sequence(size=3)
         >>> f = MeasurableVector.from_constant(domain=X, constant=(1, 2), index=[1, 2])
         >>> print(f) # doctest: +NORMALIZE_WHITESPACE
@@ -354,18 +373,28 @@ class MeasurableVector(Function, OperatorsMethods):
     ) -> MeasurableVector:
         """Create a measurable vector that maps every point in the domain to itself.
 
+        For this construction method, the sigma-algebra must be the power set.
+
         Parameters
         ----------
-        domain: IndexLike
-            The domain of the measurable vector.
-        sig_alg: SigmaAlgebra | None, default=None
-            The sigma-algebra of the underlying measurable space. The sigma-algebra must be the power-set. This parameter is here only for consistency with other constructors.
-        measure: Measure | None, default=None
-            An optional measure carried by the measurable vector.
+        domain : IndexLike
+            The domain of the function.
+        measure : Measure | None, default=None
+            An optional measure carried by the function.
+        domain_kind : Literal["Domain", "SampleSpace"], default="Domain"
+            The type of the domain.
+        domain_name : Hashable | None, default=None
+            The name of the domain.
+        output_name : Hashable | None, default=None
+            The name of the outputs of the function. If `None`, a default will be generated.
         index : IndexLike | None, default=None
-            The index of the measurable vector.
+            The index for the outputs of the function. Only used if the outputs are multi-dimensional.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index. Only used if the outputs are multi-dimensional.
+        index_name : Hashable | None, default=None
+            The name of the index. Only used if the outputs are multi-dimensional.
         name : Hashable | None, default=None
-            The name of the measurable vector. If `None`, a default will be generated.
+            The name of the function. If `None`, a default name will be generated.
 
         Returns
         -------
@@ -466,35 +495,51 @@ class MeasurableVector(Function, OperatorsMethods):
         name: Hashable | None = None,
         random_state: int | np.random.Generator | None = None,
     ) -> MeasurableVector:
-        """Generate a measurable vector with integer outputs uniformly sampled from the range [low, high).
+        """Generate a random measurable vector.
 
         Parameters
         ----------
         domain: IndexLike
-            The domain of the measurable vector.
+            The domain of the function.
         sig_alg: SigmaAlgebra | None, default=None
             The sigma-algebra of the underlying measurable space. If `None`, the power set sigma-algebra is used.
         measure: Measure | None, default=None
-            An optional measure carried by the measurable vector.
-        diff_values : int, default=0
-            If nonzero, the vector is randomly generated so that it is measurable with respect to a randomly generated sub-sigma-algebra of `sig_alg`. Then `diff_values = sig_alg.num_atoms - sub_sig_alg.num_atoms`. See the Examples section.
-        low : int, default=0
-            The lower bound (inclusive) of the random integers.
-        high : int, default=2
-            The upper bound (exclusive) of the random integers.
+            An optional measure carried by the function.
         dim : int | None, default=None
-            The dimension of the measurable vector. Either `dim` or `index` may be provided to set the dimension of the measurable vector. If neither is provided, `dim` will default to `1`.
+            The dimension of the outputs of the function.
+        diff_values : int, default=0
+            If nonzero, the function is randomly generated so that it is measurable with respect to a randomly generated sub-sigma-algebra of `sig_alg`. Then `diff_values = sig_alg.num_atoms - sub_sig_alg.num_atoms`. See the Examples section.
+        distribution : Literal["uniform", "normal"], default="uniform"
+            The distribution to use for generating random values.
+        min_value : int, default=0
+            The minimum value for the uniform distribution.
+        max_value : int, default=10
+            The maximum value for the uniform distribution.
+        loc : float, default=0.0
+            The mean for the normal distribution.
+        scale : float, default=1.0
+            The standard deviation for the normal distribution.
+        domain_kind : Literal["Domain", "SampleSpace"], default="Domain"
+            The type of the domain.
+        domain_name: Hashble | None, default=None
+            The name of the domain. If `None`, a default will be generated.
+        output_name : Hashable | None, default=None
+            The name of the outputs of the function. If `None`, a default will be generated.
         index : IndexLike | None, default=None
-            The index of the measurable vector. Either `dim` or `index` may be provided to set the dimension of the measurable vector. If neither is provided, `dim` will default to `1`.
-        random_state : int | np.random.Generator | None, default=None
-            An optional seed for a random number generator.
+            The index for the outputs of the function. Only used if the outputs are multi-dimensional.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index. Only used if the outputs are multi-dimensional.
+        index_name : Hashable | None, default=None
+            The name of the index. Only used if the outputs are multi-dimensional.
         name : Hashable | None, default=None
-            The name of the measurable vector. If `None`, a default will be generated.
+            The name of the function. If `None`, a default name will be used.
+        random_state : int | np.random.Generator | None, default=None
+            The random state for reproducibility.
 
         Returns
         -------
         vector : MeasurableVector
-            A measurable vector with integer outputs uniformly sampled from the range [low, high).
+            A random measurable vector.
 
         Examples
         --------
@@ -578,9 +623,6 @@ class MeasurableVector(Function, OperatorsMethods):
         4 -0.958883  0.878450
         5 -0.859292  0.368751
         """
-        import numpy as np
-        import pandas as pd
-
         from ...validation.domain_index_validator import DomainIndexValidator
         from ...validation.measurable_func_normalizer import MeasurableFuncNormalizer
         from .._utils.function_helpers import ascend_from_atom_space
@@ -691,29 +733,26 @@ class MeasurableVector(Function, OperatorsMethods):
     @classmethod
     def concatenate(
         cls,
-        factors: list[MeasurableFunction | MeasurableVector | Real],
+        factors: list[Function],
         index: IndexLike | None = None,
         index_kind: Literal["Index", "Time"] = "Index",
         index_name: Hashable | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
-        """Concatenate a list of measurable vectors or scalars into a single measurable vector.
+        """Concatenate a list of measurable vectors into a multi-dimensional vector.
 
         Parameters
         ----------
-        factors : list[MeasurableFunction | MeasurableVector | Real]
-            A list of measurable vectors or scalars to combine.
+        factors : list[Function]
+            A list of functions to concatenate.
         index : IndexLike | None, default=None
-            The index of the resulting measurable vector. If `None`, the index will be generated by concatenating the indices of the input measurable vectors, provided that they are disjoint; otherwise, a new default index will be generated.
+            The index of the resulting function. If `None`, the method will attempt to join the indices of the factors, but the indices must be pairwise disjoint.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index.
+        index_name : Hashable | None, default=None
+            The name of the index.
         name : Hashable | None, default=None
-            The name of the resulting measurable vector. If `None`, the name will be generated by concatenating the names of the input measurable vectors.
-
-        Raises
-        ------
-        TypeError
-            If `factors` is not a list, if any element of `factors` is not a `MeasurableFunction`, `MeasurableVector`, or scalar, or if `name` is not a `Hashable` or `None`.
-        ValueError
-            If there is not at least one `MeasurableVector` instance in `factors`, or if the measurable vectors in `factors` are not defined on the same measurable space.
+            The name of the resulting measurable vector. If `None`, a default will be generated.
 
         Returns
         -------
@@ -851,21 +890,20 @@ class MeasurableVector(Function, OperatorsMethods):
         ----------
         factors : list[MeasurableVector]
             The factors of the Cartesian product.
-        index : IndexLike | None, default=None
-            The index of the Cartesian product. If `None`, a default index will be generated.
-        name : Hashable | None, default=None
-            The name of the Cartesian product. If `None`, a default will be generated.
         domain_name : Hashable | None, default=None
-            The name of the domain of the Cartesian product. If `None`, a default will be generated.
+            The name of the domain of the Cartesian product.
         sig_alg_name : Hashable | None, default=None
             The name of the sigma-algebra of the Cartesian product. If `None`, a default will be generated.
         measure_name : Hashable | None, default=None
             The name of the measure of the Cartesian product. If `None`, a default will be generated.
-
-        Raises
-        ------
-        TypeError
-            If `factors` is not a list of measurable vectors.
+        index : IndexLike | None, default=None
+            The index of the Cartesian product.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index.
+        index_name : Hashable | None, default=None
+            The name of the index.
+        name : Hashable | None, default=None
+            The name of the Cartesian product. If `None`, a default will be generated.
 
         Returns
         -------
@@ -969,13 +1007,13 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Notes
         -----
-        Given one measurable vector $f: X \to \mathbb{R}^d$ on a measurable space $(X,\mathcal{F})$, and a second measurable vector $g: Y \to \mathbb{R}^e$ on a measurable space $(Y,\mathcal{G})$, their *Cartesian product*, denoted $f \times g$, is the $(\mathcal{F} \times \mathcal{G})$-measurable measurable vector defined
+        Given one measurable vector $f: X \to \mathbb{R}^d$ on a measurable space $(X,\mathcal{F})$, and a second measurable vector $g: Y \to \mathbb{R}^e$ on a measurable space $(Y,\mathcal{G})$, their *Cartesian product*, denoted $f \times g$, is the $(\mathcal{F} \otimes \mathcal{G})$-measurable measurable vector defined
 
         $$
         (f \times g) : X \times Y \to \mathbb{R}^{d+e}, \quad (f\times g)(x, y) = (f(x),g(y)).
         $$
 
-        Here, $\mathcal{F} \times \mathcal{G}$ is the product $\sigma$-algebra.
+        Here, $\mathcal{F} \otimes \mathcal{G}$ is the tensor product $\sigma$-algebra.
         """
         from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -1013,28 +1051,31 @@ class MeasurableVector(Function, OperatorsMethods):
     @classmethod
     def cartesian_power(
         cls,
-        vector: MeasurableVector,
+        function: MeasurableVector,
         n: int,
         index: IndexLike | None = None,
         index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
     ) -> MeasurableVector:
         """Form the Cartesian power of a measurable vector.
 
         Parameters
         ----------
-        vector : MeasurableVector
+        function : MeasurableVector
             The base of the Cartesian power.
         n : int
             The power of the Cartesian power.
         index : IndexLike | None, default=None
-            The index of the Cartesian power. If `None`, a default index will be generated.
+            The index of the Cartesian power.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index. Only used if the outputs are multi-dimensional.
+        index_name : Hashable | None, default=None
+            The name of the index. Only used if the outputs are multi-dimensional.
 
-        Raises
-        ------
-        TypeError
-            If `vector` is not a `MeasurableVector` or if `n` is not an integer.
-        ValueError
-            If `n` is not positive.
+        Returns
+        -------
+        power : MeasurableVector
+            The Cartesian power.
 
         Examples
         --------
@@ -1176,21 +1217,22 @@ class MeasurableVector(Function, OperatorsMethods):
         <BLANKLINE>
         [64 rows x 6 columns]
         """
-        name = f"{vector.name} ^ {n}"
-        domain_name = f"{vector.domain.name} ^ {n}"
-        sig_alg_name = f"{vector.sig_alg.name} ^ {n}"
+        name = f"{function.name} ^ {n}"
+        domain_name = f"{function.domain.name} ^ {n}"
+        sig_alg_name = f"{function.sig_alg.name} ^ {n}"
         measure_name = (
-            f"{vector.measure.name} ^ {n}" if vector.measure is not None else None
+            f"{function.measure.name} ^ {n}" if function.measure is not None else None
         )
 
         return cls.cartesian_product(
-            factors=[vector] * n,
+            factors=[function] * n,
             name=name,
             domain_name=domain_name,
             sig_alg_name=sig_alg_name,
             measure_name=measure_name,
             index=index,
             index_kind=index_kind,
+            index_name=index_name,
         )
 
     # --------------------- utils --------------------- #
@@ -1270,14 +1312,15 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Examples
         --------
-        Extract the underlying measurable space of a 2-dimensional measurable vector.
-
         >>> from sigalg.core import (
         ...     Domain,
         ...     MeasurableSpace,
         ...     MeasurableVector,
         ...     SigmaAlgebra,
         ... )
+
+        Define a function on a measurable space.
+
         >>> X = Domain.from_sequence(size=3)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -1296,6 +1339,9 @@ class MeasurableVector(Function, OperatorsMethods):
         ...         2: (3, 4),
         ...     },
         ... )
+
+        Extract the measurable space.
+
         >>> print(f.measurable_space)  # doctest: +NORMALIZE_WHITESPACE
         Measurable space (X, F)
         =======================
@@ -1328,8 +1374,6 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Examples
         --------
-        Extract the underlying measure space of a 2-dimensional measurable vector.
-
         >>> from sigalg.core import (
         ...     Domain,
         ...     Measure,
@@ -1337,6 +1381,9 @@ class MeasurableVector(Function, OperatorsMethods):
         ...     MeasurableVector,
         ...     SigmaAlgebra,
         ... )
+
+        Define a function on a measure space.
+
         >>> X = Domain.from_sequence(size=3)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -1362,6 +1409,9 @@ class MeasurableVector(Function, OperatorsMethods):
         ...         2: (3, 4),
         ...     },
         ... )
+
+        Extract the measure space.
+
         >>> print(f.measure_space)  # doctest: +NORMALIZE_WHITESPACE
         Measure space (X, F, mu)
         ========================
@@ -1393,189 +1443,29 @@ class MeasurableVector(Function, OperatorsMethods):
             else None
         )
 
-    # --------------------- probability methods --------------------- #
-
-    def sample(
-        self,
-        size: int,
-        random_state: int | np.random.Generator | None = None,
-    ) -> PandasLike:
-        """Generate random samples from the range space of this random vector.
-
-        Parameters
-        ----------
-        size : int, default=1
-            Number of samples to generate.
-        random_state : int | np.random.Generator | None, default=None
-            An optional seed for the random number generator.
-
-        Returns
-        -------
-        sample : PandasLike
-            If the random vector is 1-dimensional, then a `pd.Series` is returned containing the random sample. Otherwise, if the random vector is multi-dimensional, a `pd.DataFrame` is returned whose rows contain the random sample and has columns indexed by the index of the random vector.
-
-        Examples
-        --------
-        >>> import numpy as np
-        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, RandomVector, SampleSpace, SigmaAlgebra
-        >>> rng = np.random.default_rng(42)
-
-        Generate a random probability space and sample from a 2-dimensional random vector.
-
-        >>> Omega = SampleSpace.from_sequence(size=10)
-        >>> F = SigmaAlgebra.from_rand(
-        ...     domain=Omega,
-        ...     num_atoms=4,
-        ...     random_state=rng,
-        ... )
-        >>> P = ProbabilityMeasure.from_rand(domain=F, random_state=rng)
-        >>> X = RandomVector.from_rand(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     max_value=10,
-        ...     dim=2,
-        ...     random_state=rng,
-        ... )
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        i      0  1
-        omega
-        0      2  6
-        1      2  6
-        2      1  7
-        3      2  6
-        4      7  3
-        5      2  6
-        6      0  9
-        7      2  6
-        8      0  9
-        9      2  6
-        >>> print(X.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, F, P)
-        ===============================
-        <BLANKLINE>
-        * Sample space 'Omega':
-         omega
-             0
-             1
-             2
-             3
-             4
-             5
-             6
-             7
-             8
-             9
-        <BLANKLINE>
-        * Sigma algebra 'F':
-              F
-        omega
-        0     1
-        1     1
-        2     3
-        3     1
-        4     2
-        5     1
-        6     0
-        7     1
-        8     0
-        9     1
-        <BLANKLINE>
-        * Probability measure 'P':
-                  P
-        F
-        1  0.049134
-        3  0.207580
-        2  0.082504
-        0  0.660782
-        >>> X_sample = X.sample(size=1_000, random_state=rng)
-        >>> print(X_sample.measure)  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'C':
-                   C
-        X_0 X_1
-        0   9    663
-        1   7    210
-        7   3     81
-        2   6     46
-
-        Sample from a 1-dimensional random variable.
-
-        >>> Y = RandomVariable.from_rand(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     max_value=10,
-        ...     random_state=rng,
-        ...     name="Y",
-        ... )
-        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'Y':
-               Y
-        omega
-        0      4
-        1      4
-        2      5
-        3      4
-        4      7
-        5      4
-        6      6
-        7      4
-        8      6
-        9      4
-        >>> Y_sample = Y.sample(size=1_000, random_state=rng)
-        >>> print(Y_sample.measure)  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'C':
-             C
-        Y
-        6  650
-        5  219
-        7   92
-        4   39
-        """
-        from ..measures.probability_measure import ProbabilityMeasure
-        from .operators import Operators
-
-        if not isinstance(self.measure, ProbabilityMeasure):
-            raise TypeError("Cannot sample from a non-random-vector.")
-
-        if self.data is not None:
-            return Operators.pushforward(vec=self, measure=self.measure).sample(
-                size=size, random_state=random_state
-            )
-        else:
-            raise ValueError("Cannot sample from an empty measurable vector instance.")
-
     # --------------------- function methods --------------------- #
 
     def restrict_to(
         self,
-        subset: Set | list,
-        normalize: bool = False,
+        subset: Set | list[Hashable],
         subset_name: Hashable | None = "A",
+        normalize: bool = False,
     ) -> MeasurableVector:
-        r"""Restrict the measurable vector to a measurable set.
-
-        See the Notes section below for the mathematical details.
+        r"""Restrict the measurable vector to a measurable subset.
 
         Parameters
         ----------
-        measurable_set : MeasurableSet | list
+        subset : Set | list[Hashable]
             The set to restrict the measurable vector to.
-        set_name : Hashable | None, default="A"
-            The name to use for the measurable set in the name of the resulting restricted measurable vector. This parameter is only used if `measurable_set` is a list of points, and is otherwise ignored if `measurable_set` is a `MeasurableSet` instance.
-
-        Raises
-        ------
-        TypeError
-            If `measurable_set` is not an `MeasurableSet` or a list of points.
-        ValueError
-            If `measurable_set` is not in the sigma-algebra of the measurable vector.
+        subset_name : Hashable, default="A"
+            The name to use for the subset. Ignored if `subset` is an instance of `Set`.
+        normalize : bool, default=False
+            If the measurable vector carries a measure, whether to normalize the restricted measure to create a probability space.
 
         Returns
         -------
-        restricted_vec : MeasurableVector
-            A new `MeasurableVector` representing the restriction of the original measurable vector to the given set.
+        restriction : MeasurableVector
+            The restriction of the function.
 
         Examples
         --------
@@ -1662,13 +1552,14 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Restrict the measurable vector using a `list` with a custom name. Pass `normalize=True` to create a probability measure.
 
-        >>> f_B = f.restrict_to([1, 2], normalize=True, subset_name="B")
+        >>> f_B = f.restrict_to([1, 2, 3], normalize=True, subset_name="B")
         >>> print(f_B)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'f|B':
         i   0  1
         x
         1   3  4
         2   3  4
+        3   5  6
         >>> print(f_B.measure_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (B, F|B, mu|B)
         ================================
@@ -1677,21 +1568,20 @@ class MeasurableVector(Function, OperatorsMethods):
          x
          1
          2
+         3
         <BLANKLINE>
         * Sigma algebra 'F|B':
                 F|B
         x
         1         1
         2         1
+        3         2
         <BLANKLINE>
         * Probability measure 'mu|B':
-                    mu|B
+            mu|B
         F
-        1            1.0
-
-        Notes
-        -----
-        Let $f: X \to \mathbb{R}^d$ be a measurable vector on a measure space $(X, \mathcal{F}, \mu)$. If $A\in \mathcal{F}$ is an measurable set, then we may restrict the measurable vector to obtain the function $f|_A : A \to \mathbb{R}^d$ on $A$.
+        1  0.625
+        2  0.375
         """
         restricted_sig_alg = self.sig_alg.restrict_to(
             subset=subset, subset_name=subset_name
@@ -1708,60 +1598,6 @@ class MeasurableVector(Function, OperatorsMethods):
             subset_name=subset_name,
             sig_alg=restricted_sig_alg,
             measure=restricted_measure,
-        )
-
-    def __round__(self, ndigits: int = None) -> MeasurableVector:
-        """Round the outputs of the measurable vector to a specified number of decimal places.
-
-        Parameters
-        ----------
-        decimals : int, default=0
-            The number of decimal places to round to. Must be a non-negative integer.
-
-        Examples
-        --------
-        >>> from sigalg.core import Domain, MeasurableFunction, Measure, SigmaAlgebra
-        >>> X = Domain.from_sequence(size=3)
-        >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1])))
-        >>> mu = Measure(domain=F, mapping=dict(zip(F.atom_space, [1, 2])))
-        >>> f = MeasurableFunction(
-        ...     domain=X, sig_alg=F, measure=mu, mapping=dict(zip(X, [0.1, 0.45, 0.45]))
-        ... )
-        >>> rounded_f = round(f, 2)
-        >>> print(rounded_f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'round(f)':
-           round(f)
-        x
-        0      0.10
-        1      0.45
-        2      0.45
-        >>> print(rounded_f.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, F, mu)
-        ========================
-        <BLANKLINE>
-        * Domain 'X':
-         x
-         0
-         1
-         2
-        <BLANKLINE>
-        * Sigma algebra 'F':
-           F
-        x
-        0  0
-        1  1
-        2  1
-        <BLANKLINE>
-        * Measure 'mu':
-           mu
-        F
-        0   1
-        1   2
-        """
-        return super().__round__(
-            ndigits=ndigits,
-            sig_alg=self.sig_alg,
-            measure=self.measure,
         )
 
     # --------------------- conversion methods --------------------- #
@@ -1842,21 +1678,29 @@ class MeasurableVector(Function, OperatorsMethods):
         index_kind: Literal["Index", "Time"] = "Index",
         index_name: Hashable | None = None,
         name: Hashable | None = None,
-    ) -> Function:
+    ) -> MeasurableVector:
         """Apply a binary operation to this measurable vector.
 
         Parameters
         ----------
-        self : MeasurableVector
-            The left operand (or right if reverse=True).
-        other : MeasurableVector | Real
-            The right operand (or left if reverse=True).
+        other : Function | Real
+            The other operand.
         operation : Callable
-            The pandas operation to apply (e.g., `lambda a, b: a + b`).
+            The operation to apply.
         op_symbol : str
-            Symbol representing the operation (e.g., '+', '-', '*').
+            Symbol representing the operation.
         reverse : bool, default=False
-            Whether this is a reverse operation (e.g., __radd__ vs __add__).
+            Whether this is a reverse operation.
+        domain_name : Hashable | None, default=None
+            The name of the domain.
+        index : IndexLike | None, default=None
+            The index for the outputs of the function. Only used if the outputs are multi-dimensional.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index. Only used if the outputs are multi-dimensional.
+        index_name : Hashable | None, default=None
+            The name of the index. Only used if the outputs are multi-dimensional.
+        name : Hashable | None, default=None
+            The name of the function. If `None`, a default name will be generated.
 
         Returns
         -------

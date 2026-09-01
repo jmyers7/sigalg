@@ -492,8 +492,8 @@ class Function:
 
         Returns
         -------
-        vector : MeasurableVector
-            A measurable vector mapping every point in the domain to itself.
+        function : Function
+            A function mapping every point in the domain to itself.
 
         Examples
         --------
@@ -655,6 +655,11 @@ class Function:
         random_state : int | np.random.Generator | None, default=None
             The random state for reproducibility.
 
+        Returns
+        -------
+        function : Function
+            A random function.
+
         Examples
         --------
         >>> import numpy as np
@@ -809,12 +814,12 @@ class Function:
         index_name : Hashable | None, default=None
             The name of the index.
         name : Hashable | None, default=None
-            The name of the resulting measurable vector. If `None`, a default will be generated.
+            The name of the resulting function. If `None`, a default will be generated.
 
         Returns
         -------
-        concatenation : MeasurableVector
-            A new measurable vector created by combining the input measurable vectors.
+        concatenation : Function
+            A new function created by combining the input functions.
 
         Examples
         --------
@@ -1229,8 +1234,8 @@ class Function:
 
         Returns
         -------
-        product : MeasurableVector
-            The Cartesian product of the measurable vectors.
+        product : Function
+            The Cartesian product of the functions.
 
         Examples
         --------
@@ -1272,13 +1277,11 @@ class Function:
 
         Notes
         -----
-        Given one measurable vector $f: X \to \mathbb{R}^d$ on a measurable space $(X,\mathcal{F})$, and a second measurable vector $g: Y \to \mathbb{R}^e$ on a measurable space $(Y,\mathcal{G})$, their *Cartesian product*, denoted $f \times g$, is the $(\mathcal{F} \times \mathcal{G})$-measurable measurable vector defined
+        Given one function $f: X \to \mathbb{R}^d$ and a second one $g: Y \to \mathbb{R}^e$, their *Cartesian product*, denoted $f \times g$, is the function
 
         $$
         (f \times g) : X \times Y \to \mathbb{R}^{d+e}, \quad (f\times g)(x, y) = (f(x),g(y)).
         $$
-
-        Here, $\mathcal{F} \times \mathcal{G}$ is the product $\sigma$-algebra.
         """
         from ...validation.domain_index_validator import DomainIndexValidator
         from .._utils.utils import subscript_var_names
@@ -1370,6 +1373,11 @@ class Function:
             The kind of index. Only used if the outputs are multi-dimensional.
         index_name : Hashable | None, default=None
             The name of the index. Only used if the outputs are multi-dimensional.
+
+        Returns
+        -------
+        power : Function
+            The Cartesian power.
 
         Examples
         --------
@@ -2554,7 +2562,10 @@ class Function:
             return None
 
     def restrict_to(
-        self, subset: Set | list[Hashable], subset_name: Hashable | None = "A", **kwargs
+        self,
+        subset: Set | list[Hashable],
+        subset_name: Hashable | None = "A",
+        **kwargs,
     ) -> Function:
         """Restrict the function to a subset of its domain.
 
@@ -2564,10 +2575,12 @@ class Function:
             The set to restrict the measurable vector to.
         subset_name : Hashable, default="A"
             The name to use for the subset. Ignored if `subset` is an instance of `Set`.
+        kwargs : dict
+            Keyword arguments passed to subclasses.
 
         Returns
         -------
-        restrition : Function
+        restriction : Function
             The restriction of the function.
 
         Examples
@@ -4966,6 +4979,7 @@ class Function:
         """
         return bool(self.data.any().any() if self.dimension > 1 else self.data.any())
 
+    # TODO: check that sig_alg and measure are preserved properly
     def _apply_comparison(
         self,
         other: Function | Real,
@@ -5006,6 +5020,14 @@ class Function:
         from .._utils.utils import pandas_all_equal
         from ..indices.index import Index
         from ..indices.time import Time
+
+        if isinstance(self.data, pd.Series | pd.DataFrame) and isinstance(other, Real):
+            constant = (other,) * self.dimension if self.dimension > 1 else other
+            other = Function.from_constant(
+                domain=self.domain,
+                constant=constant,
+                name=other,
+            )
 
         if isinstance(self.data, pd.Series | pd.DataFrame) and isinstance(
             other.data, pd.Series | pd.DataFrame
@@ -5062,6 +5084,8 @@ class Function:
                 index_kind=type(index).__name__,
                 index_name=index.name,
                 name=name,
+                sig_alg=getattr(self, "sig_alg", None),
+                measure=getattr(self, "measure", None),
                 **kwargs,
             )
 

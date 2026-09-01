@@ -7,12 +7,12 @@ from functools import cached_property
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
+import pandas as pd
+
 from .function import Function
 
 if TYPE_CHECKING:
     from collections.abc import Hashable, Iterator
-
-    import pandas as pd
 
     from ...typing.mapping_like import MappingLike
     from ..indices.index import Index
@@ -135,8 +135,8 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
         parameter_domain: Domain | None = None,
         complete_domain: Domain | None = None,
         sig_alg: SigmaAlgebra | None = None,
-        mapping: MappingLike | None = None,
         measure: Measure | None = None,
+        mapping: MappingLike | None = None,
         parameter_names: list[Hashable] | None = None,
         complete_domain_name: Hashable | None = None,
         parameter_domain_name: Hashable | None = None,
@@ -155,12 +155,20 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
             The parameter domain of the function.
         sig_alg : SigmaAlgebra
             The sigma-algebra of the underlying measurable space.
-        mapping : MappingLike
-            The mapping of the parametrized function.
         measure : Measure | None, default=None
             An optional measure on the underlying measurable space.
-        name : Hashable, default="f"
-            The name of the parametrized function.
+        mapping : MappingLike
+            The mapping of the parametrized function.
+        parameter_names : list[Hashable] | None, default=None
+            The names of the parameters of the function.
+        complete_domain_name : Hashable | None, default=None
+            The name of the domain of the function.
+        parameter_domain_name : Hashable | None, default=None
+            The name of the parameter domain.
+        output_name : Hashable | None, default=None
+            The name of the output variable for the parametrized function. If `None`, a default will be generated.
+        name : Hashable | None, default=None
+            The name of the parametrized function. If `None`, a default will be generated.
 
         Returns
         -------
@@ -362,6 +370,9 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
         Examples
         --------
         >>> from sigalg.core import Domain, ParametrizedMeasurableFunction, SigmaAlgebra
+
+        Define a parametrized function.
+
         >>> Theta = Domain.cartesian_power(
         ...     [0, 1], n=2, variable_names=["theta_0", "theta_1"], name="Theta"
         ... )
@@ -394,6 +405,17 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
         ...     sig_alg=F,
         ...     mapping=mapping,
         ... )
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measurable function 'f':
+        theta_0  0     1
+        theta_1  0  1  0  1
+        x
+        0        0  2  4  5
+        1        1  8  1  0
+        2        1  8  1  0
+
+        Print the parameter domain of the function.
+
         >>> print(f.parameter_domain)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'Theta':
          theta_0  theta_1
@@ -432,6 +454,9 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
         ...     ParametrizedMeasurableFunction,
         ...     SigmaAlgebra,
         ... )
+
+        Define a parametrized function.
+
         >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
         >>> X = Domain.from_sequence(size=3, variable_name="x")
         >>> F = SigmaAlgebra(
@@ -463,6 +488,9 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
         0      1  0
         1      2 -3
         2      2 -3
+
+        Print the measurable domain.
+
         >>> print(f.measurable_domain)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'X':
          x
@@ -488,6 +516,9 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
         ...     ParametrizedMeasurableFunction,
         ...     SigmaAlgebra,
         ... )
+
+        Define a parametrized function.
+
         >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
         >>> X = Domain.from_sequence(size=3, variable_name="x")
         >>> F = SigmaAlgebra(
@@ -519,6 +550,9 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
         0      1  0
         1      2 -3
         2      2 -3
+
+        Print the names of the measurable variables.
+
         >>> f.measurable_names
         ['x']
         """
@@ -540,6 +574,9 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
         ...     ParametrizedMeasurableFunction,
         ...     SigmaAlgebra,
         ... )
+
+        Define a parametrized function.
+
         >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
         >>> X = Domain.from_sequence(size=3, variable_name="x")
         >>> F = SigmaAlgebra(
@@ -571,8 +608,25 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
         0      1  0
         1      2 -3
         2      2 -3
-        >>> f.measurable_space
-        MeasurableSpace(domain=X, sig_alg=F)
+
+        Print the underlying measurable space.
+
+        >>> print(f.measurable_space)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable space (X, F)
+        =======================
+        <BLANKLINE>
+        * Domain 'X':
+         x
+         0
+         1
+         2
+        <BLANKLINE>
+        * Sigma algebra 'F':
+           F
+        x
+        0  0
+        1  1
+        2  1
         """
         from ..spaces.measurable_space import MeasurableSpace
 
@@ -595,6 +649,9 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
         ...     ParametrizedMeasurableFunction,
         ...     SigmaAlgebra,
         ... )
+
+        Define a parametrized function.
+
         >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
         >>> X = Domain.from_sequence(size=3, variable_name="x")
         >>> F = SigmaAlgebra(
@@ -634,8 +691,31 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
         0      1  0
         1      2 -3
         2      2 -3
-        >>> f.measure_space
-        MeasureSpace(domain=X, sig_alg=F, measure=mu)
+
+        Get the underlying measure space.
+
+        >>> print(f.measure_space)  # doctest: +NORMALIZE_WHITESPACE
+        Measure space (X, F, mu)
+        ========================
+        <BLANKLINE>
+        * Domain 'X':
+         x
+         0
+         1
+         2
+        <BLANKLINE>
+        * Sigma algebra 'F':
+        F
+        x
+        0  0
+        1  1
+        2  1
+        <BLANKLINE>
+        * Measure 'mu':
+           mu
+        F
+        0   1
+        1   3
         """
         from ..spaces.measure_space import MeasureSpace
 
@@ -1127,7 +1207,68 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
                 ) from e
 
     def __iter__(self) -> Iterator[tuple[dict, MeasurableFunction]]:
-        """Pass."""
+        """Iterate over the parameters and component functions of the parametrized function.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, ParametrizedMeasurableFunction, SigmaAlgebra
+
+        Define a parametrized function.
+
+        >>> Theta = Domain.cartesian_power(
+        ...     [0, 1], n=2, variable_names=["theta_0", "theta_1"], name="Theta"
+        ... )
+        >>> X = Domain.from_sequence(size=3, variable_name="x")
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: (0, 1),
+        ...         1: (1, 2),
+        ...         2: (1, 2),
+        ...     },
+        ... )
+        >>> mapping = {
+        ...     (0, 0, 0): 0,  # (theta_0, theta_1, x) = (0, 0, 0), etc...
+        ...     (0, 0, 1): 1,
+        ...     (0, 0, 2): 1,
+        ...     (0, 1, 0): 2,
+        ...     (0, 1, 1): 8,
+        ...     (0, 1, 2): 8,
+        ...     (1, 0, 0): 4,
+        ...     (1, 0, 1): 1,
+        ...     (1, 0, 2): 1,
+        ...     (1, 1, 0): 5,
+        ...     (1, 1, 1): 0,
+        ...     (1, 1, 2): 0,
+        ... }
+        >>> f = ParametrizedMeasurableFunction.from_domains(
+        ...     measurable_domain=X,
+        ...     parameter_domain=Theta,
+        ...     sig_alg=F,
+        ...     mapping=mapping,
+        ... )
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measurable function 'f':
+        theta_0  0     1
+        theta_1  0  1  0  1
+        x
+        0        0  2  4  5
+        1        1  8  1  0
+        2        1  8  1  0
+
+        Extract the first set of parameters and component function.
+
+        >>> params, component = next(iter(f))
+        >>> params
+        {'theta_0': 0, 'theta_1': 0}
+        >>> print(component)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function 'f(theta_0=0, theta_1=0)':
+           f(theta_0=0, theta_1=0)
+        x
+        0                        0
+        1                        1
+        2                        1
+        """
         unique_params = (
             self.data.index.to_frame()[self.parameter_names]
             .drop_duplicates()
@@ -1168,8 +1309,6 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
         repr_str : str
             The string representation of the function.
         """
-        import pandas as pd
-
         if isinstance(self.data, pd.Series):
             return f"{type(self)._str_name} '{self.name}':\n{self.data.unstack(level=self.parameter_names)}"
         elif isinstance(self.data, Callable):
@@ -1191,7 +1330,34 @@ class ParametrizedMeasurableFunction(Function, OperatorsMethods):
         index_name: Hashable | None = None,
         name: Hashable | None = None,
     ) -> Function:
-        """Pass."""
+        """Apply a binary operation to this function.
+
+        Parameters
+        ----------
+        other : Function | Real
+            The other operand.
+        operation : Callable
+            The operation to apply.
+        op_symbol : str
+            Symbol representing the operation.
+        reverse : bool, default=False
+            Whether this is a reverse operation.
+        domain_name : Hashable | None, default=None
+            The name of the domain.
+        index : IndexLike | None, default=None
+            The index for the outputs of the function. Only used if the outputs are multi-dimensional.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The kind of index. Only used if the outputs are multi-dimensional.
+        index_name : Hashable | None, default=None
+            The name of the index. Only used if the outputs are multi-dimensional.
+        name : Hashable | None, default=None
+            The name of the function. If `None`, a default name will be generated.
+
+        Returns
+        -------
+        result : Function
+            A new function representing the result of the operation.
+        """
         from .measurable_function import MeasurableFunction
 
         if isinstance(other, Real):
