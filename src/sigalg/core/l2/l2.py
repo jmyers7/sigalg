@@ -2,21 +2,22 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
+from functools import cached_property
 from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
     from numbers import Real
 
-    from ...core.functions.measurable_function import MeasurableFunction
-    from ...core.measures.measure import Measure
-    from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
     from ...typing.index_like import IndexLike
+    from ..functions.function import Function
+    from ..functions.measurable_function import MeasurableFunction
+    from ..measures.measure import Measure
+    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.domain import Domain
-    from ..spaces.measure_space import MeasureSpace
 
 
 class L2:
@@ -26,23 +27,21 @@ class L2:
 
     Parameters
     ----------
-    domain : Domain | IndexLike | None, default=None
+    domain : IndexLike | None, default=None
         The domain on which the L2-space is defined.
     sig_alg : SigmaAlgebra | None, default=None
-        The sigma algebra on which the L2-space is defined. If `None`, the power-set sigma-algebra on the domain is used.
+        The sigma-algebra over which the L2-space is defined. If `None`, the power-set sigma-algebra on the domain is used.
     measure : Measure | None, default=None
-        The measure on which the L2-space is defined. If `None`, the counting measure on the domain is used.
-    name : Hashable | None, default="H"
+        The measure over which the L2-space is defined. If `None`, the counting measure on the domain is used.
+    name : Hashable, default="H"
         The name of the L2-space.
-
-    Raises
-    ------
-    TypeError
-        If `domain` is not an instance of `Domain`, or if `sig_alg` is not an instance of `SigmaAlgebra` or `None`, or if `measure` is not an instance of `Measure` or `None`. If `sig_alg` is not `None`, it must be defined on the same domain as the L2-space. If `measure` is not `None`, it must be defined on the same domain as the L2-space.
 
     Examples
     --------
     >>> from sigalg.core import Domain, L2, Measure, SigmaAlgebra
+
+    Define a measure space and the L2-space over it.
+
     >>> X = Domain.from_sequence(size=4)
     >>> F = SigmaAlgebra(
     ...     domain=X,
@@ -61,42 +60,45 @@ class L2:
     ...     },
     ... )
     >>> H = L2(X, F, mu)
+
+    Print the L2-space.
+
     >>> print(H)  # doctest: +NORMALIZE_WHITESPACE
     H = L2(X, F, mu)
     ================
     <BLANKLINE>
     * Domain 'X':
-     point
-         0
-         1
-         2
-         3
+     x
+     0
+     1
+     2
+     3
     <BLANKLINE>
     * Sigma algebra 'F':
-            atom_ID
-    point
-    0             0
-    1             1
-    2             0
-    3             1
+         F
+    x
+    0    0
+    1    1
+    2    0
+    3    1
     <BLANKLINE>
     * Measure 'mu':
-            measure
-    atom_ID
-    0             6
-    1             3
+            mu
+    F
+    0        6
+    1        3
 
     Notes
     -----
     Let $(X,\mathcal{F},\mu)$ be a measure space. We define $L^2(X,\mathcal{F},\mu)$ to be the set of all $\mathcal{F}$-measurable functions $f: X \to \mathbb{R}$ such that
 
     $$
-    \int_X f^2 \, d\mu < \infty. \tag{$\ast$}
+    \int_X f^2 \, d\mu < \infty.
     $$
 
     When the domain $X$ and measure $\mu$ are fixed and understood, we will write $L^2(\mathcal{F})$ in place of $L^2(X,\mathcal{F},\mu)$. We agree to identify two functions $f$ and $g$ in $L^2(\mathcal{F})$ provided that they are equal almost everywhere, i.e., the set of points on which they are not equal has measure $0$.
 
-    The set $L^2(\mathcal{F})$ is a (real) vector space under the standard point-wise operators. Even more, it is also a Hilbert space when equipped with the inner product
+    The set $L^2(\mathcal{F})$ is a (real) vector space under the standard point-wise operations. Even more, it is also a Hilbert space when equipped with the inner product
 
     $$
     \langle f, g \rangle \stackrel{\text{def}}{=} \int_X fg \, d\mu,
@@ -104,7 +106,7 @@ class L2:
 
     for $f,g\in L^2(\mathcal{F})$.
 
-    In the case that $X$ is finite (as it always is, in SigAlg), the condition $(\ast)$ is automatically satisfied, so $L^2(\mathcal{F})$ is simply the vector space of all $\mathcal{F}$-measurable functions.
+    In the case that $X$ is finite (as it always is, in SigAlg), the square-integrable condition is automatically satisfied, so $L^2(\mathcal{F})$ is simply the vector space of all $\mathcal{F}$-measurable functions.
     """
 
     # --------------------- constructor --------------------- #
@@ -118,21 +120,17 @@ class L2:
     ) -> None:
         from ..spaces.measure_space import MeasureSpace
 
-        if not isinstance(name, Hashable):
-            raise TypeError("Name must be a Hashable.")
-
-        self._measure_space = MeasureSpace(
+        self.measure_space = MeasureSpace(
             domain=domain,
             sig_alg=sig_alg,
             measure=measure,
         )
 
-        self._name = name
-        self._initialize_property_caches()
+        self.name = name
 
     # --------------------- properties --------------------- #
 
-    @property
+    @cached_property
     def basis_df(self) -> pd.DataFrame | None:
         """Return a `pd.DataFrame` whose columns are the orthonormal basis vectors of the L2-space.
 
@@ -144,6 +142,9 @@ class L2:
         Examples
         --------
         >>> from sigalg.core import Domain, L2, Measure, SigmaAlgebra
+
+        Define an L2-space.
+
         >>> X = Domain.from_sequence(size=4)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -163,34 +164,32 @@ class L2:
         ...     },
         ... )
         >>> H = L2(X, F, mu)
+
+        Print the basis dataframe.
+
         >>> print(H.basis_df)  # doctest: +NORMALIZE_WHITESPACE
-                      1    2
-        point
-        0      0.000000  0.0
-        1      0.447214  0.0
-        2      0.000000  0.5
-        3      0.000000  0.5
+                  1    2
+        x
+        0  0.000000  0.0
+        1  0.447214  0.0
+        2  0.000000  0.5
+        3  0.000000  0.5
         """
-        if (
-            self._basis_df is None
-            and self.sig_alg is not None
-            and self.measure is not None
-        ):
+        if self.sig_alg is not None and self.measure is not None:
             if isinstance(self.sig_alg.data, pd.DataFrame):
                 sig_alg_data = self.sig_alg.data.apply(tuple, axis=1)
             else:
                 sig_alg_data = self.sig_alg.data
 
-            self._basis_df = pd.get_dummies(sig_alg_data).astype(int)
+            basis_df = pd.get_dummies(sig_alg_data).astype(int)
+            measure_data = self.measure.data.reindex(basis_df.columns)
 
-            measure_data = self.measure.data.reindex(self._basis_df.columns)
+            return (basis_df.mul(1 / measure_data**0.5, axis=1)).dropna(axis=1)
 
-            self._basis_df = (self._basis_df.mul(1 / measure_data**0.5, axis=1)).dropna(
-                axis=1
-            )
-        return self._basis_df
+        else:
+            return None
 
-    @property
+    @cached_property
     def basis(self) -> dict[Hashable, MeasurableFunction] | None:
         r"""Return an orthonormal basis of the L2-space.
 
@@ -204,6 +203,9 @@ class L2:
         Examples
         --------
         >>> from sigalg.core import Domain, L2, Measure, SigmaAlgebra
+
+        Define an L2-space.
+
         >>> X = Domain.from_sequence(size=6)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -225,14 +227,17 @@ class L2:
         ...     },
         ... )
         >>> H = L2(X, F, mu)
+
+        Print the basis vectors.
+
         >>> for atom_id, phi in H.basis.items():
         ...     print(f"Atom identifier: {atom_id}")
         ...     print(f"Basis function:\n{phi}\n")  # doctest: +NORMALIZE_WHITESPACE
         Atom identifier: 1
         Basis function:
         Measurable function 'phi_1':
-                phi_1
-        point
+                  phi_1
+        x
         0      0.000000
         1      0.000000
         2      0.377964
@@ -243,8 +248,8 @@ class L2:
         Atom identifier: 2
         Basis function:
         Measurable function 'phi_2':
-                phi_2
-        point
+                  phi_2
+        x
         0      0.000000
         1      0.000000
         2      0.000000
@@ -252,10 +257,9 @@ class L2:
         4      0.707107
         5      0.707107
 
-
         Notes
         -----
-        Let $(X,\mathcal{F},\mu)$ be a measure space and set $H = L^2(X, \mathcal{F}, \mu)$. In the case that $X$ is finite, so that the $\sigma$-algebra $\mathcal{F}$ is determined by its set $\{A_i\}_{i\in I}$ of (finitely many) atoms, the vector space $H$ as an orthonormal basis given by the normalized indicator functions of the atoms of nonzero measure.
+        Let $(X,\mathcal{F},\mu)$ be a measure space and set $H = L^2(X, \mathcal{F}, \mu)$. In the case that $X$ is finite, so that the $\sigma$-algebra $\mathcal{F}$ is determined by its set $\{A_i\}_{i\in I}$ of (finitely many) atoms, the vector space $H$ has an orthonormal basis given by the normalized indicator functions of the atoms of nonzero measure.
 
         Indeed, if we suppose $i\neq j$, then the product $I_{A_i}I_{A_j}$ of indicator functions is $0$ since $A_i$ and $A_j$ are disjoint. Thus, we have
 
@@ -284,24 +288,27 @@ class L2:
         $$
         \phi_i \stackrel{\text{def}}{=} \frac{I_{A_i}}{\sqrt{\mu(A_i)}}.
         $$
-
-        The `basis` attribute contains the orthonormal basis $\{\phi_i\}$ indexed by the atoms with nonzero measure.
         """
         from ..functions.measurable_function import MeasurableFunction
 
-        if self._basis is None and self.basis_df is not None:
-            self._basis = {}
+        if self.basis_df is not None:
+            basis = {}
+
             for atom_id, data in self.basis_df.items():
                 name = f"phi_{atom_id}"
-                self._basis[atom_id] = MeasurableFunction(
-                    domain=self.domain,
+                basis[atom_id] = MeasurableFunction._from_validated(
+                    data=data.rename(name),
                     sig_alg=self.sig_alg,
                     measure=self.measure,
-                    mapping=data.rename(name),
+                    index_kind="Index",
+                    index_name=None,
                     name=name,
                 )
 
-        return self._basis
+            return basis
+
+        else:
+            return None
 
     @property
     def dim(self) -> int | None:
@@ -315,6 +322,9 @@ class L2:
         Examples
         --------
         >>> from sigalg.core import Domain, L2, Measure, SigmaAlgebra
+
+        Define an L2-space.
+
         >>> X = Domain.from_sequence(size=6)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -342,75 +352,8 @@ class L2:
         return len(self.basis) if self.basis is not None else None
 
     @property
-    def measure_space(self) -> MeasureSpace:
-        """The underlying measure space on which the L2-space is defined.
-
-        Returns
-        -------
-        measure_space : MeasureSpace
-            The underlying measure space on which the L2-space is defined.
-
-        Examples
-        --------
-        >>> from sigalg.core import Domain, L2, Measure, SigmaAlgebra
-        >>> X = Domain.from_sequence(size=6)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 1,
-        ...         4: 2,
-        ...         5: 2,
-        ...     },
-        ... )
-        >>> mu = Measure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 7,
-        ...         2: 2,
-        ...     },
-        ... )
-        >>> H = L2(X, F, mu)
-        >>> print(H.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, F, mu)
-        ========================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-             0
-             1
-             2
-             3
-             4
-             5
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             0
-        2             1
-        3             1
-        4             2
-        5             2
-        <BLANKLINE>
-        * Measure 'mu':
-                measure
-        atom_ID
-        0             0
-        1             7
-        2             2
-        """
-        return self._measure_space
-
-    @property
     def domain(self) -> Domain | None:
         """The underlying domain on which the L2-space is defined.
-
-        The `domain` property is settable. If the underlying measure space is not empty, the new domain must contain the same number of points as the current domain, and the sigma-algebra and measure will be updated to be defined on the new domain with the same atom structure and measures as before. If the underlying measure space is empty, then setting the domain will set the sigma-algebra to be the power set sigma-algebra on the new domain, and the measure to be the counting measure on that sigma-algebra.
 
         Returns
         -------
@@ -420,6 +363,9 @@ class L2:
         Examples
         --------
         >>> from sigalg.core import Domain, L2, Measure, SigmaAlgebra
+
+        Define an L2-space.
+
         >>> X = Domain.from_sequence(size=4)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -439,100 +385,22 @@ class L2:
         ...     },
         ... )
         >>> H = L2(X, F, mu)
+
+        Print its domain.
+
         >>> print(H.domain)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'X':
-         point
-             0
-             1
-             2
-             3
-        >>> Y = Domain(["a", "b", "c", "d"], name="Y")
-        >>> H.domain = Y
-        >>> print(H.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (Y, F, mu)
-        ========================
-        <BLANKLINE>
-        * Domain 'Y':
-         point
-             a
-             b
-             c
-             d
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        point
-        a             0
-        b             1
-        c             2
-        d             2
-        <BLANKLINE>
-        * Measure 'mu':
-                measure
-        atom_ID
-        0             0
-        1             5
-        2             4
-        >>> K = L2(name="K")
-        >>> K.domain = Y
-        >>> print(K.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (Y, R, C)
-        =======================
-        <BLANKLINE>
-        * Domain 'Y':
-         point
-             a
-             b
-             c
-             d
-        <BLANKLINE>
-        * Sigma algebra 'R':
-                point
-        point
-        a           a
-        b           b
-        c           c
-        d           d
-        <BLANKLINE>
-        * Measure 'C':
-                measure
-        point
-        a             1
-        b             1
-        c             1
-        d             1
+         x
+         0
+         1
+         2
+         3
         """
         return self.measure_space.domain
-
-    @domain.setter
-    def domain(self, domain: Domain) -> None:
-        """Set the underlying domain on which the L2-space is defined.
-
-        If the underlying measure space is not empty, the new domain must contain the same number of points as the current domain, and the sigma-algebra and measure will be updated to be defined on the new domain with the same atom structure and measures as before. If the underlying measure space is empty, then setting the domain will set the sigma-algebra to be the power set sigma-algebra on the new domain, and the measure to be the counting measure on that sigma-algebra.
-
-        Parameters
-        ----------
-        domain : Domain
-            The domain to set for the L2-space.
-
-        Raises
-        ------
-        TypeError
-            If `domain` is not an instance of `Domain`.
-        """
-        from ..spaces.domain import Domain
-
-        if not isinstance(domain, Domain):
-            raise TypeError("domain must be an instance of Domain.")
-
-        self.measure_space.domain = domain
-        self._initialize_property_caches()
 
     @property
     def sig_alg(self) -> SigmaAlgebra | None:
         """The underlying sigma-algebra on which the L2-space is defined.
-
-        The `sig_alg` property is settable. If the underlying measure space is not empty, the new sigma-algebra must be a sub-sigma-algebra of the current sigma-algebra, and the measure will be updated to be the restriction of the current measure to the new sigma-algebra. If the underlying measure space is empty, then setting the sigma-algebra will set the domain to be the domain of the new sigma-algebra, and the measure to be the counting measure on the new sigma-algebra.
 
         Returns
         -------
@@ -542,6 +410,9 @@ class L2:
         Examples
         --------
         >>> from sigalg.core import Domain, L2, Measure, SigmaAlgebra
+
+        Define an L2-space.
+
         >>> X = Domain.from_sequence(size=4)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -561,106 +432,23 @@ class L2:
         ...     },
         ... )
         >>> H = L2(X, F, mu)
+
+        Print its sigma-algebra.
+
         >>> print(H.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-               atom_ID
-        point
-        0            0
-        1            1
-        2            2
-        3            2
-        >>> G = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 1,
-        ...     },
-        ...     name="G",
-        ... )
-        >>> H.sig_alg = G
-        >>> print(H.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, G, mu|G)
-        ==========================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-             0
-             1
-             2
-             3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        point
-        0             0
-        1             0
-        2             1
-        3             1
-        <BLANKLINE>
-        * Measure 'mu|G':
-                measure
-        atom_ID
-        0           4.1
-        1           5.0
-        >>> K = L2(name="K")
-        >>> K.sig_alg = F
-        >>> print(K.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, F, C)
-        =======================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-             0
-             1
-             2
-             3
-        <BLANKLINE>
-        * Sigma algebra 'F':
-               atom_ID
-        point
-        0            0
-        1            1
-        2            2
-        3            2
-        <BLANKLINE>
-        * Measure 'C':
-                 measure
-        atom_ID
-        0              1
-        1              1
-        2              2
+               F
+        x
+        0      0
+        1      1
+        2      2
+        3      2
         """
         return self.measure_space.sig_alg
-
-    @sig_alg.setter
-    def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
-        """Set the sigma-algebra on which the L2-space is defined.
-
-        Parameters
-        ----------
-        sig_alg : SigmaAlgebra
-            The sigma-algebra to set for the L2-space.
-
-        Raises
-        ------
-        TypeError
-            If `sig_alg` is not an instance of `SigmaAlgebra`.
-        """
-        from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        if not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be an instance of SigmaAlgebra.")
-
-        self.measure_space.sig_alg = sig_alg
-        self._initialize_property_caches()
 
     @property
     def measure(self) -> Measure | None:
         """The underlying measure on which the L2-space is defined.
-
-        The `measure` property is settable. If the underlying measure space is not empty, the new measure must be defined on a sub-sigma-algebra of the current sigma-algebra. The sigma-algebra will be updated to be the sigma-algebra of the new measure. If the underlying measure space is empty, setting the measure will set the domain to be the domain of the new measure, and the sigma-algebra to be the sigma-algebra of the new measure.
 
         Returns
         -------
@@ -670,6 +458,9 @@ class L2:
         Examples
         --------
         >>> from sigalg.core import Domain, L2, Measure, SigmaAlgebra
+
+        Define an L2-space.
+
         >>> X = Domain.from_sequence(size=4)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -683,179 +474,52 @@ class L2:
         >>> mu = Measure(
         ...     domain=F,
         ...     mapping={
-        ...         0: 0.1,
+        ...         0: 1,
         ...         1: 4,
         ...         2: 5,
         ...     },
         ... )
         >>> H = L2(X, F, mu)
+
+        Print its measure.
+
         >>> print(H.measure)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'mu':
-                 measure
-        atom_ID
-        0            0.1
-        1            4.0
-        2            5.0
-        >>> G = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 1,
-        ...     },
-        ...     name="G",
-        ... )
-        >>> nu = Measure(
-        ...     domain=G,
-        ...     mapping={
-        ...         0: 2,
-        ...         1: 7,
-        ...     },
-        ...     name="nu",
-        ... )
-        >>> H.measure = nu
-        >>> print(H.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, G, nu)
-        ========================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-             0
-             1
-             2
-             3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-               atom_ID
-        point
-        0            0
-        1            0
-        2            1
-        3            1
-        <BLANKLINE>
-        * Measure 'nu':
-                 measure
-        atom_ID
-        0              2
-        1              7
-        >>> K = L2(name="K")
-        >>> K.measure = mu
-        >>> print(K.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, F, mu)
-        ========================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-             0
-             1
-             2
-             3
-        <BLANKLINE>
-        * Sigma algebra 'F':
-               atom_ID
-        point
-        0            0
-        1            1
-        2            2
-        3            2
-        <BLANKLINE>
-        * Measure 'mu':
-                 measure
-        atom_ID
-        0            0.1
-        1            4.0
-        2            5.0
+                 mu
+        F
+        0         1
+        1         4
+        2         5
         """
         return self.measure_space.measure
 
-    @measure.setter
-    def measure(self, measure: Measure) -> None:
-        """Set the measure on which the L2-space is defined.
-
-        If the underlying measure space is not empty, the new measure must be defined on a sub-sigma-algebra of the current sigma-algebra. The sigma-algebra will be updated to be the sigma-algebra of the new measure. If the underlying measure space is empty, setting the measure will set the domain to be the domain of the new measure, and the sigma-algebra to be the sigma-algebra of the new measure.
-
-        Parameters
-        ----------
-        measure : Measure
-            The measure to set for the L2-space.
-
-        Raises
-        ------
-        TypeError
-            If `measure` is not an instance of `Measure`.
-
-        """
-        from ...core.measures.probability_measure import Measure
-
-        if not isinstance(measure, Measure):
-            raise TypeError("measure must be an instance of Measure.")
-
-        self.measure_space.measure = measure
-        self._initialize_property_caches()
-
-    @property
-    def name(self) -> Hashable:
-        """The name of the L2-space.
-
-        Returns
-        -------
-        name : Hashable
-            The name of the L2-space.
-        """
-        return self._name
-
-    @name.setter
-    def name(self, name: Hashable) -> None:
-        """Set the name of the L2-space.
-
-        Parameters
-        ----------
-        name : Hashable
-            The name to set for the L2-space.
-
-        Raises
-        ------
-        TypeError
-            If `name` is not a Hashable.
-        """
-        if not isinstance(name, Hashable):
-            raise TypeError("Name must be a Hashable.")
-        self._name = name
-
     # --------------------- methods --------------------- #
 
-    def __contains__(self, function: MeasurableFunction) -> bool:
+    def __contains__(self, function: Function) -> bool:
         """Determine whether a function is in the L2-space.
-
-        A function is in the L2-space if it is measurable with respect to the sigma-algebra.
 
         Parameters
         ----------
-        function : MeasurableFunction
+        function : Function
             The measurable function.
-
-        Raises
-        ------
-        TypeError
-            If `function` is not an instance of `MeasurableFunction`.
-        ValueError
-            If the domain of `function` does not match the domain of the L2-space.
 
         Returns
         -------
         is_in : bool
-            `True` if the measurable function is in the L2-space; `False` otherwise.
+            `True` if the function is in the L2-space; `False` otherwise.
 
         Examples
         --------
         >>> from sigalg.core import (
         ...     Domain,
+        ...     Function,
         ...     L2,
         ...     Measure,
-        ...     MeasurableFunction,
         ...     SigmaAlgebra,
         ... )
+
+        Define an L2-space.
+
         >>> X = Domain.from_sequence(size=3)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -873,10 +537,10 @@ class L2:
         ...     },
         ... )
         >>> H = L2(X, F, mu)
-        >>> phi_0, phi_1 = H.basis.values()
-        >>> print(phi_0 in H)
-        True
-        >>> f = MeasurableFunction(
+
+        Define a function and test whether it is in the L2-space.
+
+        >>> f = Function(
         ...     domain=X,
         ...     mapping={
         ...         0: 0,
@@ -884,13 +548,27 @@ class L2:
         ...         2: 2,
         ...     },
         ... )
-        >>> print(f in H)
+        >>> f in H
         False
-        """
-        from ..functions.measurable_function import MeasurableFunction
 
-        if not isinstance(function, MeasurableFunction):
-            raise TypeError("function must be an instance of MeasurableFunction.")
+        Define a second function and test whether it is in the L2-space.
+
+        >>> g = Function(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 1,
+        ...         2: 2,
+        ...     },
+        ...     name="g",
+        ... )
+        >>> g in H
+        True
+        """
+        from ..functions.function import Function
+
+        if not isinstance(function, Function):
+            raise TypeError("function must be an instance of Function.")
         if function.domain != self.domain:
             raise ValueError(
                 "The domain of function must match the domain of the L2-space."
@@ -911,11 +589,6 @@ class L2:
         function : MeasurableFunction
             The measurable function whose Fourier coefficients are to be computed.
 
-        Raises
-        ------
-        ValueError
-            If `function` is not in the L2-space.
-
         Returns
         -------
         coefficients : dict[Hashable, Real]
@@ -930,6 +603,9 @@ class L2:
         ...     MeasurableFunction,
         ...     SigmaAlgebra,
         ... )
+
+        Define an L2-spaces.
+
         >>> X = Domain.from_sequence(size=6)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -951,6 +627,9 @@ class L2:
         ...     },
         ... )
         >>> H = L2(X, F, mu)
+
+        Define a function and compute its Fourier coefficients.
+
         >>> f = MeasurableFunction(
         ...     domain=X,
         ...     mapping={
@@ -963,13 +642,19 @@ class L2:
         ...     },
         ... )
         >>> c = H.fourier_coefficients(function=f)
-        >>> phi = H.basis
         >>> I = c.keys()
+
+        Get the basis vectors of the L2-space and compute the Fourier expansion of the function.
+
+        >>> phi = H.basis
         >>> f_fourier = sum(c[i] * phi[i] for i in I).with_name("f_fourier")
+
+        Print the Fourier expansion and check that it is equal to the original function almost everywhere.
+
         >>> print(f_fourier)  # doctest: +NORMALIZE_WHITESPACE
         Measurable function 'f_fourier':
                f_fourier
-        point
+        x
         0           -1.0
         1           -1.0
         2            0.0
@@ -1013,11 +698,6 @@ class L2:
         second : MeasurableFunction
             The second measurable function.
 
-        Raises
-        ------
-        ValueError
-            If one of the measurable functions is not in the L2-space.
-
         Returns
         -------
         inner_product : Real
@@ -1032,6 +712,9 @@ class L2:
         ...     MeasurableFunction,
         ...     SigmaAlgebra,
         ... )
+
+        Define an L2-space.
+
         >>> X = Domain.from_sequence(size=6)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -1053,6 +736,9 @@ class L2:
         ...     },
         ... )
         >>> H = L2(X, F, mu)
+
+        Define a function.
+
         >>> f = MeasurableFunction(
         ...     *H.measure_space,
         ...     mapping={
@@ -1064,13 +750,19 @@ class L2:
         ...         5: 1,
         ...     },
         ... )
+
+        Get the basis vectors of the L2-space and compute the Fourier expansion of the function using the inner products of the Hilbert space structure.
+
         >>> phi = H.basis
         >>> I = phi.keys()
         >>> f_fourier = sum(H.inner(f, phi[i]) * phi[i] for i in I).with_name("f_fourier")
+
+        Print the Fourier expansion and check that it is equal to the original function almost everywhere.
+
         >>> print(f_fourier)  # doctest: +NORMALIZE_WHITESPACE
         Measurable function 'f_fourier':
                f_fourier
-        point
+        x
         0           -1.0
         1           -1.0
         2            0.0
@@ -1092,11 +784,6 @@ class L2:
         function : MeasurableFunction
             The measurable function whose norm is to be computed.
 
-        Raises
-        ------
-        ValueError
-            If `function` is not in the L2-space.
-
         Returns
         -------
         norm : Real
@@ -1104,6 +791,7 @@ class L2:
 
         Examples
         --------
+        >>> import numpy as np
         >>> from sigalg.core import (
         ...     Domain,
         ...     L2,
@@ -1111,6 +799,9 @@ class L2:
         ...     MeasurableFunction,
         ...     SigmaAlgebra,
         ... )
+
+        Define an L2-space.
+
         >>> X = Domain.from_sequence(size=6)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -1132,17 +823,17 @@ class L2:
         ...     },
         ... )
         >>> H = L2(X, F, mu)
-        >>> indicators = [A.indicator for A in F]
-        >>> for i, I in enumerate(indicators):
-        ...     norm = H.norm(I)
-        ...     print(f"mu(A_{i}) = {round(norm**2, 2)}")
-        mu(A_0) = 0.0
-        mu(A_1) = 7.0
-        mu(A_2) = 2.0
+
+        Get the indicator functions of the atoms of the sigma-algebra and check that their squared norms are equal to the measures of the atoms.
+
+        >>> all(np.allclose(H.norm(A.indicator) ** 2, mu(A)) for A in F)
+        True
         """
+        from ..functions.operators import Operators
+
         if function not in self:
             raise ValueError("The function must be in the L2-space.")
-        return (function**2).integrate(measure=self.measure) ** 0.5
+        return Operators.integrate(function**2, measure=self.measure) ** 0.5
 
     def metric(self, first: MeasurableFunction, second: MeasurableFunction) -> Real:
         r"""Compute the distance between two measurable functions.
@@ -1156,11 +847,6 @@ class L2:
         second : MeasurableFunction
             The second measurable function.
 
-        Raises
-        ------
-        ValueError
-            If one of the two measurable functions is not in the L2-space.
-
         Returns
         -------
         distance : Real
@@ -1168,8 +854,6 @@ class L2:
 
         Examples
         --------
-        Define an L2-space over a probability space, a random variable, and a sub-sigma-algebra.
-
         >>> from sigalg.core import (
         ...     L2,
         ...     ProbabilityMeasure,
@@ -1177,6 +861,9 @@ class L2:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
+
+        Define an L2-space over a probability space, a random variable, and a sub-sigma-algebra.
+
         >>> Omega = SampleSpace.from_sequence(size=6)
         >>> F = SigmaAlgebra(
         ...     domain=Omega,
@@ -1236,7 +923,7 @@ class L2:
         >>> Y = RandomVariable(
         ...     domain=Omega,
         ...     sig_alg=G,
-        ...     measure=P,
+        ...     measure=P | G,
         ...     mapping={
         ...         0: 2,
         ...         1: 2,
@@ -1269,12 +956,14 @@ class L2:
         """
         if first not in self or second not in self:
             raise ValueError("The functions must be in the L2-space.")
+
         return self.inner((first - second), (first - second)) ** 0.5
 
     def proj(
         self,
         function: MeasurableFunction,
         subspace: list[MeasurableFunction],
+        name: Hashable | None = None,
     ) -> tuple[MeasurableFunction, np.ndarray, int]:
         r"""Compute the orthogonal projection of a measurable function onto the subspace spanned by a set of measurable functions.
 
@@ -1286,11 +975,8 @@ class L2:
             The measurable function to be projected.
         subspace : list[MeasurableFunction]
             A list of measurable functions spanning the subspace onto which `function` is to be projected.
-
-        Raises
-        ------
-        ValueError
-             If `function` is not in the L2-space, or if any of the measurable functions in `subspace` is not in the L2-space, or if `subspace` is empty.
+        name : Hashable | None, default=None
+            The name of the projection. If `None`, a default will be generated.
 
         Returns
         -------
@@ -1303,8 +989,6 @@ class L2:
 
         Examples
         --------
-        Define an L2-space over a probability space and a random variable in it.
-
         >>> from sigalg.core import (
         ...     L2,
         ...     ProbabilityMeasure,
@@ -1312,6 +996,9 @@ class L2:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
+
+        Define an L2-space over a probability space and a random variable in it.
+
         >>> Omega = SampleSpace.from_sequence(size=4)
         >>> F = SigmaAlgebra.power_set(Omega, name="F")
         >>> P = ProbabilityMeasure(
@@ -1398,6 +1085,8 @@ class L2:
 
         These are called the *normal equations*, which confirm that $\widehat{g}$ really is the orthogonal projection of $g$ onto the subspace spanned by the $f_j$'s.
         """
+        from ..functions.random_variable import RandomVariable
+
         if function not in self:
             raise ValueError("The function to be projected must be in the L2-space.")
         if subspace is None or len(subspace) == 0:
@@ -1421,10 +1110,22 @@ class L2:
         )
         c, _, dim, _ = np.linalg.lstsq(A, rv_vec, rcond=None)
 
-        proj = sum([c[k] * subspace_rv for k, subspace_rv in enumerate(subspace)])
-        name = f"{function.name}_proj" if function.name is not None else "proj"
+        rv_data = pd.DataFrame({rv.name: rv.data for rv in subspace})
+        data = rv_data.multiply(c, axis=1).sum(axis=1)
 
-        return proj.with_name(name), c, dim
+        if name is None:
+            name = f"{function.name}_proj"
+
+        proj = RandomVariable._from_validated(
+            data=data.rename(name),
+            sig_alg=self.sig_alg,
+            measure=self.measure,
+            index_kind="Index",
+            index_name=None,
+            name=name,
+        )
+
+        return proj, c, dim
 
     # --------------------- representation --------------------- #
 
