@@ -495,7 +495,7 @@ class ParametrizedMeasure(Function):
 
     # --------------------- properties --------------------- #
 
-    @property
+    @cached_property
     def parameter_domain(self) -> Domain | None:
         """Get the parameter domain of the parametrized measure.
 
