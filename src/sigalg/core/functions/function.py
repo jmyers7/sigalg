@@ -3523,7 +3523,24 @@ class Function:
             name=name,
         )
 
-    # TODO: decide — deprecate? remove?
+    def with_name(self, name: Hashable) -> Function:
+        """Return a new instance of `Function` with the same data but a new name."""
+        if isinstance(self.data, pd.Series):
+            new_data = self.data.rename(name)
+
+        return type(self)._from_validated(
+            data=new_data,
+            kind=self.kind,
+            domain_kind=self.domain_kind,
+            domain_name=self.domain_name,
+            index_kind=self.index_kind,
+            index_name=self.index_name,
+            name=name,
+            sig_alg=getattr(self, "sig_alg", None),
+            measure=getattr(self, "measure", None),
+        )
+
+    # TODO: decide: deprecate? remove?
     def with_variable_names(self, variable_names: list[Hashable]) -> Function:
         """Return a new instance of the function with updated variable names."""
         from ..measures.measure import Measure
@@ -3685,31 +3702,54 @@ class Function:
         1  2.718282
         2  7.389056
         """
-        if method != "__call__" or ufunc.nin != 1 or "out" in kwargs:
+        if method != "__call__" or "out" in kwargs:
             return NotImplemented
 
-        (func,) = inputs
-        data = getattr(ufunc, method)(func.data, **kwargs)
+        if ufunc.nin == 1:
+            (func,) = inputs
+            data = getattr(ufunc, method)(func.data, **kwargs)
 
-        name = f"{ufunc.__name__}({self.name})"
+            name = f"{ufunc.__name__}({self.name})"
 
-        if isinstance(data, pd.Series):
-            data.name = name
+            if isinstance(data, pd.Series):
+                data.name = name
 
-        return type(self)._from_validated(
-            data=data,
-            kind="any",
-            domain_kind=type(self.domain).__name__,
-            domain_name=self.domain.name,
-            index_kind=type(self.index).__name__ if self.index is not None else "Index",
-            index_name=self.index.name if self.index is not None else None,
-            name=name,
-            sig_alg=getattr(self, "sig_alg", None),
-            measure=getattr(self, "measure", None),
-            complete_domain_name=self.domain.name,
-            parameter_domain_name=getattr(self, "parameter_domain_name", None),
-            parameter_names=getattr(self, "parameter_names", None),
-        )
+            return type(self)._from_validated(
+                data=data,
+                kind="any",
+                domain_kind=type(self.domain).__name__,
+                domain_name=self.domain.name,
+                index_kind=type(self.index).__name__
+                if self.index is not None
+                else "Index",
+                index_name=self.index.name if self.index is not None else None,
+                name=name,
+                sig_alg=getattr(self, "sig_alg", None),
+                measure=getattr(self, "measure", None),
+                complete_domain_name=self.domain.name,
+                parameter_domain_name=getattr(self, "parameter_domain_name", None),
+                parameter_names=getattr(self, "parameter_names", None),
+            )
+
+        elif ufunc.nin == 2:
+            _dispatch = {
+                np.multiply: ("__mul__", "__rmul__"),
+                np.add: ("__add__", "__radd__"),
+                np.subtract: ("__sub__", "__rsub__"),
+                np.true_divide: ("__truediv__", "__rtruediv__"),
+                np.power: ("__pow__", "__rpow__"),
+            }
+            if ufunc not in _dispatch:
+                return NotImplemented
+            a, b = inputs
+            forward, reverse = _dispatch[ufunc]
+            return (
+                getattr(a, forward)(b)
+                if isinstance(a, Function)
+                else getattr(b, reverse)(a)
+            )
+
+        return NotImplemented
 
     def to_numpy(self, dtype=None, copy=None) -> np.ndarray:
         """Return the function's data as a NumPy array.
