@@ -210,6 +210,7 @@ class Measure(Function):
         kind: Literal["measure", "probability"],
         sig_alg: SigmaAlgebra,
         name: Hashable,
+        **kwargs,
     ):
         from ..measures.probability_measure import ProbabilityMeasure
 
@@ -1295,36 +1296,37 @@ class Measure(Function):
 
     # --------------------- equality and comparison methods --------------------- #
 
-    def __eq__(self, other: Measure) -> bool:
-        """Check equality with another measure.
+    # TODO: Add this as an `equal_as_measures` method
+    # def __eq__(self, other: Measure) -> bool:
+    #     """Check equality with another measure.
 
-        Two measures are considered equal if they have the same sigma-algebras and identical values for each atom.
+    #     Two measures are considered equal if they have the same sigma-algebras and identical values for each atom.
 
-        Parameters
-        ----------
-        other : Measure
-            The other measure to compare with.
+    #     Parameters
+    #     ----------
+    #     other : Measure
+    #         The other measure to compare with.
 
-        Returns
-        -------
-        is_equal : bool
-            `True` if the two measures are equal, `False` otherwise.
-        """
-        from .._utils.utils import to_df
+    #     Returns
+    #     -------
+    #     is_equal : bool
+    #         `True` if the two measures are equal, `False` otherwise.
+    #     """
+    #     from .._utils.utils import to_df
 
-        if self.sig_alg != other.sig_alg:
-            return False
+    #     if self.sig_alg != other.sig_alg:
+    #         return False
 
-        atom_data = to_df(self.lattice.get_atom_data(other.sig_alg))
-        atom_data.columns = other.sig_alg.variable_names
+    #     atom_data = to_df(self.lattice.get_atom_data(other.sig_alg))
+    #     atom_data.columns = other.sig_alg.variable_names
 
-        data = (
-            pd.concat([self.data, atom_data], axis=1)
-            .set_index(other.sig_alg.variable_names)
-            .squeeze(axis=1)
-        )
+    #     data = (
+    #         pd.concat([self.data, atom_data], axis=1)
+    #         .set_index(other.sig_alg.variable_names)
+    #         .squeeze(axis=1)
+    #     )
 
-        return bool(data.equals(other.data))
+    #     return bool(data.equals(other.data))
 
     def is_close(self, other: Measure, rtol: float = 1e-5, atol=1e-8) -> bool:
         """Check if two measures have approximately the same values.
