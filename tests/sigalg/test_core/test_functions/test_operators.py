@@ -1615,7 +1615,7 @@ class TestCorrelation:
             mapping={0: 0.3, 1: 0.7},
         )
         Y = RandomVector.from_identity(domain=Omega, measure=P, name="Y")
-        X = (Y ^ 2).with_name("X")
+        X = Y ^ 2
         X_0, X_1 = X
         corr = Operators.corr(X_0, X_1)
 

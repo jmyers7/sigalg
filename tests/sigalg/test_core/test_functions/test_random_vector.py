@@ -869,7 +869,7 @@ class TestComparisonOperators:
         )
         Z = X < Y
         expected_data = pd.DataFrame(
-            [[False, True], [False, True], [False, False]],
+            [[0, 1], [0, 1], [0, 0]],
             index=X.domain.data,
             columns=X.index.data,
         )
@@ -899,7 +899,11 @@ class TestComparisonOperators:
         )
         Z = X <= Y
         expected_data = pd.DataFrame(
-            [[False, True], [True, True], [True, True]],
+            [
+                [0, 1],
+                [1, 1],
+                [1, 1],
+            ],
             index=X.domain.data,
             columns=X.index.data,
         )
@@ -929,7 +933,11 @@ class TestComparisonOperators:
         )
         Z = X > Y
         expected_data = pd.DataFrame(
-            [[True, False], [True, True], [False, False]],
+            [
+                [1, 0],
+                [1, 1],
+                [0, 0],
+            ],
             index=X.domain.data,
             columns=X.index.data,
         )
@@ -959,7 +967,7 @@ class TestComparisonOperators:
         )
         Z = X >= Y
         expected_data = pd.DataFrame(
-            [[True, False], [True, True], [True, True]],
+            [[1, 0], [1, 1], [1, 1]],
             index=X.domain.data,
             columns=X.index.data,
         )
@@ -989,7 +997,7 @@ class TestComparisonOperators:
         )
         Z = X < Y
         expected_data = pd.Series(
-            [True, False, False],
+            [1, 0, 0],
             index=X.domain.data,
             name="(X < Y)",
         )
@@ -1019,7 +1027,7 @@ class TestComparisonOperators:
         )
         Z = X <= Y
         expected_data = pd.Series(
-            [True, True, False],
+            [1, 1, 0],
             index=X.domain.data,
             name="(X <= Y)",
         )
@@ -1049,7 +1057,7 @@ class TestComparisonOperators:
         )
         Z = X > Y
         expected_data = pd.Series(
-            [False, False, True],
+            [0, 0, 1],
             index=X.domain.data,
             name="(X > Y)",
         )
@@ -1079,7 +1087,7 @@ class TestComparisonOperators:
         )
         Z = X >= Y
         expected_data = pd.Series(
-            [False, True, True],
+            [0, 1, 1],
             index=X.domain.data,
             name="(X >= Y)",
         )
@@ -1100,7 +1108,7 @@ class TestComparisonOperators:
         )
         results = [X < 5, 5 > X]
         expected_data = pd.DataFrame(
-            [[True, True], [True, False], [True, False]],
+            [[1, 1], [1, 0], [1, 0]],
             index=X.domain.data,
             columns=X.index.data,
         )
@@ -1122,7 +1130,7 @@ class TestComparisonOperators:
         )
         results = [X <= 5, 5 >= X]
         expected_data = pd.DataFrame(
-            [[True, True], [True, True], [True, True]],
+            [[1, 1], [1, 1], [1, 1]],
             index=X.domain.data,
             columns=X.index.data,
         )
@@ -1145,9 +1153,9 @@ class TestComparisonOperators:
         results = [X > 5, 5 < X]
         expected_data = pd.DataFrame(
             [
-                [False, False],
-                [False, False],
-                [False, True],
+                [0, 0],
+                [0, 0],
+                [0, 1],
             ],
             index=X.domain.data,
             columns=X.index.data,
@@ -1171,9 +1179,9 @@ class TestComparisonOperators:
         results = [X >= 5, 5 <= X]
         expected_data = pd.DataFrame(
             [
-                [False, False],
-                [False, True],
-                [False, True],
+                [0, 0],
+                [0, 1],
+                [0, 1],
             ],
             index=X.domain.data,
             columns=X.index.data,
@@ -1197,9 +1205,9 @@ class TestComparisonOperators:
         results = [X < 5, 5 > X]
         expected_data = pd.Series(
             [
-                True,
-                False,
-                False,
+                1,
+                0,
+                0,
             ],
             index=X.domain.data,
             name="(X < 5)",
@@ -1223,9 +1231,9 @@ class TestComparisonOperators:
         results = [X <= 5, 5 >= X]
         expected_data = pd.Series(
             [
-                True,
-                True,
-                False,
+                1,
+                1,
+                0,
             ],
             index=X.domain.data,
             name="(X <= 5)",
@@ -1249,9 +1257,9 @@ class TestComparisonOperators:
         results = [X > 5, 5 < X]
         expected_data = pd.Series(
             [
-                False,
-                False,
-                True,
+                0,
+                0,
+                1,
             ],
             index=X.domain.data,
             name="(X > 5)",
@@ -1275,9 +1283,9 @@ class TestComparisonOperators:
         results = [X >= 5, 5 <= X]
         expected_data = pd.Series(
             [
-                False,
-                True,
-                True,
+                0,
+                1,
+                1,
             ],
             index=X.domain.data,
             name="(X >= 5)",
