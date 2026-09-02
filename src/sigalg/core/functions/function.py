@@ -2874,6 +2874,62 @@ class Function:
             name=name,
         )
 
+    def drop_zeros(self, name: Hashable | None = None, tol: float = 1e-8) -> Function:
+        """Drop zeros from the range of the function.
+
+        The function must have `1`-dimensional outputs in order to use this method.
+
+        Parameters
+        ----------
+        name : Hashable | None, default=None
+            A name for the new function. If `None`, the name of the original function will be used.
+        tol : float, default=1e-8
+            A float below which numbers will be deemed `0`.
+
+        Returns
+        -------
+        func : Function
+            A new function with all zeros dropped from its range.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Function
+        >>> X = Domain([-1, 0, 1])
+        >>> f = Function(domain=X, mapping=lambda x: x**2)
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+            f
+        x
+        -1  1
+         0  0
+         1  1
+        >>> print(f.drop_zeros())  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+            f
+        x
+        -1  1
+         1  1
+        """
+        if self.dimension > 1:
+            raise ValueError(
+                "May only drop zeros for functions with 1-dimensional outputs."
+            )
+
+        data = self.data[self.data > tol]
+
+        if name is None:
+            name = self.name
+
+        return Function._from_validated(
+            data=data,
+            kind="any",
+            domain_kind=self.domain_kind,
+            domain_name=self.domain_name,
+            index_kind="Index",
+            index_name=None,
+            name=name,
+        )
+
     # --------------------- util methods --------------------- #
 
     def item(self) -> Hashable | pd.Series:
@@ -3227,7 +3283,7 @@ class Function:
 
     def to_measure(
         self,
-        sig_alg: SigmaAlgebra,
+        sig_alg: SigmaAlgebra | None = None,
         kind: Literal["measure", "probability"] = "measure",
         parameter_names: list[Hashable] | None = None,
         parameter_domain_name: Hashable | None = "Theta",
@@ -3237,8 +3293,8 @@ class Function:
 
         Parameters
         ----------
-        sig_alg : SigmaAlgebra
-            The domain of the measure.
+        sig_alg : SigmaAlgebra | None, default=None
+            The sigma-algebra on which the measure will be defined. If `None`, the power set of the domain of the function will be used.
         kind : Literal["measure", "probability"], default="measure"
             The kind of measure to create.
         parameter_names : list[Hashable] | None, default=None
