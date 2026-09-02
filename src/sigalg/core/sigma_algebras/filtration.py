@@ -310,22 +310,9 @@ class Filtration:
         3        0
         4        1
         """
-        from .sigma_algebra import SigmaAlgebra
-
         if self.data is not None:
             first_index = self.index[0]
-            name = f"{self.name}_{first_index}"
-            data = self.data.iloc[:, 0].rename(name)
-
-            return SigmaAlgebra._from_validated(
-                data=data,
-                variable_names=self.variable_names[first_index],
-                domain_kind=self.domain_kind,
-                domain_name=self.domain_name,
-                index_kind="Index",
-                index_name=None,
-                name=name,
-            )
+            return self[first_index]
 
         else:
             return None
@@ -359,22 +346,9 @@ class Filtration:
         3        1
         4        0
         """
-        from .sigma_algebra import SigmaAlgebra
-
         if self.data is not None:
             last_index = self.index[-1]
-            name = f"{self.name}_{last_index}"
-            data = self.data.iloc[:, -1].rename(name)
-
-            return SigmaAlgebra._from_validated(
-                data=data,
-                variable_names=self.variable_names[last_index],
-                domain_kind=self.domain_kind,
-                domain_name=self.domain_name,
-                index_kind="Index",
-                index_name=None,
-                name=name,
-            )
+            return self[last_index]
 
         else:
             return None
@@ -628,7 +602,7 @@ class Filtration:
         representation : str
             The string representation of the filtration.
         """
-        return f"Filtration(name='{self._name}', length={len(self)})"
+        return f"Filtration(name='{self.name}', length={len(self)})"
 
     def __str__(self) -> str:
         """Get a detailed string representation of the filtration.
