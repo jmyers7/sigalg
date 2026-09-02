@@ -45,11 +45,6 @@ class Operators:
         name : Hashable | None, default=None
             The name of the resulting measurable function. If `None`, a default name will be generated.
 
-        Raises
-        ------
-        TypeError
-            If `vec` is not an instance of `MeasurableVector`.
-
         Returns
         -------
         summed_vec : MeasurableFunction
@@ -98,10 +93,12 @@ class Operators:
         if name is None:
             name = f"{vec.name}_sum"
 
-        return MeasurableVector(
-            *vec.measurable_space,
+        return MeasurableVector._from_validated(
+            data=data_trans,
+            sig_alg=vec.sig_alg,
             measure=vec.measure,
-            mapping=data_trans,
+            index_kind="Index",
+            index_name=None,
             name=name,
         )
 
@@ -129,13 +126,6 @@ class Operators:
         name : Hashable | None, default=None
             The name of the transformed vector. If `None`, a default name will be generated.
 
-        Raises
-        ------
-        TypeError
-            If `vec` is not an instance of `MeasurableVector`, or `functions` is not a list of callables, or `index` is not an instance of `Index`.
-        ValueError
-            If the length of `functions` does not match the length of `index`.
-
         Returns
         -------
         transformed_vector : MeasurableVector
@@ -155,8 +145,8 @@ class Operators:
         ... )
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         IID process 'X':
-        time    0  1  2
-        sample
+        t       0  1  2
+        omega
         0       0  0  0
         1       0  0  1
         2       0  1  0
@@ -175,8 +165,8 @@ class Operators:
         >>> X_transform = Operators.transform(vec=X, functions=[f4, f5], index=S)
         >>> print(X_transform)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_transform':
-        time    4  5
-        sample
+        t       4  5
+        omega
         0       0  0
         1       0  1
         2       1  1
@@ -216,11 +206,12 @@ class Operators:
         if name is None:
             name = f"{vec.name}_transform"
 
-        return MeasurableVector(
-            *vec.measurable_space,
+        return MeasurableVector._from_validated(
+            data=data,
+            sig_alg=vec.sig_alg,
             measure=vec.measure,
-            mapping=data,
-            index=index,
+            index_kind=type(index).__name__,
+            index_name=index.name,
             name=name,
         )
 
@@ -245,13 +236,6 @@ class Operators:
         name : Hashable | None, default=None
             The name of the transformed measurable vector. If `None`, a default name will be generated.
 
-        Raises
-        ------
-        TypeError
-            If `vec` is not an instance of `MeasurableVector`, or if `function` is not callable.
-        ValueError
-            If `vec` does not have data to apply the function to.
-
         Returns
         -------
         mapped_vector : MeasurableVector
@@ -265,8 +249,8 @@ class Operators:
         >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
-        time    0  1  2
-        sample
+        t       0  1  2
+        omega
         0       3  2  1
         1       3  2  3
         2       3  4  3
@@ -276,8 +260,8 @@ class Operators:
         >>> X_mapped = Operators.pointwise_map(vec=X, function=f)
         >>> print(X_mapped)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_mapped':
-        time    0  1  2
-        sample
+        t       0  1  2
+        omega
         0       4  3  2
         1       4  3  4
         2       4  5  4
@@ -295,11 +279,12 @@ class Operators:
         if name is None:
             name = f"{vec.name}_mapped"
 
-        return MeasurableVector(
-            *vec.measurable_space,
+        return MeasurableVector._from_validated(
+            data=data_trans,
+            sig_alg=vec.sig_alg,
             measure=vec.measure,
-            mapping=data_trans,
-            index=vec.index,
+            index_kind=vec.index_kind,
+            index_name=vec.index_name,
             name=name,
         )
 
@@ -321,11 +306,6 @@ class Operators:
         name : Hashable | None, default=None
             The name of the transformed measurable vector. If `None`, a default name will be generated.
 
-        Raises
-        ------
-        TypeError
-            If `vec` is not an instance of `MeasurableVector`.
-
         Returns
         -------
         cumsum_vector : MeasurableVector
@@ -340,8 +320,8 @@ class Operators:
         >>> X = IIDProcess.generate(mode="enum", distribution=bernoulli(p=0.6), support=[0, 1], index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         IID process 'X':
-        time        1  2  3
-        sample
+        t           1  2  3
+        omega
         0           0  0  0
         1           0  0  1
         2           0  1  0
@@ -353,8 +333,8 @@ class Operators:
         >>> X_cumsum = Operators.cumsum(X)
         >>> print(X_cumsum) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_cumsum':
-        time        1  2  3
-        sample
+        t           1  2  3
+        omega
         0           0  0  0
         1           0  0  1
         2           0  1  1
@@ -373,11 +353,13 @@ class Operators:
         data_trans = data_trans.cumsum(axis=1)
         if name is None:
             name = f"{vec.name}_cumsum"
-        return MeasurableVector(
-            *vec.measurable_space,
+
+        return MeasurableVector._from_validated(
+            data=data_trans,
+            sig_alg=vec.sig_alg,
             measure=vec.measure,
-            mapping=data_trans,
-            index=vec.index,
+            index_kind=vec.index_kind,
+            index_name=vec.index_name,
             name=name,
         )
 
@@ -399,11 +381,6 @@ class Operators:
         name : Hashable | None, default=None
             The name of the transformed vector. If `None`, a default name will be generated.
 
-        Raises
-        ------
-        TypeError
-            If `vec` is not an instance of `MeasurableVector`.
-
         Returns
         -------
         cumprod_vector : MeasurableVector
@@ -417,8 +394,8 @@ class Operators:
         >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
-        time        0  1  2  3
-        sample
+        t           0  1  2  3
+        omega
         0           3  2  1  0
         1           3  2  1  2
         2           3  2  3  2
@@ -430,8 +407,8 @@ class Operators:
         >>> X_cumprod = Operators.cumprod(X)
         >>> print(X_cumprod) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_cumprod':
-        time        0   1   2    3
-        sample
+        t           0   1   2    3
+        omega
         0           3   6   6    0
         1           3   6   6   12
         2           3   6  18   36
@@ -451,90 +428,15 @@ class Operators:
         if name is None:
             name = f"{vec.name}_cumprod"
 
-        return MeasurableVector(
-            *vec.measurable_space,
+        return MeasurableVector._from_validated(
+            data=data_trans,
+            sig_alg=vec.sig_alg,
             measure=vec.measure,
+            index_kind=vec.index_kind,
+            index_name=vec.index_name,
             name=name,
             mapping=data_trans,
             index=vec.index,
-        )
-
-    # TODO: add notes section
-    @classmethod
-    def mean(
-        cls,
-        vec: MeasurableVector,
-        name: Hashable | None = None,
-    ) -> MeasurableFunction:
-        """Compute the mean of a measurable vector across its index.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        vec : MeasurableVector
-            The measurable vector for which to compute the mean.
-        name : Hashable | None, default=None
-            The name of the transformed vector. If `None`, a default name will be generated.
-
-        Raises
-        ------
-        TypeError
-            If `vec` is not an instance of `MeasurableVector`.
-
-        Returns
-        -------
-        mean : MeasurableFunction
-            A new measurable function representing the mean of the input vector across its index.
-
-        Examples
-        --------
-        >>> from sigalg.core import Operators, Time
-        >>> from sigalg.processes import RandomWalk
-        >>> T = Time.discrete(length=3)
-        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        time        0  1  2  3
-        sample
-        0           3  2  1  0
-        1           3  2  1  2
-        2           3  2  3  2
-        3           3  2  3  4
-        4           3  4  3  2
-        5           3  4  3  4
-        6           3  4  5  4
-        7           3  4  5  6
-        >>> X_mean = Operators.mean(X)
-        >>> print(X_mean) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'X_mean':
-                X_mean
-        sample
-        0          1.5
-        1          2.0
-        2          2.5
-        3          3.0
-        4          3.0
-        5          3.5
-        6          4.0
-        7          4.5
-        """
-        from .measurable_vector import MeasurableVector
-
-        if not isinstance(vec, MeasurableVector):
-            raise TypeError("vec must be an instance of MeasurableVector.")
-
-        data_trans = vec.data.copy()
-        data_trans = data_trans.mean(axis=1)
-
-        if name is None:
-            name = f"{vec.name}_mean"
-
-        return MeasurableVector(
-            *vec.measurable_space,
-            measure=vec.measure,
-            name=name,
-            mapping=data_trans,
         )
 
     # TODO: add Notes section
@@ -549,11 +451,6 @@ class Operators:
         vec : MeasurableVector
             The measurable vector for which to find the maximum value.
 
-        Raises
-        ------
-        TypeError
-            If `vec` is not an instance of `MeasurableVector`.
-
         Returns
         -------
         max_value : Real
@@ -567,8 +464,8 @@ class Operators:
         >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
-        time        0  1  2
-        sample
+        t           0  1  2
+        omega
         0           3  2  1
         1           3  2  3
         2           3  4  3
@@ -594,11 +491,6 @@ class Operators:
         vec : MeasurableVector
             The measurable vector for which to find the minimum value.
 
-        Raises
-        ------
-        TypeError
-            If `vec` is not an instance of `MeasurableVector`.
-
         Returns
         -------
         min_value : Real
@@ -612,8 +504,8 @@ class Operators:
         >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
-        time        0  1  2
-        sample
+        t           0  1  2
+        omega
         0           3  2  1
         1           3  2  3
         2           3  4  3
@@ -2228,7 +2120,7 @@ class OperatorsMethods:
     def sum(self, name: Hashable | None = None) -> MeasurableFunction:
         """Compute the sum of the components of the measurable vector.
 
-        Calls `Operators.sum` with the appropriate arguments.
+        Internally calls `Operators.sum`.
 
         Parameters
         ----------
@@ -2282,7 +2174,9 @@ class OperatorsMethods:
     ) -> MeasurableVector:
         """Apply a transformation to the measurable vector.
 
-        Calls `Operators.transform` with the appropriate arguments.
+        Internally calls `Operators.transform`.
+
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -2292,6 +2186,11 @@ class OperatorsMethods:
             The new index for the transformed vector. If `None`, the original index of the measurable vector is used.
         name : Hashable | None, default=None
             The name of the transformed vector. If `None`, a default name will be generated.
+
+        Returns
+        -------
+        transformed_vector : MeasurableVector
+            The transformed measurable vector.
 
         Examples
         --------
@@ -2307,8 +2206,8 @@ class OperatorsMethods:
         ... )
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         IID process 'X':
-        time    0  1  2
-        sample
+        t       0  1  2
+        omega
         0       0  0  0
         1       0  0  1
         2       0  1  0
@@ -2327,8 +2226,8 @@ class OperatorsMethods:
         >>> X_transform = X.transform(functions=[f4, f5], index=S)
         >>> print(X_transform)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_transform':
-        time    4  5
-        sample
+        t       4  5
+        omega
         0       0  0
         1       0  1
         2       1  1
@@ -2349,7 +2248,9 @@ class OperatorsMethods:
     ) -> MeasurableVector:
         """Apply a function pointwise to the values of the measurable vector.
 
-        Calls `Operators.pointwise_map` with the appropriate arguments.
+        Internally calls `Operators.pointwise_map`.
+
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -2371,8 +2272,8 @@ class OperatorsMethods:
         >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
-        time    0  1  2
-        sample
+        t       0  1  2
+        omega
         0       3  2  1
         1       3  2  3
         2       3  4  3
@@ -2382,8 +2283,8 @@ class OperatorsMethods:
         >>> X_mapped = X.pointwise_map(function=f)
         >>> print(X_mapped)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_mapped':
-        time    0  1  2
-        sample
+        t       0  1  2
+        omega
         0       4  3  2
         1       4  3  4
         2       4  5  4
@@ -2394,7 +2295,9 @@ class OperatorsMethods:
     def cumsum(self, name: Hashable | None = None) -> MeasurableVector:
         """Compute the cumulative sum of the measurable vector along its index.
 
-        Calls `Operators.cumsum` with the appropriate arguments.
+        Internally calls `Operators.cumsum`.
+
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -2415,8 +2318,8 @@ class OperatorsMethods:
         >>> X = IIDProcess.generate(mode="enum", distribution=bernoulli(p=0.6), support=[0, 1], index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         IID process 'X':
-        time        1  2  3
-        sample
+        t           1  2  3
+        omega
         0           0  0  0
         1           0  0  1
         2           0  1  0
@@ -2428,8 +2331,8 @@ class OperatorsMethods:
         >>> X_cumsum = X.cumsum()
         >>> print(X_cumsum) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_cumsum':
-        time        1  2  3
-        sample
+        t           1  2  3
+        omega
         0           0  0  0
         1           0  0  1
         2           0  1  1
@@ -2444,7 +2347,10 @@ class OperatorsMethods:
     def cumprod(self, name: Hashable | None = None) -> MeasurableVector:
         """Compute the cumulative product of the measurable vector along its index.
 
-        Calls `Operators.cumprod` with appropriate arguments.
+        Internally calls `Operators.cumprod`.
+
+        See the Notes section below for the mathematical details.
+
 
         Parameters
         ----------
@@ -2464,8 +2370,8 @@ class OperatorsMethods:
         >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
-        time        0  1  2  3
-        sample
+        t           0  1  2  3
+        omega
         0           3  2  1  0
         1           3  2  1  2
         2           3  2  3  2
@@ -2477,8 +2383,8 @@ class OperatorsMethods:
         >>> X_cumprod = X.cumprod()
         >>> print(X_cumprod) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_cumprod':
-        time        0   1   2    3
-        sample
+        t           0   1   2    3
+        omega
         0           3   6   6    0
         1           3   6   6   12
         2           3   6  18   36
@@ -2490,59 +2396,12 @@ class OperatorsMethods:
         """
         return Operators.cumprod(vec=self, name=name)
 
-    def mean(self, name: Hashable | None = None) -> MeasurableFunction:
-        """Compute the mean of the measurable vector across its index.
-
-        Calls `Operators.mean` with appropriate arguments.
-
-        Parameters
-        ----------
-        name : Hashable | None, default=None
-            The name of the transformed vector. If `None`, a default name will be generated.
-
-        Returns
-        -------
-        mean : MeasurableFunction
-            A new measurable function representing the mean of the input vector across its index.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> T = Time.discrete(length=3)
-        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        time        0  1  2  3
-        sample
-        0           3  2  1  0
-        1           3  2  1  2
-        2           3  2  3  2
-        3           3  2  3  4
-        4           3  4  3  2
-        5           3  4  3  4
-        6           3  4  5  4
-        7           3  4  5  6
-        >>> X_mean = X.mean()
-        >>> print(X_mean) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'X_mean':
-                X_mean
-        sample
-        0          1.5
-        1          2.0
-        2          2.5
-        3          3.0
-        4          3.0
-        5          3.5
-        6          4.0
-        7          4.5
-        """
-        return Operators.mean(vec=self, name=name)
-
     def max_value(self) -> Real:
         """Get the maximum value across all outputs and indices of the measurable vector.
 
-        Calls `Operators.max_value` with appropriate arguments.
+        Internally calls `Operators.max_value`.
+
+        See the Notes section below for the mathematical details.
 
         Returns
         -------
@@ -2557,8 +2416,8 @@ class OperatorsMethods:
         >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
-        time        0  1  2
-        sample
+        t           0  1  2
+        omega
         0           3  2  1
         1           3  2  3
         2           3  4  3
@@ -2571,6 +2430,10 @@ class OperatorsMethods:
 
     def min_value(self) -> Real:
         """Get the minimum value across all outputs and indices of the measurable vector.
+
+        Internally calls `Operators.min_value`.
+
+        See the Notes section below for the mathematical details.
 
         Returns
         -------
@@ -2585,8 +2448,8 @@ class OperatorsMethods:
         >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
-        time        0  1  2
-        sample
+        t           0  1  2
+        omega
         0           3  2  1
         1           3  2  3
         2           3  4  3
