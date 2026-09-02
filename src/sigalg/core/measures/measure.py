@@ -1296,54 +1296,32 @@ class Measure(Function):
 
     # --------------------- equality and comparison methods --------------------- #
 
-    # TODO: Add this as an `equal_as_measures` method
-    # def __eq__(self, other: Measure) -> bool:
-    #     """Check equality with another measure.
+    def equal(
+        self,
+        other: Measure,
+        are_close: bool = False,
+        rtol: float = 1e-5,
+        atol: float = 1e-8,
+    ) -> bool:
+        """Check equality with another measure (as measures).
 
-    #     Two measures are considered equal if they have the same sigma-algebras and identical values for each atom.
-
-    #     Parameters
-    #     ----------
-    #     other : Measure
-    #         The other measure to compare with.
-
-    #     Returns
-    #     -------
-    #     is_equal : bool
-    #         `True` if the two measures are equal, `False` otherwise.
-    #     """
-    #     from .._utils.utils import to_df
-
-    #     if self.sig_alg != other.sig_alg:
-    #         return False
-
-    #     atom_data = to_df(self.lattice.get_atom_data(other.sig_alg))
-    #     atom_data.columns = other.sig_alg.variable_names
-
-    #     data = (
-    #         pd.concat([self.data, atom_data], axis=1)
-    #         .set_index(other.sig_alg.variable_names)
-    #         .squeeze(axis=1)
-    #     )
-
-    #     return bool(data.equals(other.data))
-
-    def is_close(self, other: Measure, rtol: float = 1e-5, atol=1e-8) -> bool:
-        """Check if two measures have approximately the same values.
+        Two measures are considered equal if they have the same sigma-algebras and identical values for each atom.
 
         Parameters
         ----------
         other : Measure
             The other measure to compare with.
+        are_close : bool, default=False
+            Check whether the measures are approximately equal.
         rtol : float, default=1e-5
-            Relative tolerance for comparing values.
+            Relative tolerance for checking approximate equality. Ignored if `are_close` is `False`.
         atol : float, default=1e-8
-            Absolute tolerance for comparing values.
+            Absolute tolerance for checking approximate equality. Ignored if `are_close` is `False`.
 
         Returns
         -------
-        is_close : bool
-            `True` if the two measures have approximately the same values, `False` otherwise.
+        is_equal : bool
+            `True` if the two measures are equal, `False` otherwise.
         """
         from .._utils.utils import to_df
 
@@ -1359,7 +1337,11 @@ class Measure(Function):
             .squeeze(axis=1)
         )
 
-        return np.allclose(data, other.data, rtol=rtol, atol=atol)
+        if are_close:
+            return bool(np.allclose(data, other.data, rtol=rtol, atol=atol))
+
+        else:
+            return bool(data.equals(other.data))
 
     def is_restriction_of(self, other: Measure, rtol: float = 1e-5, atol=1e-8) -> bool:
         """Check whether this measure is the restriction of the other measure to a sub-sigma-algebra.
@@ -1434,7 +1416,7 @@ class Measure(Function):
 
         return bool(
             (self.sig_alg <= other.sig_alg)
-            and self.is_close(other | self.sig_alg, rtol=rtol, atol=atol)
+            and self.equal(other | self.sig_alg, are_close=True, rtol=rtol, atol=atol)
         )
 
     # --------------------- arithmetic operations --------------------- #
