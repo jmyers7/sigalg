@@ -697,12 +697,12 @@ class MarkovChain(StochasticProcess):
             p=self.initial_distribution[*possible_initial_states.T],
         )
 
-        trajectories = np.empty(
-            shape=(self.n_trajectories, self.length + 1), dtype=np.int64
-        )
+        length = len(self._index)
+
+        trajectories = np.empty(shape=(self.n_trajectories, length), dtype=np.int64)
         trajectories[:, : self.order] = initial_states
 
-        for t in range(self.length - self.order + 1):
+        for t in range(length - self.order):
             p = self.kernel[*trajectories[:, t : t + self.order].T]
             cum = np.cumsum(p, axis=1)
             cum[:, -1] = 1.0
@@ -710,7 +710,7 @@ class MarkovChain(StochasticProcess):
             indices = (cum <= u).sum(axis=-1)
             trajectories[:, t + self.order] = self.state_space[indices]
 
-        return pd.DataFrame(data=trajectories, columns=self.time.data)
+        return pd.DataFrame(data=trajectories, columns=self._index.data)
 
     # --------------------- representation --------------------- #
 

@@ -16,5 +16,9 @@ class TestProbMeasure:
 
         assert np.allclose(
             P >> X,
-            (P >> X[0]) * (P.conditional(X[0]) >> X[1]) * (P.conditional(X[1]) >> X[2]),
+            (
+                (P >> X[0])
+                * (P.conditional(X[0]) >> X[1])
+                * (P.conditional(X[1]) >> X[2])
+            ).drop_zeros(),
         )
