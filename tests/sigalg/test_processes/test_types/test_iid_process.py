@@ -1,5 +1,5 @@
+import numpy as np
 from scipy.stats import bernoulli
-
 from sigalg.processes import IIDProcess
 
 # --------------------- test properties --------------------- #
@@ -16,4 +16,4 @@ class TestProbMeasure:
         )
         P = X.prob_measure
 
-        assert P >> X == (P >> X[0]) * (P >> X[1]) * (P >> X[2])
+        assert np.allclose(P >> X, (P >> X[0]) * (P >> X[1]) * (P >> X[2]))

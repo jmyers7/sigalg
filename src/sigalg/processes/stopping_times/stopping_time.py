@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable
 from math import inf
 from typing import TYPE_CHECKING
 
 from ...core.functions.random_variable import RandomVariable
-from ...core.sigma_algebras.filtration import Filtration
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
+    from ...core.sigma_algebras.filtration import Filtration
     from ...typing.mapping_like import MappingLike
     from ..base.stochastic_process import StochasticProcess
 
@@ -22,26 +23,16 @@ class StoppingTime(RandomVariable):
 
     See the Notes section below for the mathematical details.
 
-    Parameters
-    ----------
-    sample_space : SampleSpace | None, default=None
-        The sample space of the underlying probability space.
-    sig_alg : SigmaAlgebra | None, default=None
-        The sigma algebra of the underlying probability space.
-    prob_measure : ProbabilityMeasure | None, default=None
-        The probability measure of the underlying probability space.
-    name : Hashable, default="X"
-        The name of the stopping time.
-
     Examples
     --------
+    >>> from math import inf
+    >>> from sigalg.core import Time
+    >>> from sigalg.processes import RandomWalk, StoppingTime
+
     A gambler begins with 10 units of currency in the bank and plays a game with unit stakes. The house has probability of 0.6 of winning, in which case the gambler loses one unit, and so the gambler has probability 0.4 of winning one unit. We suppose that the money in the gambler's bank is modeled by a random walk stochastic process, and that the gambler plays ten games.
 
     In SigAlg, we set up this random walk as follows, and generate eight random trajectories:
 
-    >>> from math import inf
-    >>> from sigalg.core import Time
-    >>> from sigalg.processes import RandomWalk, StoppingTime
     >>> T = Time.discrete(start=1, stop=10)
     >>> S = RandomWalk.generate(
     ...     mode="sim",
@@ -54,8 +45,8 @@ class StoppingTime(RandomVariable):
     ... )
     >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
     Random walk 'S':
-    time    1   2   3   4   5   6   7   8   9   10
-    sample
+    t       1   2   3   4   5   6   7   8   9   10
+    omega
     0       10  11  10  11  12  11  12  13  14  13
     1       10   9   8   9  10  11  10   9   8   7
     2       10  11  12  13  12  13  14  15  14  13
@@ -83,7 +74,7 @@ class StoppingTime(RandomVariable):
     >>> print(tau)  # doctest: +NORMALIZE_WHITESPACE
     Stopping time 'tau':
             tau
-    sample
+    omega
     0       inf
     1       3.0
     2       inf
@@ -151,6 +142,7 @@ class StoppingTime(RandomVariable):
                 check_alg = filtration.finest
             else:
                 check_alg = filtration[t]
+
             if event not in check_alg:
                 raise TypeError(
                     "One of the level sets of the stopping time is not measurable with respect to the appropriate sigma-algebra in the filtration."

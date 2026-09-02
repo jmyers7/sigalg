@@ -301,6 +301,7 @@ class TestCallMethod:
 # --------------------- test equality --------------------- #
 
 
+# TODO: add more tests for the __eq__ and `equals` methods
 class TestEquality:
     @pytest.fixture
     def Omega(self):
@@ -356,7 +357,7 @@ class TestEquality:
         assert P1 == P2
 
     def test_equality_same_components_different_names(self):
-        """Test the __eq__ method for equality with same components but different names."""
+        """Test the `equals` method for equality with same components but different names."""
         Omega1 = SampleSpace.from_sequence(size=3, name="Omega1")
         Omega2 = SampleSpace.from_sequence(size=3, name="Omega2")
         F1 = SigmaAlgebra(
@@ -394,7 +395,7 @@ class TestEquality:
             },
         )
 
-        assert P1 == P2
+        assert P1.equal(P2)
 
 
 # --------------------- test probability methods --------------------- #

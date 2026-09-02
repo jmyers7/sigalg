@@ -1,3 +1,4 @@
+import numpy as np
 from sigalg.processes import RandomWalk
 
 # --------------------- test properties --------------------- #
@@ -13,6 +14,7 @@ class TestProbMeasure:
         )
         P = X.prob_measure
 
-        assert P >> X == (P >> X[0]) * (P.given(X[0]) >> X[1]) * (
-            P.given(X[0, 1]) >> X[2]
+        assert np.allclose(
+            P >> X,
+            (P >> X[0]) * (P.conditional(X[0]) >> X[1]) * (P.conditional(X[1]) >> X[2]),
         )
