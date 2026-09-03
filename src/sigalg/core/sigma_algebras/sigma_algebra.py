@@ -2282,13 +2282,19 @@ class SigmaAlgebra:
 
     # --------------------- conversion methods --------------------- #
 
-    def with_name(self, name: Hashable) -> SigmaAlgebra:
+    def with_name(
+        self,
+        name: Hashable,
+        reset_variable_names: bool = False,
+    ) -> SigmaAlgebra:
         """Reset the name of the sigma-algebra and return a new instance.
 
         Parameters
         ----------
         name : Hashable
             The new name for the sigma-algebra.
+        reset_variable_names : bool, default=False
+            Boolean flag whether to reset the variable names of the sigma-algebra.
 
         Returns
         -------
@@ -2322,7 +2328,7 @@ class SigmaAlgebra:
 
         return SigmaAlgebra._from_validated(
             data=new_data,
-            variable_names=None,
+            variable_names=None if reset_variable_names else self.variable_names,
             domain_kind=type(self.domain).__name__,
             domain_name=self.domain.name,
             index_kind=type(self.index).__name__ if self.index is not None else None,
