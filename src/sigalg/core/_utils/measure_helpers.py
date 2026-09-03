@@ -136,6 +136,7 @@ def compute_radon_nikodym(
                 return data
 
 
+# TODO: write docstring
 def compute_surprisal(
     self_data: pd.Series,
     base_measure_data: pd.Series,
@@ -199,6 +200,7 @@ def compute_entropy(
     self_data: pd.Series,
     base_measure_data: pd.Series,
     sig_alg_data: pd.Series | pd.DataFrame,
+    parameter_names: list[Hashable] | None = None,
     given_data: pd.Series | pd.DataFrame | None = None,
     given_variable_names: list[Hashable] | None = None,
     atom_data: pd.Series | pd.DataFrame | None = None,
@@ -213,6 +215,7 @@ def compute_entropy(
             self_data=self_data,
             base_measure_data=base_measure_data,
             sig_alg_data=sig_alg_data,
+            parameter_names=parameter_names,
             given_data=given_data,
             given_variable_names=given_variable_names,
             atom_data=atom_data,
@@ -222,11 +225,13 @@ def compute_entropy(
         )
 
         return compute_integral(
-            function_atom_data=data,
+            function_atom_data=data.unstack(level=parameter_names)
+            if parameter_names is not None
+            else data,
             measure_data=self_data,
             indicator_data=None,
-            function_parameter_names=None,
-            measure_parameter_names=None,
+            function_parameter_names=parameter_names,
+            measure_parameter_names=parameter_names,
         )
 
     else:
@@ -243,10 +248,8 @@ def compute_entropy(
             return_conditional_data=True,
         )
 
-        function_atom_data = data.unstack(level=given_variable_names)
-
         inner_integral = compute_integral(
-            function_atom_data=function_atom_data,
+            function_atom_data=data.unstack(level=given_variable_names),
             measure_data=conditional_data,
             indicator_data=None,
             function_parameter_names=given_variable_names,
