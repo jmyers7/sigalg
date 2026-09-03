@@ -11,6 +11,7 @@ from .parametrized_measure import ParametrizedMeasure
 if TYPE_CHECKING:
     from scipy.stats import rv_discrete
 
+    from ..functions.function import Function
     from ..functions.parametrized_measurable_function import (
         ParametrizedMeasurableFunction,
     )
@@ -218,6 +219,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
     # --------------------- probability methods --------------------- #
 
+    # TODO: tol parameter unused
     def derivative(
         self,
         base_measure: Measure | None = None,
@@ -231,11 +233,9 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         Parameters
         ----------
         base_measure : Measure | None, default=None
-            The base measure with respect to which the Radon-Nikodym derivative is computed.
-            If None, the counting measure on the domain of the sigma-algebra is used.
+            The base measure with respect to which the Radon-Nikodym derivative is computed. If `None`, the counting measure on the domain of the sigma-algebra is used.
         name : Hashable | None, default=None
-            The name of the resulting Radon-Nikodym derivative. If None, a default name
-            is generated based on the names of the current measure and the base measure.
+            The name of the resulting Radon-Nikodym derivative. If `None`, a default name is generated based on the names of the current measure and the base measure.
 
         Returns
         -------
@@ -445,7 +445,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         from ..measures.measure import Measure
 
         if base_measure is None:
-            base_measure = Measure.counting(self.sig_alg.domain)
+            base_measure = Measure.counting(self.sig_alg)
 
         if name is None:
             name = f"d{self.name}_d{base_measure.name}"
@@ -467,6 +467,8 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
             name=name,
         )
 
+    # TODO: missing Notes section docstring
+    # TODO: tol parameter unused
     def surprisal(
         self,
         base_measure: Measure | None = None,
@@ -474,7 +476,106 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         name: Hashable | None = None,
         tol: float = 1e-8,
     ) -> ParametrizedMeasurableFunction:
-        """Pass."""
+        """Compute the surprisal with respect to a base measure.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        base_measure : Measure | None, default=None
+            The base measure with respect to which the surprisal is computed. If `None`, the counting measure on the domain of the sigma-algebra is used.
+        base : Literal["e", "2", "10"], default="e"
+            The base of the logarithm used to compute the surprisal.
+        name : Hashable | None, default=None
+            The name of the resulting surprisal. If `None`, a default name will be generated.
+        tol : float, default=1e-8
+            Tolerance for testing for absolute continuity.
+
+        Returns
+        -------
+        surprisal : ParametrizedMeasurableFunction
+            The surprisal of the current measure with respect to the base measure.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg import (
+        ...     Domain,
+        ...     Measure,
+        ...     ParametrizedProbabilityMeasure,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+
+        Define a parametrized probability measure.
+
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
+        >>> F = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     },
+        ... )
+        >>> mapping = dict(zip(Theta @ F.atom_space, [0.3, 0.5, 0.2, 0.0, 0.1, 0.9]))
+        >>> P = ParametrizedProbabilityMeasure.from_domains(
+        ...     measure_domain=F,
+        ...     parameter_domain=Theta,
+        ...     mapping=mapping,
+        ... )
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'P':
+        theta    0    1
+        F
+        0      0.3  0.0
+        1      0.5  0.1
+        2      0.2  0.9
+
+        Define a base measure for the surprisal.
+
+        >>> mu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 4,
+        ...     },
+        ... )
+
+        Compute the surprisal of `P` with respect to `mu`.
+
+        >>> P.surprisal(mu)
+        ParametrizedMeasurableFunction(parameters=(theta), measurable_vars=(omega), domain=Omega, sig_alg=F, measure=None, name=s(P; mu))
+        >>> print(P.surprisal(mu))  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measurable function 's(P; mu)':
+        theta         0         1
+        omega
+        0      1.203973  0.000000
+        1      1.203973  0.000000
+        2      1.386294  2.995732
+        3      1.386294  2.995732
+        4      2.995732  1.491655
+        5      2.995732  1.491655
+
+        We may check that the surprisal is the negative logarithm of the Radon-Nikodym derivative of `P` with respect to `mu`.
+
+        >>> with np.errstate(divide='ignore'):
+        ...     print(-np.log(P.derivative(mu)))  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measurable function '(-log(dP_dmu))':
+        theta         0         1
+        omega
+        0      1.203973       inf
+        1      1.203973       inf
+        2      1.386294  2.995732
+        3      1.386294  2.995732
+        4      2.995732  1.491655
+        5      2.995732  1.491655
+        """
         from .._utils.measure_helpers import compute_surprisal
         from ..functions.parametrized_measurable_function import (
             ParametrizedMeasurableFunction,
@@ -482,7 +583,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         from ..measures.measure import Measure
 
         if base_measure is None:
-            base_measure = Measure.counting(self.sig_alg.domain)
+            base_measure = Measure.counting(self.sig_alg)
 
         if name is None:
             name = f"s({self.name}; {base_measure.name})"
@@ -502,5 +603,128 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
             complete_domain_name=f"{self.parameter_domain_name} x {self.sig_alg.domain.name}",
             parameter_domain_name=self.parameter_domain_name,
             parameter_names=self.parameter_names,
+            name=name,
+        )
+
+    # TODO: missing Notes section in docstring
+    # TODO: tol parameter unused
+    def entropy(
+        self,
+        base_measure: Measure | None = None,
+        base: Literal["e", "2", "10"] = "e",
+        name: Hashable | None = None,
+        tol: float = 1e-8,
+    ) -> Function:
+        """Compute the entropy with respect to a base measure.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        base_measure : Measure | None, default=None
+            The base measure with respect to which the entropy is computed. If `None`, the counting measure on the domain of the sigma-algebra is used.
+        base : Literal["e", "2", "10"], default="e"
+            The base of the logarithm used to compute the entropy.
+        name : Hashable | None, default=None
+            The name of the resulting entropy. If `None`, a default name will be generated.
+        tol : float, default=1e-8
+            Tolerance for testing for absolute continuity.
+
+        Returns
+        -------
+        entropy : Function
+            The entropy of the current measure with respect to the base measure.
+
+        Examples
+        --------
+        >>> from sigalg import (
+        ...     Domain,
+        ...     Measure,
+        ...     ParametrizedProbabilityMeasure,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+
+        Define a parametrized probability measure.
+
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
+        >>> F = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     },
+        ... )
+        >>> mapping = dict(zip(Theta @ F.atom_space, [0.3, 0.5, 0.2, 0.0, 0.1, 0.9]))
+        >>> P = ParametrizedProbabilityMeasure.from_domains(
+        ...     measure_domain=F,
+        ...     parameter_domain=Theta,
+        ...     mapping=mapping,
+        ... )
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'P':
+        theta    0    1
+        F
+        0      0.3  0.0
+        1      0.5  0.1
+        2      0.2  0.9
+
+        Define a base measure for the entropy.
+
+        >>> mu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 4,
+        ...     },
+        ... )
+
+        Compute the entropy of `P` with respect to `mu`.
+
+        >>> P.entropy(mu)
+        Function(parameters=(theta), domain=Theta, name=H(P; mu))
+        >>> print(P.entropy(mu))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'H(P; mu)':
+               H(P; mu)
+        theta
+        0      1.653485
+        1      1.642063
+
+        We may check that the entropy is given by the integral of the surprisal function.
+
+        >>> P.entropy(mu) == P.surprisal(mu).integrate(measure=P)
+        True
+        """
+        from .._utils.measure_helpers import compute_entropy
+        from ..functions.function import Function
+        from ..measures.measure import Measure
+
+        if base_measure is None:
+            base_measure = Measure.counting(self.sig_alg)
+
+        if name is None:
+            name = f"H({self.name}; {base_measure.name})"
+
+        data = compute_entropy(
+            self_data=self.data,
+            base_measure_data=base_measure.data,
+            sig_alg_data=self.sig_alg.data,
+            parameter_names=self.parameter_names,
+            base=base,
+        )
+
+        return Function._from_validated(
+            data=data.rename(name),
+            kind="any",
+            domain_kind=type(self.parameter_domain).__name__,
+            domain_name=self.parameter_domain.name,
+            index_kind="Index",
+            index_name=None,
             name=name,
         )
