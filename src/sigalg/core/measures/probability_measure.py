@@ -1635,14 +1635,16 @@ class ProbabilityMeasure(Measure):
 
         return data.astype(Real)
 
+    # TODO: update docstring Notes with discussion of conditional cross entropy
     def cross_entropy(
         self,
         other: ProbabilityMeasure,
-        base_measure: Measure,
+        base_measure: Measure | None = None,
+        given: SigmaAlgebra | RandomVector | None = None,
         base: Literal["e", "2", "10"] = "e",
         tol: float = 1e-8,
     ) -> Real:
-        r"""Compute the cross entropy from this to another probability measure, with respect to a base measure.
+        r"""Compute the cross entropy from this to another probability measure with respect to a base measure, optionally conditioned on a sigma-algebra or random vector.
 
         See the Notes section below for the mathematical details.
 
@@ -1652,8 +1654,10 @@ class ProbabilityMeasure(Measure):
             The other probability measure.
         base_measure : Measure
             The base measure with respect to which the cross entropy is computed. If `None`, the counting measure is used.
+        given : SigmaAlgebra | RandomVector | None, default=None
+            The optional sigma-algebra or random vector on which to condition the cross entropy.
         base : Literal["e", "2", "10"], default="e"
-            The base of the logarithm used to compute the divergence.
+            The base of the logarithm used to compute the cross entropy.
         tol : float, default=1e-8
             Tolerance for testing for absolute continuity.
 
@@ -1665,6 +1669,7 @@ class ProbabilityMeasure(Measure):
         Examples
         --------
         >>> from sigalg.core import (
+        ...     Operators,
         ...     Measure,
         ...     ProbabilityMeasure,
         ...     SampleSpace,
@@ -1723,6 +1728,40 @@ class ProbabilityMeasure(Measure):
         >>> P.cross_entropy(Q, mu)
         1.7528106538695527
 
+        We may check that the cross entropy agrees with its mathematical definition as an integral.
+
+        >>> P.cross_entropy(Q, mu) == Q.surprisal(mu).integrate(measure=P)
+        True
+
+        Define a sub-sigma-algebra for conditional cross entropy.
+
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,  # P-null atom
+        ...         5: 2,  # P-null atom
+        ...         6: 2,  # P-null atom
+        ...     },
+        ...     name="G",
+        ... )
+
+        Compute the cross entropy from `P` to `Q`, conditioned on `G`.
+
+        >>> P.cross_entropy(Q, mu, given=G)
+        1.1137787942193758
+
+        We may check that the cross entropy agrees with its mathematical definition as a double integral.
+
+        >>> integrate = Operators.integrate
+        >>> P.cross_entropy(Q, mu, given=G) == Q.surprisal(mu, G).integrate(
+        ...     measure=P.conditional(G)
+        ... ).ascend(G).integrate(measure=P)
+        True
+
         Notes
         -----
         Let $(\Omega, \mathcal{F})$ be a finite measurable space and $P$ and $Q$ two probability measures with $P \ll Q$, and $\mu$ a base measure with $Q\ll \mu$. The *cross entropy* from $P$ to $Q$ (with respect to $\mu$) is the number
@@ -1734,10 +1773,18 @@ class ProbabilityMeasure(Measure):
         where $s(Q;\mu)$ is a surprisal function of $Q$ with respect to $\mu$.
         """
         from .._utils.function_helpers import compute_integral
+        from .._utils.measure_helpers import (
+            compute_conditional_prob_measure,
+            compute_surprisal,
+        )
         from ..measures.probability_measure import ProbabilityMeasure
 
         if not isinstance(other, ProbabilityMeasure):
             raise TypeError("The other measure must be a probability measure.")
+
+        given = self._normalize_given_and_base_measure(
+            given=given, base_measure=base_measure
+        )
 
         if base_measure is None:
             base_measure = Measure.counting(self.sig_alg)
@@ -1749,29 +1796,55 @@ class ProbabilityMeasure(Measure):
                 "This measure must be absolutely continuous with respect to the other probability measure, which in turn must be absolutely continuous with respect to the base measure."
             )
 
-        surprisal = other.surprisal(
-            base_measure=base_measure,
+        other_surprisal = compute_surprisal(
+            self_data=other.data,
+            base_measure_data=base_measure.data,
+            sig_alg_data=other.sig_alg.data,
+            given_data=getattr(given, "data", None),
+            given_variable_names=getattr(given, "variable_names", None),
+            atom_data=given.up_lattice.get_atom_data(other.sig_alg)
+            if given is not None
+            else None,
+            restricted_self_data=(other | given).data if given is not None else None,
             base=base,
-            tol=tol,
+            ascend=False,
         )
 
-        integral = compute_integral(
-            function_atom_data=surprisal.atom_data(),
-            measure_data=self.data,
-            indicator_data=None,
-            function_parameter_names=None,
-            measure_parameter_names=None,
-        )
+        if given is None:
+            return compute_integral(
+                function_atom_data=other_surprisal, measure_data=self.data
+            ).astype(Real)
 
-        return float(integral)
+        else:
+            cond_probability = compute_conditional_prob_measure(
+                self_data=self.data,
+                restricted_self_data=(self | given).data,
+                atom_data=given.up_lattice.get_atom_data(self.sig_alg),
+                given_variable_names=given.variable_names,
+                base_measure_data=base_measure.data,
+            )
 
+            inner_integral = compute_integral(
+                function_atom_data=other_surprisal.unstack(level=given.variable_names),
+                measure_data=cond_probability,
+                function_parameter_names=given.variable_names,
+                measure_parameter_names=given.variable_names,
+            )
+
+            return compute_integral(
+                function_atom_data=inner_integral,
+                measure_data=(self | given).data,
+            ).astype(Real)
+
+    # TODO: update docstring Notes with discussion of conditional KL divergence
     def divergence(
         self,
         other: ProbabilityMeasure,
+        given: SigmaAlgebra | RandomVector | None = None,
         base: Literal["e", "2", "10"] = "e",
         tol: float = 1e-8,
     ) -> Real:
-        r"""Compute the Kullback Leibler divergence from this to another probability measure.
+        r"""Compute the Kullback Leibler divergence from this to another probability measure, optinally conditioned on a sigma-algebra or random vector.
 
         See the Notes section below for the mathematical details.
 
@@ -1779,6 +1852,8 @@ class ProbabilityMeasure(Measure):
         ----------
         other : ProbabilityMeasure
             The other probability measure.
+        given : SigmaAlgebra | RandomVector | None, default=None
+            The optional sigma-algebra or random vector on which to condition the entropy.
         base : Literal["e", "2", "10"], default="e"
             The base of the logarithm used to compute the divergence.
         tol : float, default=1e-8
@@ -1841,10 +1916,10 @@ class ProbabilityMeasure(Measure):
         >>> P.divergence(Q)
         0.16692934856672895
 
-        The KL divergence is the negative entropy of `P` with base measure `Q`. We check this.
+        The KL divergence is the negative entropy of `P` with base measure `Q`.
 
-        >>> -P.entropy(Q)
-        0.16692934856672895
+        >>> P.divergence(Q) == -P.entropy(Q)
+        True
 
         The KL divergence is also the difference between a cross entropy and a plain entropy. Before checking this, we define a base measure for the entropies.
 
@@ -1871,7 +1946,7 @@ class ProbabilityMeasure(Measure):
 
         where $H(P;Q)$ is the entropy of $P$ with base measure $Q$.
         """
-        return -self.entropy(base_measure=other, base=base, tol=tol)
+        return -self.entropy(base_measure=other, given=given, base=base, tol=tol)
 
     def mutual_info(
         self,
@@ -1888,7 +1963,7 @@ class ProbabilityMeasure(Measure):
         second_variables : list[Hashable] | None, default=None
             The variables for the second factor of the mutual information. See the Examples and Notes section below.
         base : Literal["e", "2", "10"], default="e"
-            The base of the logarithm used to compute the divergence.
+            The base of the logarithm used to compute the mutual information.
 
         Returns
         -------
