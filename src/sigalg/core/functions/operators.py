@@ -1045,6 +1045,7 @@ class Operators:
     # --------------------- probability-related methods --------------------- #
 
     # TODO: add to mixin
+    # TODO: missing docstring
     @classmethod
     def density(
         cls,
@@ -1060,6 +1061,7 @@ class Operators:
             pushforward = cls.pushforward(vec=rv)
 
         else:
+            given_name = given.name
             if isinstance(given, RandomVector):
                 given = given.generated_sig_alg
             pushforward = cls.pushforward(vec=rv, measure=rv.measure.conditional(given))
@@ -1068,7 +1070,7 @@ class Operators:
             if given is None:
                 name = f"f_{rv.name}"
             else:
-                name = f"f_({rv.name}|{given.name})"
+                name = f"f_({rv.name}|{given_name})"
 
         return pushforward.derivative(name=name, tol=tol)
 
@@ -2049,6 +2051,7 @@ class Operators:
             pushforward = cls.pushforward(vec=rv)
 
         else:
+            given_name = given.name
             if isinstance(given, RandomVector):
                 given = given.generated_sig_alg
             pushforward = cls.pushforward(vec=rv, measure=rv.measure.conditional(given))
@@ -2057,7 +2060,7 @@ class Operators:
             if given is None:
                 name = f"s({rv.name})"
             else:
-                name = f"s({rv.name}|{given.name})"
+                name = f"s({rv.name}|{given_name})"
 
         return pushforward.surprisal(
             base=base,
@@ -2213,154 +2216,171 @@ class Operators:
     # TODO: Notes section missing
     # TODO: tol unused parameter
     # TODO: add to mixin
-    # @classmethod
-    # def cross_entropy(
-    #     cls,
-    #     rv1: RandomVariable,
-    #     rv2: RandomVariable,
-    #     given: SigmaAlgebra | RandomVector | None = None,
-    #     base: Literal["e", "2", "10"] = "e",
-    #     tol: float = 1e-8,
-    # ) -> Real:
-    #     """Compute the entropy of a random variable with respect to a base measure, optionally conditioned on a sigma-algebra or random vector.
+    @classmethod
+    def cross_entropy(
+        cls,
+        rv1: RandomVariable,
+        rv2: RandomVariable,
+        given: SigmaAlgebra | RandomVector | None = None,
+        base: Literal["e", "2", "10"] = "e",
+        tol: float = 1e-8,
+    ) -> Real:
+        """Compute the entropy of a random variable with respect to a base measure, optionally conditioned on a sigma-algebra or random vector.
 
-    #     See the Notes section below for the mathematical details.
+        See the Notes section below for the mathematical details.
 
-    #     Parameters
-    #     ----------
-    #     rv : RandomVariable
-    #         The random variable whose entropy is to be computed.
-    #     given : SigmaAlgebra | RandomVector | None, default=None
-    #         The optional sigma-algebra or random vector on which to condition the entropy.
-    #     base : Literal["e", "2", "10"], default="e"
-    #         The base of the logarithm used to compute the entropy.
-    #     tol : float, default=1e-8
-    #         Tolerance for testing for absolute continuity.
+        Parameters
+        ----------
+        rv : RandomVariable
+            The random variable whose entropy is to be computed.
+        given : SigmaAlgebra | RandomVector | None, default=None
+            The optional sigma-algebra or random vector on which to condition the entropy.
+        base : Literal["e", "2", "10"], default="e"
+            The base of the logarithm used to compute the entropy.
+        tol : float, default=1e-8
+            Tolerance for testing for absolute continuity.
 
-    #     Returns
-    #     -------
-    #     entropy : Real
-    #         The entropy of the random variable.
+        Returns
+        -------
+        entropy : Real
+            The entropy of the random variable.
 
-    #     Examples
-    #     --------
-    #     >>> from sigalg.core import (
-    #     ...     Operators,
-    #     ...     ProbabilityMeasure,
-    #     ...     RandomVariable,
-    #     ...     SampleSpace,
-    #     ...     SigmaAlgebra,
-    #     ... )
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     Operators,
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
 
-    #     Define a random variable on a probability space.
+        Define a random variable on a probability space.
 
-    #     >>> Omega = SampleSpace.from_sequence(size=5)
-    #     >>> F = SigmaAlgebra(
-    #     ...     domain=Omega,
-    #     ...     mapping={
-    #     ...         0: 0,
-    #     ...         1: 1,
-    #     ...         2: 2,
-    #     ...         3: 3,
-    #     ...         4: 3,
-    #     ...     },
-    #     ... )
-    #     >>> P = ProbabilityMeasure(
-    #     ...     domain=F,
-    #     ...     mapping={
-    #     ...         0: 0.5,
-    #     ...         1: 0.4,
-    #     ...         2: 0.1,
-    #     ...         3: 0.0,
-    #     ...     },
-    #     ... )
-    #     >>> X = RandomVariable(
-    #     ...     domain=Omega,
-    #     ...     sig_alg=F,
-    #     ...     measure=P,
-    #     ...     mapping={
-    #     ...         0: 1,
-    #     ...         1: 5,
-    #     ...         2: 4,
-    #     ...         3: -1,
-    #     ...         4: -1,
-    #     ...     },
-    #     ... )
+        >>> Omega = SampleSpace.from_sequence(size=5)
+        >>> F = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 3,
+        ...         4: 3,
+        ...     },
+        ... )
+        >>> P = ProbabilityMeasure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 0.5,
+        ...         1: 0.4,
+        ...         2: 0.1,
+        ...         3: 0.0,
+        ...     },
+        ... )
+        >>> X = RandomVariable(
+        ...     domain=Omega,
+        ...     sig_alg=F,
+        ...     measure=P,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 5,
+        ...         2: 4,
+        ...         3: -1,
+        ...         4: -1,
+        ...     },
+        ... )
 
-    #     Compute the entropy of the random variable.
+        Compute the entropy of the random variable.
 
-    #     >>> H = Operators.entropy
-    #     >>> H(X)
-    #     0.9433483923290392
+        >>> H = Operators.entropy
+        >>> H(X)
+        0.9433483923290392
 
-    #     We may check that the entropy is the integral of the surprisal of the pushforward measure.
+        We may check that the entropy is the integral of the surprisal of the pushforward measure.
 
-    #     >>> P_X = P >> X
-    #     >>> H(X) == (P_X).surprisal().integrate(measure=P_X)
-    #     True
+        >>> P_X = P >> X
+        >>> H(X) == (P_X).surprisal().integrate(measure=P_X)
+        True
 
-    #     Define a sub-sigma-algebra for conditional entropy.
+        Define a sub-sigma-algebra for conditional entropy.
 
-    #     >>> G = SigmaAlgebra(
-    #     ...     domain=Omega,
-    #     ...     mapping={
-    #     ...         0: 0,
-    #     ...         1: 0,
-    #     ...         2: 1,
-    #     ...         3: 1,
-    #     ...         4: 1,
-    #     ...     },
-    #     ...     name="G",
-    #     ... )
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 1,
+        ...     },
+        ...     name="G",
+        ... )
 
-    #     Compute the conditional entropy.
+        Compute the conditional entropy.
 
-    #     >>> H(X, G)
-    #     0.6182654189375909
+        >>> H(X, G)
+        0.6182654189375909
 
-    #     Check that the conditional entropy agrees with its mathematical definition as a double integral.
+        Check that the conditional entropy agrees with its mathematical definition as a double integral.
 
-    #     >>> P_X_G = P.conditional(G) >> X
-    #     >>> H(X, G) == P_X_G.surprisal().integrate(measure=P_X_G).ascend(G).integrate(measure=P)
-    #     True
-    #     """
-    #     from .._utils.function_helpers import compute_integral
-    #     from .._utils.measure_helpers import compute_entropy
-    #     from ..measures.measure import Measure
-    #     from .random_vector import RandomVector
+        >>> P_X_G = P.conditional(G) >> X
+        >>> H(X, G) == P_X_G.surprisal().integrate(measure=P_X_G).ascend(G).integrate(measure=P)
+        True
+        """
+        from .._utils.function_helpers import compute_integral
+        from .._utils.measure_helpers import compute_surprisal
+        from ..measures.measure import Measure
+        from .random_vector import RandomVector
 
-    #     if given is None:
-    #         pushforward1 = cls.pushforward(vec=rv1)
-    #         pushforward2 = cls.pushforward(vec=rv2)
+        if given is None:
+            pushforward1 = cls.pushforward(vec=rv1)
+            pushforward2 = cls.pushforward(vec=rv2)
 
-    #     else:
-    #         if isinstance(given, RandomVector):
-    #             given = given.generated_sig_alg
-    #         pushforward1 = cls.pushforward(
-    #             vec=rv1, measure=rv1.measure.conditional(given)
-    #         )
-    #         pushforward2 = cls.pushforward(
-    #             vec=rv2, measure=rv2.measure.conditional(given)
-    #         )
+        else:
+            if isinstance(given, RandomVector):
+                given = given.generated_sig_alg
+            pushforward1 = cls.pushforward(
+                vec=rv1, measure=rv1.measure.conditional(given)
+            )
+            pushforward2 = cls.pushforward(
+                vec=rv2, measure=rv2.measure.conditional(given)
+            )
 
-    #     base_measure = Measure.counting(pushforward1.domain)
+        base_measure2 = Measure.counting(pushforward2.domain)
 
-    # data = compute_entropy(
-    #     self_data=pushforward.data,
-    #     base_measure_data=base_measure.data,
-    #     sig_alg_data=pushforward.sig_alg.data,
-    #     parameter_names=getattr(given, "variable_names", None),
-    #     base=base,
-    # )
+        surprisal2_data = compute_surprisal(
+            self_data=pushforward2.data,
+            base_measure_data=base_measure2.data,
+            sig_alg_data=pushforward2.sig_alg.data,
+            parameter_names=getattr(given, "variable_names", None),
+            base=base,
+        ).rename("surprisal2")
 
-    # if given is None:
-    #     return data.astype(Real)
+        if given is None:
+            print(surprisal2_data)
 
-    # else:
-    #     return compute_integral(
-    #         function_atom_data=data,
-    #         measure_data=(rv.measure | given).data,
-    #     ).astype(Real)
+        else:
+            surprisal_conditional_merged = pd.merge(
+                left=surprisal2_data.rename_axis(index={rv2.name: "rv"}).reset_index(),
+                right=pushforward1.data.rename("pushforward1")
+                .rename_axis(index={rv1.name: "rv"})
+                .reset_index(),
+                how="outer",
+            ).fillna(0.0)
+
+            surprisal_conditional_merged["product"] = (
+                surprisal_conditional_merged["surprisal2"]
+                * surprisal_conditional_merged["pushforward1"]
+            )
+
+            inner_integral_data = surprisal_conditional_merged.groupby(
+                given.variable_names
+            )["product"].sum()
+
+            return compute_integral(
+                function_atom_data=inner_integral_data,
+                measure_data=(rv1.measure | given).data,
+            ).astype(Real)
 
 
 class OperatorsMethods:
