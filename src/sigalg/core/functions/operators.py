@@ -521,10 +521,11 @@ class Operators:
     @classmethod
     def integrate(
         cls,
-        function: Function,
-        subset: Set | None = None,
+        function: Function | ParametrizedMeasurableFunction,
+        subset: Set | list[Hashable] | None = None,
         measure: Measure | ParametrizedMeasure | None = None,
-        subset_name: list[Hashable] | None = None,
+        variables: tuple[Hashable, Hashable] | None = None,
+        subset_name: Hashable | None = None,
     ) -> Real | pd.Series | Function:
         r"""Compute the Lebesgue integral of a measurable vector with respect to a measure over an (optional) set.
 
@@ -534,10 +535,14 @@ class Operators:
         ----------
         function : MeasurableVector | ParametrizedMeasurableFunction
             The measurable vector or parametrized measurable function to integrate.
-        subset: Set | None, default=None
+        subset: Set | list[Hashable] | None, default=None
             The optional set over which to integrate. If `None`, the integral will be taken over the entire domain of the measurable vector.
         measure : Measure | ParametrizedMeasure | None, default=None
             The measure or parametrized measure with respect to which to integrate. If `None`, the measure of the underlying measure space is used (if it exists) carried by the measurable vector or parametrized measurable function.
+        variables : tuple[Hashable, Hashable] | None, default=None
+            A pair of explicit domain variables over which the integral should be taken. The first item of the tuple should correspond to the variable name of the function's domain, while the second item should correspond to the variable name of the measure's domain.
+        subset_name : Hashable | None, default=None
+            If the `subset` is passed as a list, the name that will be assigned to the subset. Ignored otherwise.
 
         Returns
         -------
@@ -711,7 +716,7 @@ class Operators:
 
         if not isinstance(function, Function):
             raise TypeError(
-                "function must be a MeasurableVector or ParametrizedMeasurableFunction instance."
+                "function must be a Function or ParametrizedMeasurableFunction instance."
             )
 
         if measure is not None and not isinstance(
@@ -726,44 +731,70 @@ class Operators:
                 "Cannot integrate a function with outputs of dimension > 1 against a parametrized measure."
             )
 
-        if measure is None:
-            if hasattr(function, "measure"):
-                measure = function.measure
-            else:
+        indicator_data = None
+
+        if variables is None:
+            if measure is None:
+                if hasattr(function, "measure"):
+                    measure = function.measure
+                else:
+                    raise ValueError(
+                        "The function does not carry a measure and the measure parameter of the integrate method is None."
+                    )
+
+            elif hasattr(function, "sig_alg"):
+                if function.sig_alg <= measure.sig_alg:
+                    measure = measure | function.sig_alg
+                else:
+                    raise ValueError(
+                        "If given, measure must be defined on the sigma-algebra of the measurable vector."
+                    )
+
+            try:
+                function_atom_data = function.atom_data(measure.sig_alg)
+            except NonMeasurableError as e:
+                raise NonMeasurableError(
+                    "The function is not measurable with respect to the sigma-algebra carried by the measure."
+                ) from e
+
+            measure_data = measure.data
+
+            if subset is not None:
+                if not isinstance(subset, Set):
+                    subset = Set(
+                        indices=subset, domain=measure.sig_alg.domain, name=subset_name
+                    )
+                if subset not in measure.sig_alg:
+                    raise ValueError(
+                        "If given, the subset must be in the sigma-algebra of the measure."
+                    )
+
+                indicator_data = subset.lattice.get_atom_data(measure.sig_alg)
+
+        else:
+            if function.dimension > 1:
                 raise ValueError(
-                    "The function does not carry a measure and the measure parameter of the integrate method is None."
+                    "Integration over explicit variables is not implemented for functions with multi-dimensional outputs."
                 )
 
-        elif hasattr(function, "sig_alg"):
-            if function.sig_alg <= measure.sig_alg:
-                measure = measure | function.sig_alg
-            else:
-                raise ValueError(
-                    "If given, measure must be defined on the sigma-algebra of the measurable vector."
+            if subset is not None:
+                raise TypeError(
+                    "Integration over explict variables is not implmented over subsets."
                 )
 
-        try:
-            function_atom_data = function.atom_data(measure.sig_alg)
-        except NonMeasurableError as e:
-            raise NonMeasurableError(
-                "The function is not measurable with respect to the sigma-algebra carried by the measure."
-            ) from e
-
-        if subset is not None and not isinstance(subset, Set):
-            subset = Set(
-                indices=subset, domain=measure.sig_alg.domain, name=subset_name
+            function_atom_data = function.data.rename_axis(index={variables[0]: "var"})
+            measure_data = measure.data.rename_axis(index={variables[1]: "var"})
+            function_atom_data = function_atom_data.reindex(
+                measure_data.index, fill_value=0.0
+            )
+            measure_data = measure_data.reindex(
+                function_atom_data.index, fill_value=0.0
             )
 
-        if subset is not None and subset not in measure.sig_alg:
-            raise ValueError(
-                "If given, the subset must be in the sigma-algebra of the measure."
-            )
-
-        indicator_data = (
-            subset.lattice.get_atom_data(measure.sig_alg)
-            if subset is not None
-            else None
-        )
+            if isinstance(function, ParametrizedMeasurableFunction):
+                function_atom_data = function_atom_data.unstack(
+                    level=function.parameter_names
+                )
 
         if subset is None:
             name = f"int {function.name} d{measure.name}"
@@ -772,7 +803,7 @@ class Operators:
 
         data = compute_integral(
             function_atom_data=function_atom_data,
-            measure_data=measure.data,
+            measure_data=measure_data,
             indicator_data=indicator_data,
             function_parameter_names=getattr(function, "parameter_names", None),
             measure_parameter_names=getattr(measure, "parameter_names", None),
@@ -2225,25 +2256,27 @@ class Operators:
         base: Literal["e", "2", "10"] = "e",
         tol: float = 1e-8,
     ) -> Real:
-        """Compute the entropy of a random variable with respect to a base measure, optionally conditioned on a sigma-algebra or random vector.
+        """Compute the cross entropy from an initial random variable to a second one, optionally conditioned on a sigma-algebra or random vector.
 
         See the Notes section below for the mathematical details.
 
         Parameters
         ----------
-        rv : RandomVariable
-            The random variable whose entropy is to be computed.
+        rv1 : RandomVariable
+            The intial random variable of the cross entropy. See the `Notes` section for an explanation of the "initial" terminology.
+        rv2 : RandomVariable
+            The terminal random variable of the cross entropy. See the `Notes` section for an explanation of the "terminal" terminology.
         given : SigmaAlgebra | RandomVector | None, default=None
-            The optional sigma-algebra or random vector on which to condition the entropy.
+            The optional sigma-algebra or random vector on which to condition the cross entropy.
         base : Literal["e", "2", "10"], default="e"
-            The base of the logarithm used to compute the entropy.
+            The base of the logarithm used to compute the cross entropy.
         tol : float, default=1e-8
             Tolerance for testing for absolute continuity.
 
         Returns
         -------
-        entropy : Real
-            The entropy of the random variable.
+        cross_entropy : Real
+            The cross entropy from the intitial random variable to the terminal one.
 
         Examples
         --------
@@ -2255,7 +2288,7 @@ class Operators:
         ...     SigmaAlgebra,
         ... )
 
-        Define a random variable on a probability space.
+        Define a pair of random variables on a probability space.
 
         >>> Omega = SampleSpace.from_sequence(size=5)
         >>> F = SigmaAlgebra(
@@ -2289,43 +2322,25 @@ class Operators:
         ...         4: -1,
         ...     },
         ... )
-
-        Compute the entropy of the random variable.
-
-        >>> H = Operators.entropy
-        >>> H(X)
-        0.9433483923290392
-
-        We may check that the entropy is the integral of the surprisal of the pushforward measure.
-
-        >>> P_X = P >> X
-        >>> H(X) == (P_X).surprisal().integrate(measure=P_X)
-        True
-
-        Define a sub-sigma-algebra for conditional entropy.
-
-        >>> G = SigmaAlgebra(
+        >>> Y = RandomVariable(
         ...     domain=Omega,
+        ...     sig_alg=F,
+        ...     measure=P,
         ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 1,
-        ...         4: 1,
+        ...         0: 2,
+        ...         1: 1,
+        ...         2: 5,
+        ...         3: 5,
+        ...         4: 5,
         ...     },
-        ...     name="G",
+        ...     name="Y",
         ... )
 
-        Compute the conditional entropy.
+        Compute the cross entropy from `X` to `Y`.
 
-        >>> H(X, G)
-        0.6182654189375909
-
-        Check that the conditional entropy agrees with its mathematical definition as a double integral.
-
-        >>> P_X_G = P.conditional(G) >> X
-        >>> H(X, G) == P_X_G.surprisal().integrate(measure=P_X_G).ascend(G).integrate(measure=P)
-        True
+        >>> H = Operators.cross_entropy
+        >>> H(X, Y)
+        1.3791794031346958
         """
         from .._utils.function_helpers import compute_integral
         from .._utils.measure_helpers import compute_surprisal
@@ -2346,34 +2361,34 @@ class Operators:
                 vec=rv2, measure=rv2.measure.conditional(given)
             )
 
-        base_measure2 = Measure.counting(pushforward2.domain)
+        base_measure = Measure.counting(pushforward2.domain)
 
-        surprisal2_data = compute_surprisal(
+        surprisal_data = compute_surprisal(
             self_data=pushforward2.data,
-            base_measure_data=base_measure2.data,
+            base_measure_data=base_measure.data,
             sig_alg_data=pushforward2.sig_alg.data,
             parameter_names=getattr(given, "variable_names", None),
             base=base,
-        ).rename("surprisal2")
+        ).rename("surprisal")
+
+        surprisal_pushforward_merged = pd.merge(
+            left=surprisal_data.rename_axis(index={rv2.name: "S"}).reset_index(),
+            right=pushforward1.data.rename("pushforward")
+            .rename_axis(index={rv1.name: "S"})
+            .reset_index(),
+            how="outer",
+        ).fillna(0.0)
+
+        surprisal_pushforward_merged["product"] = (
+            surprisal_pushforward_merged["surprisal"]
+            * surprisal_pushforward_merged["pushforward"]
+        )
 
         if given is None:
-            print(surprisal2_data)
+            return surprisal_pushforward_merged["product"].sum().astype(Real)
 
         else:
-            surprisal_conditional_merged = pd.merge(
-                left=surprisal2_data.rename_axis(index={rv2.name: "rv"}).reset_index(),
-                right=pushforward1.data.rename("pushforward1")
-                .rename_axis(index={rv1.name: "rv"})
-                .reset_index(),
-                how="outer",
-            ).fillna(0.0)
-
-            surprisal_conditional_merged["product"] = (
-                surprisal_conditional_merged["surprisal2"]
-                * surprisal_conditional_merged["pushforward1"]
-            )
-
-            inner_integral_data = surprisal_conditional_merged.groupby(
+            inner_integral_data = surprisal_pushforward_merged.groupby(
                 given.variable_names
             )["product"].sum()
 
@@ -2731,8 +2746,10 @@ class OperatorsMethods:
 
     def integrate(
         self,
-        subset: Set | None = None,
+        subset: Set | list[Hashable] | None = None,
         measure: Measure | ParametrizedMeasure | None = None,
+        variables: tuple[Hashable, Hashable] | None = None,
+        subset_name: Hashable | None = None,
     ) -> Real | pd.Series | Function:
         r"""Compute the Lebesgue integral of a measurable vector with respect to a measure over an (optional) set.
 
@@ -2746,6 +2763,10 @@ class OperatorsMethods:
             The optional set over which to integrate. If `None`, the integral will be taken over the entire domain of the measurable vector.
         measure : Measure | ParametrizedMeasure | None, default=None
             The measure or parametrized measure with respect to which to integrate. If `None`, the measure of the underlying measure space is used (if it exists) carried by the measurable vector.
+        variables : tuple[Hashable, Hashable] | None, default=None
+            A pair of explicit domain variables over which the integral should be taken. The first item of the tuple should correspond to the variable name of the function's domain, while the second item should correspond to the variable name of the measure's domain.
+        subset_name : Hashable | None, default=None
+            If the `subset` is passed as a list, the name that will be
 
         Returns
         -------
@@ -2907,6 +2928,8 @@ class OperatorsMethods:
             function=self,
             subset=subset,
             measure=measure,
+            variables=variables,
+            subset_name=subset_name,
         )
 
     def pushforward(
