@@ -465,7 +465,7 @@ class Function:
         name: Hashable | None = None,
         **kwargs,
     ) -> Function:
-        """Create a measurable vector that maps every point in the domain to itself.
+        """Create a function that maps every point in the domain to itself.
 
         For this construction method, the sigma-algebra must be the power set.
 
@@ -3285,6 +3285,7 @@ class Function:
         self,
         sig_alg: SigmaAlgebra | None = None,
         kind: Literal["measure", "probability"] = "measure",
+        domain_name: Hashable | None = None,
         parameter_names: list[Hashable] | None = None,
         parameter_domain_name: Hashable | None = "Theta",
         name: Hashable | None = None,
@@ -3297,6 +3298,8 @@ class Function:
             The sigma-algebra on which the measure will be defined. If `None`, the power set of the domain of the function will be used.
         kind : Literal["measure", "probability"], default="measure"
             The kind of measure to create.
+        domain_name : Hashable | None, default=None
+            The name of the domain of the measure. If `None`, the domain of the existing domain will be used.
         parameter_names : list[Hashable] | None, default=None
             The list of (optional) parameter names to create a parametrized measure.
         parameter_domain_name : Hashable | None, default=None
@@ -3476,6 +3479,9 @@ class Function:
                     raise ValueError(
                         "The variable names of the domain do not match the variable names of the given sigma-algebra."
                     )
+
+                if domain_name is not None:
+                    sig_alg.domain_name = domain_name
 
                 return Measure._from_validated(
                     data=self.data.rename(name),
