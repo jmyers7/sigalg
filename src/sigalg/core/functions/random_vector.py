@@ -455,12 +455,15 @@ class RandomVector(MeasurableVector):
 
     # --------------------- probability methods --------------------- #
 
+    # TODO: stale docstring
     def sample(
         self,
         size: int = 1,
+        replace: bool = True,
+        return_domain_mapping: bool = False,
         name: Hashable | None = None,
         random_state: int | np.random.Generator | None = None,
-    ) -> MeasureSpace:
+    ) -> RandomVector:
         """Generate random samples from the range space of this random vector.
 
         Parameters
@@ -559,14 +562,23 @@ class RandomVector(MeasurableVector):
         Sample from the range of the random vector.
 
         >>> X_sample = X.sample(size=1_000, random_state=rng)
-        >>> print(X_sample.measure)  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'C':
-                    C
-        X_0 X_1
-        0   9    663
-        1   7    210
-        7   3     81
-        2   6     46
+        >>> print(X_sample)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X_sample':
+        i       0  1
+        sample
+        0       0  9
+        1       0  9
+        2       1  7
+        3       0  9
+        4       2  6
+        ...    .. ..
+        995     2  6
+        996     0  9
+        997     0  9
+        998     0  9
+        999     0  9
+        <BLANKLINE>
+        [1000 rows x 2 columns]
 
         Sample from a 1-dimensional random variable.
 
@@ -593,25 +605,84 @@ class RandomVector(MeasurableVector):
         8      6
         9      4
         >>> Y_sample = Y.sample(size=1_000, random_state=rng)
-        >>> print(Y_sample.measure)  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'C':
-                C
-        Y
-        6  650
-        5  219
-        7   92
-        4   39
+        >>> print(Y_sample)  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'Y_sample':
+                Y_sample
+        sample
+        0              7
+        1              6
+        2              6
+        3              6
+        4              6
+        ...          ...
+        995            6
+        996            5
+        997            4
+        998            5
+        999            6
+        <BLANKLINE>
+        [1000 rows x 1 columns]
         """
+        import numpy as np
+
         from ..measures.probability_measure import ProbabilityMeasure
-        from .operators import Operators
 
         if not isinstance(self.measure, ProbabilityMeasure):
             raise TypeError("Cannot sample from a non-random-vector.")
 
+        rng = (
+            random_state
+            if isinstance(random_state, np.random.Generator)
+            else np.random.default_rng(random_state)
+        )
+
         if self.data is not None:
-            return Operators.pushforward(vec=self, measure=self.measure).sample(
-                size=size, random_state=random_state
+            data = self.atom_data().sample(
+                n=size,
+                replace=replace,
+                weights=self.measure.to_numpy(),
+                random_state=rng,
             )
+
+            sampling_index = data.index.copy()
+
+            data.reset_index(drop=True, inplace=True)
+            data.index.name = "sample"
+
+            measure = ProbabilityMeasure.uniform(domain=data.index)
+
+            if name is None:
+                name = f"{self.name}_sample"
+
+            sample = type(self)._from_validated(
+                data=data,
+                sig_alg=measure.sig_alg,
+                measure=measure,
+                index_kind=type(self.index).__name__
+                if self.index is not None
+                else "Index",
+                index_name=self.index.name if self.index is not None else None,
+                name=name,
+            )
+
+            if return_domain_mapping:
+                return sample, dict(enumerate(sampling_index))
+
+            else:
+                return sample
+
+            # subset = self.sig_alg.get_set(list(data.index), name="sample")
+            # sig_alg = self.sig_alg.restrict_to(subset=subset)
+
+            # return type(self)._from_validated(
+            #     data=data,
+            #     sig_alg=sig_alg,
+            #     measure=self.measure | subset,
+            #     index_kind=type(self.index) if self.index is not None else "Index",
+            #     index_name=self.index.name if self.index is not None else None,
+            #     name=name,
+            # )
+
         else:
             raise ValueError("Cannot sample from an empty measurable vector instance.")
 
