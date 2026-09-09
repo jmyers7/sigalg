@@ -178,7 +178,8 @@ class SigmaAlgebra:
         domain: IndexLike,
         domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
         domain_name: Hashable | None = None,
-        index_name: Hashable = "I",
+        index: IndexLike | None = None,
+        index_name: Hashable | None = None,
         name: Hashable = "R",
     ) -> SigmaAlgebra:
         r"""Create the power-set sigma-algebra over a given domain.
@@ -193,7 +194,9 @@ class SigmaAlgebra:
             The type of domain of the sigma-algebra.
         domain_name : Hashable | None, default=None
             The name of the domain of the sigma-algebra. If `None`, a default will be generated.
-        index_name : Hashable, default="I"
+        index : IndexLike | None, default=None
+            The index of the atom identifiers of the sigma-algebra. If `None`, a default will be generated.
+        index_name : Hashable | None, default=None
             The name of the index of the sigma-algebra. If `None`, a default will be generated.
         name : Hashable, default="R"
             Name identifier for the sigma algebra.
@@ -236,12 +239,12 @@ class SigmaAlgebra:
         >>> F = SigmaAlgebra.power_set(Y, name="F")
         >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-        i             number  letter
+        i              0  1
         number letter
-        1      a           1       a
-               b           1       b
-        2      a           2       a
-               b           2       b
+        1      a       1  a
+               b       1  b
+        2      a       2  a
+               b       2  b
         >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'Y':
          number letter
@@ -255,6 +258,7 @@ class SigmaAlgebra:
         The *power-set $\sigma$-algebra* on a nonempty set $X$ consists of all subsets of $X$. Its atoms are all singleton subsets. It is the finest $\sigma$-algebra on $X$.
         """
         from ...validation.domain_index_validator import DomainIndexValidator
+        from ..indices.index import Index
 
         if domain is None:
             raise TypeError("The domain must be given for the power_set method.")
@@ -263,17 +267,25 @@ class SigmaAlgebra:
             domain=domain,
             domain_kind=domain_kind,
             domain_name=domain_name,
+            index=index,
+            index_kind="Index",
             index_name=index_name,
         )
 
         domain = u.domain
         domain_kind = u.domain_kind
         domain_name = u.domain_name
+        index = u.index
         index_name = u.index_name
 
         if domain.dimension > 1:
             data = domain.data.to_frame()
-            data.columns.name = "i"
+
+            if index is None:
+                index = Index.from_sequence(size=domain.dimension, name=index_name)
+
+            data.columns = index.data
+
         else:
             data = domain.data.to_series()
             data.name = name
@@ -281,11 +293,11 @@ class SigmaAlgebra:
         return cls._from_validated(
             data=data,
             variable_names=domain.variable_names,
-            name=name,
             domain_kind=domain_kind,
             domain_name=domain_name,
             index_kind="Index",
             index_name=index_name,
+            name=name,
         )
 
     @classmethod
@@ -1188,20 +1200,137 @@ class SigmaAlgebra:
          1  2
          0  1
         """
+        return self.atom_space.variable_names if self.atom_space is not None else None
+
+    @cached_property
+    def atom_space(self) -> Domain | None:
+        """Get the domain consisting of atom identifiers.
+
+        Returns
+        -------
+        atom_space: Domain | None
+            The domain whose points are the atom identifiers of the sigma-algebra.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Index, SigmaAlgebra
+
+        Define a sigma-algebra with two atoms.
+
+        >>> X = Domain.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 0,
+        ...         2: 0,
+        ...     },
+        ... )
+
+        The atom space is an instance of `Domain` consisting of the atom identifiers `0` and `1`.
+
+        >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
+        Domain 'F':
+            F
+            1
+            0
+
+        Create a second sigma-algebra with 2-dimensional atom IDs.
+
+        >>> J = Index([1, 2], variable_names=["j"], name="J")
+        >>> G = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: (1, 2),
+        ...         1: (0, 1),
+        ...         2: (0, 1),
+        ...     },
+        ...     index=J,
+        ...     name="G",
+        ... )
+        >>> print(G.atom_space)  # doctest: +NORMALIZE_WHITESPACE
+        Domain 'G':
+            G_1  G_2
+            1    2
+            0    1
+
+        If the atom identifiers of a sigma-algebra are the points of the underlying domain itself (i.e., if the sigma-algebra is the power set), then the atom space is the domain.
+
+        >>> H = SigmaAlgebra(domain=X, mapping=dict(zip(X, X)), name="H")
+        >>> print(H)  # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'H':
+            H
+        x
+        0  0
+        1  1
+        2  2
+        >>> print(H.atom_space)  # doctest: +NORMALIZE_WHITESPACE
+        Domain 'X':
+            x
+            0
+            1
+            2
+
+        We check the atom space of a power-set sigma-algebra on a 2-dimensional domain.
+
+        >>> Y = Domain.cartesian_product(
+        ...     [[0, 1], [2, 3]], variable_names=["y_0", "y_1"], name="Y"
+        ... )
+        >>> K = SigmaAlgebra(domain=Y, mapping=dict(zip(Y, Y)), name="K")
+        >>> print(K)  # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'K':
+        i        0  1
+        y_0 y_1
+        0   2    0  2
+            3    0  3
+        1   2    1  2
+            3    1  3
+        >>> print(K.atom_space)  # doctest: +NORMALIZE_WHITESPACE
+        Domain 'Y':
+            y_0  y_1
+            0    2
+            0    3
+            1    2
+            1    3
+        """
+        from ..spaces.domain import Domain
+
         if self.data is not None:
-            if self._variable_names is None:
-                return (
-                    [
-                        f"{self.name}_{i}".replace("(", "")
-                        .replace(")", "")
-                        .replace(", ", "_")
-                        for i in self.index
-                    ]
-                    if self.dimension > 1
-                    else [self.name]
+            if self.is_canonical_power_set:
+                atom_space = Domain._from_validated(
+                    data=self.domain.data, name=self.domain.name
                 )
+
             else:
-                return self._variable_names
+                if self._variable_names is None:
+                    variable_names = (
+                        [
+                            f"{self.name}_{i}".replace("(", "")
+                            .replace(")", "")
+                            .replace(", ", "_")
+                            for i in self.index
+                        ]
+                        if self.dimension > 1
+                        else [self.name]
+                    )
+
+                else:
+                    variable_names = self._variable_names
+
+                if isinstance(self.data, pd.DataFrame):
+                    data = pd.MultiIndex.from_tuples(
+                        self.atom_ids, names=variable_names
+                    )
+
+                else:
+                    data = pd.Index(self.atom_ids, name=variable_names[0])
+
+                atom_space = Domain._from_validated(data=data, name=self.name)
+
+        else:
+            atom_space = None
+
+        return atom_space
 
     @property
     def index(self) -> Index | None:
@@ -1443,124 +1572,6 @@ class SigmaAlgebra:
             point_to_atom_id = None
 
         return point_to_atom_id
-
-    @cached_property
-    def atom_space(self) -> Domain | None:
-        """Get the domain consisting of atom identifiers.
-
-        Returns
-        -------
-        atom_space: Domain | None
-            The domain whose points are the atom identifiers of the sigma-algebra.
-
-        Examples
-        --------
-        >>> from sigalg.core import Domain, Index, SigmaAlgebra
-
-        Define a sigma-algebra with two atoms.
-
-        >>> X = Domain.from_sequence(size=3)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 0,
-        ...         2: 0,
-        ...     },
-        ... )
-
-        The atom space is an instance of `Domain` consisting of the atom identifiers `0` and `1`.
-
-        >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'F':
-         F
-         1
-         0
-
-        Create a second sigma-algebra with 2-dimensional atom IDs.
-
-        >>> J = Index([1, 2], variable_names=["j"], name="J")
-        >>> G = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (0, 1),
-        ...         2: (0, 1),
-        ...     },
-        ...     index=J,
-        ...     name="G",
-        ... )
-        >>> print(G.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'G':
-         G_1  G_2
-           1    2
-           0    1
-
-        If the atom identifiers of a sigma-algebra are the points of the underlying domain itself (i.e., if the sigma-algebra is the power set), then the atom space is the domain.
-
-        >>> H = SigmaAlgebra(domain=X, mapping=dict(zip(X, X)), name="H")
-        >>> print(H)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'H':
-           H
-        x
-        0  0
-        1  1
-        2  2
-        >>> print(H.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'X':
-         x
-         0
-         1
-         2
-
-        We check the atom space of a power-set sigma-algebra on a 2-dimensional domain.
-
-        >>> Y = Domain.cartesian_product(
-        ...     [[0, 1], [2, 3]], variable_names=["y_0", "y_1"], name="Y"
-        ... )
-        >>> K = SigmaAlgebra(domain=Y, mapping=dict(zip(Y, Y)), name="K")
-        >>> print(K)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'K':
-        i        0  1
-        y_0 y_1
-        0   2    0  2
-            3    0  3
-        1   2    1  2
-            3    1  3
-        >>> print(K.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'Y':
-         y_0  y_1
-           0    2
-           0    3
-           1    2
-           1    3
-        """
-        from ..spaces.domain import Domain
-
-        if self.data is not None:
-            if (
-                self.dimension == self.domain.dimension
-                and (
-                    self.data.values
-                    == self.domain.data.to_frame().squeeze(axis=1).values
-                ).all()
-            ):
-                atom_space = Domain._from_validated(
-                    data=self.domain.data, name=self.domain.name
-                )
-            else:
-                if isinstance(self.data, pd.DataFrame):
-                    data = pd.MultiIndex.from_tuples(
-                        self.atom_ids, names=self.variable_names
-                    )
-                else:
-                    data = pd.Index(self.atom_ids, name=self.variable_names[0])
-
-                atom_space = Domain._from_validated(data=data, name=self.name)
-        else:
-            atom_space = None
-
-        return atom_space
 
     @property
     def dimension(self) -> int | None:
@@ -2329,6 +2340,90 @@ class SigmaAlgebra:
         return SigmaAlgebra._from_validated(
             data=new_data,
             variable_names=None if reset_variable_names else self.variable_names,
+            domain_kind=type(self.domain).__name__,
+            domain_name=self.domain.name,
+            index_kind=type(self.index).__name__ if self.index is not None else None,
+            index_name=self.index.name if self.index is not None else None,
+            name=name,
+        )
+
+    def with_variable_names(
+        self,
+        variable_names: list[Hashable],
+        name: Hashable | None = None,
+    ) -> SigmaAlgebra:
+        """Reset the variable names of the sigma-algebra and return a new instance.
+
+        Parameters
+        ----------
+        variable_names : list[Hashable]
+            The new variable names for the sigma-algebra.
+        name : Hashable | None, default=None
+            A new name for the sigma-algebra. If `None`, the name of the original sigma-algebra will be used.
+
+        Returns
+        -------
+        new_sig_alg : SigmaAlgebra
+            A new sigma-algebra with the given variable names.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, SigmaAlgebra
+
+        Define a sigma-algebra with 2-dimensional atom identifiers.
+
+        >>> X = Domain.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: (1, 1),
+        ...         1: (2, 3),
+        ...         2: (2, 3),
+        ...     },
+        ... )
+        >>> F
+        SigmaAlgebra(domain=X, num_atoms=2, variable_names=['F_0', 'F_1'], name=F)
+
+        Note the default variable names of `F`. We change them using the `with_variable_names` method.
+
+        >>> G = F.with_variable_names(["u", "v"], name="G")
+        >>> G
+        SigmaAlgebra(domain=X, num_atoms=2, variable_names=['u', 'v'], name=G)
+
+        Test the method with a power-set sigma-algebra.
+
+        >>> R = SigmaAlgebra.power_set(X)
+        >>> R
+        SigmaAlgebra(domain=X, num_atoms=3, variable_names=['x'], name=R)
+
+        For a power-set sigma-algebra, note the default variable names are the variable names of the domain. We them using the `with_variable_names` method.
+
+        >>> S = R.with_variable_names(["y"], name="S")
+        >>> S
+        SigmaAlgebra(domain=X, num_atoms=3, variable_names=['y'], name=S)
+        """
+        if not isinstance(variable_names, list) or not all(
+            isinstance(name, Hashable) for name in variable_names
+        ):
+            raise TypeError("names must be a list of hashable items.")
+        if len(variable_names) != self.dimension:
+            raise ValueError(
+                "The number of variable names must match the dimension of the atom identifiers of the sigma-algebra."
+            )
+
+        if name is None:
+            name = self.name
+
+        if self.is_canonical_power_set:
+            new_data = self.data.copy()
+            new_data.index.names = variable_names
+
+        else:
+            new_data = self.data
+
+        return SigmaAlgebra._from_validated(
+            data=new_data,
+            variable_names=variable_names,
             domain_kind=type(self.domain).__name__,
             domain_name=self.domain.name,
             index_kind=type(self.index).__name__ if self.index is not None else None,
