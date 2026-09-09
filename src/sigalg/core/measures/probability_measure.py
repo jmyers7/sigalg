@@ -662,19 +662,12 @@ class ProbabilityMeasure(Measure):
 
         Parameters
         ----------
-        given1 : MeasurableSet | MeasurableVector | SigmaAlgebra
+        given1 : Set | MeasurableVector | SigmaAlgebra
             The first given to test for independence.
-        given2 : MeasurableSet | MeasurableVector | SigmaAlgebra
+        given2 : Set | MeasurableVector | SigmaAlgebra
             The second given to test for independence.
-        tol : Real, default=1e-10
+        tol : Real, default=1e-8
             The numerical tolerance for checking independence.
-
-        Raises
-        ------
-        ValueError
-            If one of the two givens is not measurable with respect to the probability measure's sigma-algebra.
-        TypeError
-            If the provided objects are not of the correct type.
 
         Returns
         -------
@@ -700,19 +693,19 @@ class ProbabilityMeasure(Measure):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-            s_0  s_1
-            0    0
-            0    1
-            1    0
-            1    1
+         s_0  s_1
+           0    0
+           0    1
+           1    0
+           1    1
         <BLANKLINE>
         * Sigma algebra 'R':
-        i        s_0  s_1
+        i        0  1
         s_0 s_1
-        0   0      0    0
-            1      0    1
-        1   0      1    0
-            1      1    1
+        0   0    0  0
+            1    0  1
+        1   0    1  0
+            1    1  1
         <BLANKLINE>
         * Probability measure 'P':
                         P
@@ -731,35 +724,37 @@ class ProbabilityMeasure(Measure):
         ... )
         >>> P.are_independent(A, B)
         True
-        >>> X = RandomVector.from_identity(domain=Omega, measure=P, index=[1, 2])
-        >>> X_1, X_2 = X
+        >>> X = prob_space.to_rv()
+        >>> X_1 = X["s_0"].with_name("X_1")
+        >>> X_2 = X["s_1"].with_name("X_2")
+        >>> P = X.measure
         >>> print(X_1)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X_1':
-                    X_1
-        s_0 s_1
-        0   0         0
-            1         0
-        1   0         1
-            1         1
+               X_1
+        omega
+        0        0
+        1        0
+        2        1
+        3        1
         >>> print(X_2)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X_2':
-                    X_2
-        s_0 s_1
-        0   0         0
-            1         1
-        1   0         0
-            1         1
+               X_2
+        omega
+        0        0
+        1        1
+        2        0
+        3        1
         >>> P.are_independent(X_1, X_2)
         True
         >>> Y = X_1 + X_2
         >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random variable '(X_1 + X_2)':
-                 (X_1 + X_2)
-        s_0 s_1
-        0   0              0
-            1              1
-        1   0              1
-            1              2
+               (X_1 + X_2)
+        omega
+        0                0
+        1                1
+        2                1
+        3                2
         >>> P.are_independent(X_1, Y)
         False
 

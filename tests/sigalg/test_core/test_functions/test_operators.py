@@ -1609,13 +1609,18 @@ class TestCorrelation:
 
     def test_independence_implies_uncorrelated(self):
         """Test that independent random variables are uncorrelated."""
-        Omega = SampleSpace.from_sequence(size=2)
+        Omega = SampleSpace.cartesian_power([0, 1], n=2, variable_names=["X_0", "X_1"])
         P = ProbabilityMeasure(
             domain=Omega,
-            mapping={0: 0.3, 1: 0.7},
+            mapping={
+                (0, 0): 0.25**2,
+                (0, 1): 0.25 * 0.75,
+                (1, 0): 0.25 * 0.75,
+                (1, 1): 0.75**2,
+            },
         )
-        Y = RandomVector.from_identity(domain=Omega, measure=P, name="Y")
-        X = Y ^ 2
+        prob_space = ProbabilitySpace(measure=P)
+        X = prob_space.to_rv()
         X_0, X_1 = X
         corr = Operators.corr(X_0, X_1)
 
