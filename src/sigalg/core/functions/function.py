@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 import pandas as pd
 
+from .operators import OperatorsMethods
+
 if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
@@ -28,7 +30,7 @@ if TYPE_CHECKING:
     from .measurable_vector import MeasurableVector
 
 
-class Function:
+class Function(OperatorsMethods):
     """A class representing a function.
 
     Mathematically, a function requires three items: A domain set, a codomain set, and a rule defining the function. For instances of `Function`:
@@ -212,6 +214,7 @@ class Function:
         function.domain_name = domain_name
         function.index_kind = index_kind
         function.index_name = index_name
+
         return function
 
     @classmethod
@@ -451,154 +454,6 @@ class Function:
             name=name,
             **kwargs,
         )
-
-    @classmethod
-    def from_identity(
-        cls,
-        domain: IndexLike,
-        domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
-        domain_name: Hashable | None = None,
-        output_name: Hashable | None = None,
-        index: IndexLike | None = None,
-        index_kind: Literal["Index", "Time"] = "Index",
-        index_name: Hashable | None = None,
-        name: Hashable | None = None,
-        **kwargs,
-    ) -> Function:
-        """Create a function that maps every point in the domain to itself.
-
-        For this construction method, the sigma-algebra must be the power set.
-
-        Parameters
-        ----------
-        domain : IndexLike
-            The domain of the function.
-        domain_kind : Literal["Domain", "SampleSpace"], default="Domain"
-            The type of the domain.
-        domain_name : Hashable | None, default=None
-            The name of the domain.
-        output_name : Hashable | None, default=None
-            The name of the outputs of the function. If `None`, a default will be generated.
-        index : IndexLike | None, default=None
-            The index for the outputs of the function. Only used if the outputs are multi-dimensional.
-        index_kind : Literal["Index", "Time"], default="Index"
-            The kind of index. Only used if the outputs are multi-dimensional.
-        index_name : Hashable | None, default=None
-            The name of the index. Only used if the outputs are multi-dimensional.
-        name : Hashable | None, default=None
-            The name of the function. If `None`, a default name will be generated.
-        **kwargs
-            Additional keyword arguments passed to subclasses.
-
-        Returns
-        -------
-        function : Function
-            A function mapping every point in the domain to itself.
-
-        Examples
-        --------
-        >>> from sigalg.core import Domain, MeasurableVector
-
-        Create an identity function on a 2-dimensional domain.
-
-        >>> X = Domain.cartesian_power(
-        ...     [0, 1], n=2, name="X", variable_names=["x_0", "x_1"]
-        ... )
-        >>> f = Function.from_identity(domain=X)
-        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'f':
-        i        0  1
-        x_0 x_1
-        0   0    0  0
-            1    0  1
-        1   0    1  0
-            1    1  1
-
-        Print its range.
-
-        >>> print(f.range)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'X':
-         x_0  x_1
-           0    0
-           0    1
-           1    0
-           1    1
-
-        Now define an identity vector on a 1-dimensional domain and print its range.
-
-        >>> S = Domain(indices=["a", "b"], name="S")
-        >>> g = Function.from_identity(domain=S, name="g")
-        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'g':
-           g
-        x
-        a  a
-        b  b
-        >>> print(g.range)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'S':
-         x
-         a
-         b
-        """
-        from ...validation.domain_index_validator import DomainIndexValidator
-        from ..indices.index import Index
-        from ..indices.time import Time
-
-        if index is not None and len(index) != domain.dimension:
-            raise ValueError(
-                "The length of the index must match the dimension of the domain."
-            )
-
-        v = DomainIndexValidator(
-            domain=domain,
-            domain_kind=domain_kind,
-            domain_name=domain_name,
-            index=index,
-            index_kind=index_kind,
-            index_name=index_name,
-        )
-
-        domain = v.domain
-        domain_kind = v.domain_kind
-        domain_name = v.domain_name
-        index = v.index
-        index_kind = v.index_kind
-        index_name = v.index_name
-
-        if name is None:
-            name = cls._default_name
-        if output_name is None:
-            output_name = name
-
-        data = domain.data.to_frame()
-
-        if data.shape[1] == 1:
-            data = data.squeeze(axis=1)
-            data.name = output_name
-            index = None
-
-        else:
-            if index is None:
-                index_class = Index if index_kind == "Index" else Time
-                index = index_class.from_sequence(
-                    size=domain.dimension, name=index_name
-                )
-            data.columns = index.data
-
-        function = cls._from_validated(
-            data=data,
-            kind="any",
-            domain_kind=domain_kind,
-            domain_name=domain_name,
-            index_kind=index_kind,
-            index_name=index_name,
-            name=name,
-            **kwargs,
-        )
-
-        function.is_identity = True
-
-        return function
 
     @classmethod
     def from_rand(
