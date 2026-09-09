@@ -1,4 +1,4 @@
-"""Class for operators on random vectors, such as integration, expectation, variance, standard deviation, covariance, correlation, and pushforward of measures."""
+"""Class for operators on functions."""
 
 from __future__ import annotations
 
@@ -25,81 +25,84 @@ if TYPE_CHECKING:
     from .random_vector import RandomVector
 
 
+# TODO: change methods that call for unneeded measurable vectors to functions
 class Operators:
-    """Class containing methods such as integration, expectation, variance, standard deviation, covariance, correlation, and pushforward of measures."""
+    """Class for operators on functions."""
 
     # --------------------- general methods --------------------- #
 
     @classmethod
     def sum(
         cls,
-        vec: MeasurableVector,
+        func: Function,
         name: Hashable | None = None,
-    ) -> MeasurableFunction:
-        """Compute the sum of the components of a measurable vector.
+    ) -> Function:
+        """Compute the sum of the components of a function with multi-dimensional outputs.
 
         Parameters
         ----------
-        vec : MeasurableVector
-            The measurable vector whose components are to be summed.
+        func : Function
+            The function whose components are to be summed.
         name : Hashable | None, default=None
-            The name of the resulting measurable function. If `None`, a default name will be generated.
+            The name of the resulting function. If `None`, a default name will be generated.
 
         Returns
         -------
-        summed_vec : MeasurableFunction
-            A measurable function representing the sum of the components of the input measurable vector.
+        summed_func : Function
+            A function representing the sum of the components of the input function.
 
         Examples
         --------
-        >>> from sigalg.core import Domain, MeasurableVector
+        >>> from sigalg.core import Domain, Operators, MeasurableVector
         >>> D = Domain.from_sequence(size=2, variable_name="flip", name="D")
         >>> X = (D ^ 3).with_name("X")
-        >>> f = MeasurableVector.from_identity(domain=X)
+        >>> f = X.to_function()
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
-        i                     0  1  2
-        flip_0 flip_1 flip_2
-        0      0      0       0  0  0
-                      1       0  0  1
-               1      0       0  1  0
-                      1       0  1  1
-        1      0      0       1  0  0
-                      1       1  0  1
-               1      0       1  1  0
-                      1       1  1  1
-        >>> g = f.sum(name="g")
+        Function 'f':
+        i      flip_0  flip_1  flip_2
+        omega
+        0           0       0       0
+        1           0       0       1
+        2           0       1       0
+        3           0       1       1
+        4           1       0       0
+        5           1       0       1
+        6           1       1       0
+        7           1       1       1
+        >>> g = Operators.sum(f, name="g")
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'g':
-                              g
-        flip_0 flip_1 flip_2
-        0      0      0       0
-                      1       1
-               1      0       1
-                      1       2
-        1      0      0       1
-                      1       2
-               1      0       2
-                      1       3
+        Function 'g':
+               g
+        omega
+        0      0
+        1      1
+        2      1
+        3      2
+        4      1
+        5      2
+        6      2
+        7      3
         """
-        from ..functions.measurable_vector import MeasurableVector
+        from .function import Function
 
-        if not isinstance(vec, MeasurableVector):
-            raise TypeError("vec must be an instance of MeasurableVector.")
+        if not isinstance(func, Function):
+            raise TypeError("func must be an instance of Function.")
 
-        data_trans = vec.data.copy()
-        data_trans = data_trans.sum(axis=1)
+        data = func.data.sum(axis=1)
 
         if name is None:
-            name = f"{vec.name}_sum"
+            name = f"{func.name}_sum"
 
-        return MeasurableVector._from_validated(
-            data=data_trans,
-            sig_alg=vec.sig_alg,
-            measure=vec.measure,
+        return type(func)._from_validated(
+            data=data.rename(name),
+            kind="any",
+            domain_kind=type(func.domain).__name__,
+            domain_name=func.domain.name,
             index_kind="Index",
             index_name=None,
             name=name,
+            sig_alg=getattr(func, "sig_alg", None),
+            measure=getattr(func, "measure", None),
         )
 
     # TODO: add Notes section
@@ -524,7 +527,6 @@ class Operators:
         function: Function | ParametrizedMeasurableFunction,
         subset: Set | list[Hashable] | None = None,
         measure: Measure | ParametrizedMeasure | None = None,
-        variables: tuple[Hashable, Hashable] | None = None,
         subset_name: Hashable | None = None,
     ) -> Real | pd.Series | Function:
         r"""Compute the Lebesgue integral of a measurable vector with respect to a measure over an (optional) set.
@@ -539,8 +541,6 @@ class Operators:
             The optional set over which to integrate. If `None`, the integral will be taken over the entire domain of the measurable vector.
         measure : Measure | ParametrizedMeasure | None, default=None
             The measure or parametrized measure with respect to which to integrate. If `None`, the measure of the underlying measure space is used (if it exists) carried by the measurable vector or parametrized measurable function.
-        variables : tuple[Hashable, Hashable] | None, default=None
-            A pair of explicit domain variables over which the integral should be taken. The first item of the tuple should correspond to the variable name of the function's domain, while the second item should correspond to the variable name of the measure's domain.
         subset_name : Hashable | None, default=None
             If the `subset` is passed as a list, the name that will be assigned to the subset. Ignored otherwise.
 
@@ -561,7 +561,6 @@ class Operators:
 
         Examples
         --------
-        >>> import numpy as np
         >>> from sigalg.core import (
         ...     Domain,
         ...     MeasurableFunction,
@@ -573,45 +572,8 @@ class Operators:
         ...     Set,
         ...     SigmaAlgebra,
         ... )
-        >>> rng = np.random.default_rng(42)
 
         Define a measure space and a measurable function.
-
-        >>> measure_space = MeasureSpace.from_rand(
-        ...     domain_size=100,
-        ...     num_atoms=27,
-        ...     num_null_atoms=12,
-        ...     random_state=rng,
-        ... )
-        >>> X, F, mu = measure_space
-        >>> f = MeasurableFunction.from_rand(
-        ...     *measure_space,
-        ...     distribution="normal",
-        ...     diff_values=24,
-        ...     random_state=rng,
-        ... )
-
-        Get a measurable set from the sigma-algebra, compute the integral over this set, and check that it agrees with the defining formula for the Lebesgue integral.
-
-        >>> U = F.get_random_set(num_atoms=4, name="U", random_state=rng)
-        >>> I_U = U.indicator
-        >>> integrate = Operators.integrate
-        >>> np.allclose(integrate(f, U), sum(I_U(A) * f(A) * mu(A) for A in F))
-        True
-
-        Check that the integral over a null set is 0.
-
-        >>> N = measure_space.get_random_set(
-        ...     num_atoms=3,
-        ...     is_null=True,
-        ...     name="N",
-        ...     random_state=rng,
-        ... )
-        >>> I_N = N.indicator
-        >>> integrate(f, N)
-        0.0
-
-        Define a new measure space and measurable function to demonstrate integration against parametrized objects.
 
         >>> X = Domain.from_sequence(size=3)
         >>> F = SigmaAlgebra(
@@ -632,12 +594,21 @@ class Operators:
         >>> f = MeasurableFunction(
         ...     domain=X,
         ...     sig_alg=F,
+        ...     measure=mu,
         ...     mapping={
         ...         0: 1,
         ...         1: 2,
         ...         2: 2,
         ...     },
         ... )
+
+        Get a measurable set from the sigma-algebra, compute the integral over this set, and check that it agrees with the defining formula for the Lebesgue integral.
+
+        >>> U = F.get_set([1, 2], name="U")
+        >>> I_U = U.indicator
+        >>> integrate = Operators.integrate
+        >>> integrate(f, U) == sum(I_U(A) * f(A) * mu(A) for A in F)
+        True
 
         Define a parametrized measure and parametrized measurable function over the same parameter domain.
 
@@ -658,7 +629,7 @@ class Operators:
         ...     parameter_domain=Theta,
         ...     sig_alg=F,
         ...     mapping={
-        ...         (0, 0): 2,  # (theta, X) = (0, 0)
+        ...         (0, 0): 2,  # (theta, X) = (0, 0), etc ...
         ...         (0, 1): 4,
         ...         (0, 2): 4,
         ...         (1, 0): 1,
@@ -667,10 +638,6 @@ class Operators:
         ...     },
         ...     name="g",
         ... )
-
-        Extract a measurable set from the sigma-algebra.
-
-        >>> U = Set([1, 2], domain=X, name="U")
 
         It is convenient to conceptualize a parametrized measure as a family of measures. Then integration of a measurable function against a parametrized measure returns a function of the parameters whose values are the integrals of the function against the measures. Iteration over the parametrized measure yields the measures, allowing us to check that these integrals all match.
 
@@ -682,7 +649,7 @@ class Operators:
         >>> all(integrate(g, U, mu)(**param) == integrate(function, U, mu) for param, function in g)
         True
 
-        Finally, it is possible to integrate a parametrized measurable function against a parametried measure as long as their parameter domains agree. We leave the reader to guess the meaning of the following verification.
+        It is also possible to integrate a parametrized measurable function against a parametried measure as long as their parameter domains agree. We leave the reader to guess the meaning of the following verification.
 
         >>> all(
         ...     integrate(g, U, nu)(**param) == integrate(function, U, measure)
@@ -731,70 +698,55 @@ class Operators:
                 "Cannot integrate a function with outputs of dimension > 1 against a parametrized measure."
             )
 
-        indicator_data = None
+        if measure is None:
+            if hasattr(function, "measure"):
+                measure = function.measure
 
-        if variables is None:
-            if measure is None:
-                if hasattr(function, "measure"):
-                    measure = function.measure
-                else:
-                    raise ValueError(
-                        "The function does not carry a measure and the measure parameter of the integrate method is None."
-                    )
+            else:
+                raise ValueError(
+                    "The function does not carry a measure and the measure parameter of the integrate method is None."
+                )
 
-            elif hasattr(function, "sig_alg"):
+        elif hasattr(function, "sig_alg"):
+            try:
                 if function.sig_alg <= measure.sig_alg:
                     measure = measure | function.sig_alg
+
                 else:
                     raise ValueError(
                         "If given, measure must be defined on the sigma-algebra of the measurable vector."
                     )
 
-            try:
-                function_atom_data = function.atom_data(measure.sig_alg)
-            except NonMeasurableError as e:
-                raise NonMeasurableError(
-                    "The function is not measurable with respect to the sigma-algebra carried by the measure."
+            except ValueError as e:
+                raise ValueError(
+                    "There was an error checking whether the sigma-algebra of the function is a sub-sigma-algebra of the sigma-aglebra of the measure. Perhaps they are not defined on the same domain or have different variable names?"
                 ) from e
 
-            measure_data = measure.data
+        try:
+            function_atom_data = function.atom_data(measure.sig_alg)
 
-            if subset is not None:
-                if not isinstance(subset, Set):
-                    subset = Set(
-                        indices=subset, domain=measure.sig_alg.domain, name=subset_name
-                    )
-                if subset not in measure.sig_alg:
-                    raise ValueError(
-                        "If given, the subset must be in the sigma-algebra of the measure."
-                    )
+        except NonMeasurableError as e:
+            raise NonMeasurableError(
+                "The function is not measurable with respect to the sigma-algebra carried by the measure."
+            ) from e
 
-                indicator_data = subset.lattice.get_atom_data(measure.sig_alg)
+        measure_data = measure.data
+
+        if subset is not None:
+            if not isinstance(subset, Set):
+                subset = Set(
+                    indices=subset, domain=measure.sig_alg.domain, name=subset_name
+                )
+
+            if subset not in measure.sig_alg:
+                raise ValueError(
+                    "If given, the subset must be in the sigma-algebra of the measure."
+                )
+
+            indicator_data = subset.lattice.get_atom_data(measure.sig_alg)
 
         else:
-            if function.dimension > 1:
-                raise ValueError(
-                    "Integration over explicit variables is not implemented for functions with multi-dimensional outputs."
-                )
-
-            if subset is not None:
-                raise TypeError(
-                    "Integration over explict variables is not implmented over subsets."
-                )
-
-            function_atom_data = function.data.rename_axis(index={variables[0]: "var"})
-            measure_data = measure.data.rename_axis(index={variables[1]: "var"})
-            function_atom_data = function_atom_data.reindex(
-                measure_data.index, fill_value=0.0
-            )
-            measure_data = measure_data.reindex(
-                function_atom_data.index, fill_value=0.0
-            )
-
-            if isinstance(function, ParametrizedMeasurableFunction):
-                function_atom_data = function_atom_data.unstack(
-                    level=function.parameter_names
-                )
+            indicator_data = None
 
         if subset is None:
             name = f"int {function.name} d{measure.name}"
@@ -2263,7 +2215,7 @@ class Operators:
         Parameters
         ----------
         rv1 : RandomVariable
-            The intial random variable of the cross entropy. See the `Notes` section for an explanation of the "initial" terminology.
+            The initial random variable of the cross entropy. See the `Notes` section for an explanation of the "initial" terminology.
         rv2 : RandomVariable
             The terminal random variable of the cross entropy. See the `Notes` section for an explanation of the "terminal" terminology.
         given : SigmaAlgebra | RandomVector | None, default=None
@@ -2316,10 +2268,10 @@ class Operators:
         ...     measure=P,
         ...     mapping={
         ...         0: 1,
-        ...         1: 5,
+        ...         1: -1,
         ...         2: 4,
-        ...         3: -1,
-        ...         4: -1,
+        ...         3: 5,
+        ...         4: 5,
         ...     },
         ... )
         >>> Y = RandomVariable(
@@ -2327,9 +2279,9 @@ class Operators:
         ...     sig_alg=F,
         ...     measure=P,
         ...     mapping={
-        ...         0: 2,
+        ...         0: 4,
         ...         1: 1,
-        ...         2: 5,
+        ...         2: -1,
         ...         3: 5,
         ...         4: 5,
         ...     },
@@ -2340,7 +2292,38 @@ class Operators:
 
         >>> H = Operators.cross_entropy
         >>> H(X, Y)
-        1.3791794031346958
+        1.4484941211906903
+
+        Check that this computation agrees with the mathematical definition of the cross entropy as an integral.
+
+        >>> H(X, Y) == (P >> Y).surprisal().integrate(measure=(P >> X).with_variable_names(["Y"]))
+        True
+
+        Define a sub-sigma-algebra for conditional cross entropy.
+
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 1,
+        ...     },
+        ...     name="G",
+        ... )
+
+        Compute the conditional cross entropy.
+
+        >>> H(X, Y, given=G)
+        0.40546510810816433
+
+        Check that this computation agrees with the mathematical definition of the conditional cross entropy as a double integral.
+
+        >>> H(X, Y, given=G) == (P.conditional(G) >> Y).surprisal().integrate(
+        ...     measure=(P.conditional(G) >> X).with_variable_names(["Y"])
+        ... ).ascend(G).integrate(measure=P)
+        True
         """
         from .._utils.function_helpers import compute_integral
         from .._utils.measure_helpers import compute_surprisal
@@ -2369,28 +2352,123 @@ class Operators:
             sig_alg_data=pushforward2.sig_alg.data,
             parameter_names=getattr(given, "variable_names", None),
             base=base,
-        ).rename("surprisal")
+        ).rename_axis(index={rv2.name: "var"})
+        pushforward_data = pushforward1.data.rename_axis(index={rv1.name: "var"})
 
-        surprisal_pushforward_merged = pd.merge(
-            left=surprisal_data.rename_axis(index={rv2.name: "S"}).reset_index(),
-            right=pushforward1.data.rename("pushforward")
-            .rename_axis(index={rv1.name: "S"})
-            .reset_index(),
-            how="outer",
-        ).fillna(0.0)
-
-        surprisal_pushforward_merged["product"] = (
-            surprisal_pushforward_merged["surprisal"]
-            * surprisal_pushforward_merged["pushforward"]
-        )
+        integral_data = surprisal_data * pushforward_data
 
         if given is None:
-            return surprisal_pushforward_merged["product"].sum().astype(Real)
+            return integral_data.sum().astype(Real)
 
         else:
-            inner_integral_data = surprisal_pushforward_merged.groupby(
-                given.variable_names
-            )["product"].sum()
+            inner_integral_data = integral_data.groupby(given.variable_names).sum()
+
+            return compute_integral(
+                function_atom_data=inner_integral_data,
+                measure_data=(rv1.measure | given).data,
+            ).astype(Real)
+
+    # TODO: Notes section missing
+    # TODO: tol unused parameter
+    # TODO: add to mixin
+    @classmethod
+    def divergence(
+        cls,
+        rv1: RandomVariable,
+        rv2: RandomVariable,
+        given: SigmaAlgebra | RandomVector | None = None,
+        base: Literal["e", "2", "10"] = "e",
+        tol: float = 1e-8,
+    ) -> Real:
+        """Compute the Kullback Leibler divergence from an initial random variable to a second one, optionally conditioned on a sigma-algebra or random vector.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        rv1 : RandomVariable
+            The initial random variable of the divergence. See the `Notes` section for an explanation of the "initial" terminology.
+        rv2 : RandomVariable
+            The terminal random variable of the divergence. See the `Notes` section for an explanation of the "terminal" terminology.
+        given : SigmaAlgebra | RandomVector | None, default=None
+            The optional sigma-algebra or random vector on which to condition the divergence.
+        base : Literal["e", "2", "10"], default="e"
+            The base of the logarithm used to compute the divergence.
+        tol : float, default=1e-8
+            Tolerance for testing for absolute continuity.
+
+        Returns
+        -------
+        divergence : Real
+            The KL divergence from the intitial random variable to the terminal one.
+
+        Examples
+        --------
+        >>> from sigalg.core import Operators
+        >>> from sigalg.processes import MarkovChain
+
+        We will demonstrate attempting to fit an order-1 Markov chain model to data generated by an order-2 Markov chain, and assessing goodness of fit using conditional KL divergence.
+
+        First, define the data generating process, an order-2 Markov chain of length 4.
+
+        >>> X = MarkovChain.from_rand(
+        ...     order=2,
+        ...     mode="enum",
+        ...     length=4,
+        ...     random_state=42,
+        ... )
+        >>> P = X.measure
+
+        Extract the marginal distribution of `X[0]` and the conditional distribution `P(X[1]|X[0])` from the order-2 chain and use these to define an order-1 Markov chain.
+
+        >>> Y = MarkovChain.generate(
+        ...     kernel=P.conditional(X[0]) >> X[1],
+        ...     initial_distribution=P >> X[0],
+        ...     mode="enum",
+        ...     length=4,
+        ...     name="Y",
+        ... )
+        >>> Q = Y.measure
+
+        For demonstration purposes, we will condition on the random variable `X[1]`. If the Markov chain `Y` provides a good fit for the data generated by `X`, then we should expect that the conditional distributions of `Y[2]` and `X[2]` should be near each other, as measured by KL divergence. We check this.
+
+        >>> D = Operators.divergence
+        >>> D(X[2], Y[2], given=X[1])
+        0.9716120048031052
+        """
+        from .._utils.function_helpers import compute_integral
+        from .._utils.measure_helpers import compute_surprisal
+        from .random_vector import RandomVector
+
+        if given is None:
+            pushforward1 = cls.pushforward(vec=rv1)
+            pushforward2 = cls.pushforward(vec=rv2).with_variable_names([rv1.name])
+
+        else:
+            if isinstance(given, RandomVector):
+                given = given.generated_sig_alg
+            pushforward1 = cls.pushforward(
+                vec=rv1, measure=rv1.measure.conditional(given)
+            )
+            pushforward2 = cls.pushforward(
+                vec=rv2, measure=rv2.measure.conditional(given)
+            ).with_variable_names([rv1.name])
+
+        surprisal_data = compute_surprisal(
+            self_data=pushforward1.data,
+            base_measure_data=pushforward2.data,
+            sig_alg_data=pushforward2.sig_alg.data,
+            parameter_names=getattr(given, "variable_names", None),
+            base=base,
+        )
+
+        integral_data = surprisal_data * pushforward1.data
+
+        if given is None:
+            return -integral_data.sum().astype(Real)
+
+        else:
+            inner_integral_data = -integral_data.groupby(given.variable_names).sum()
 
             return compute_integral(
                 function_atom_data=inner_integral_data,
@@ -2403,54 +2481,54 @@ class OperatorsMethods:
 
     # --------------------- general methods --------------------- #
 
-    def sum(self, name: Hashable | None = None) -> MeasurableFunction:
-        """Compute the sum of the components of the measurable vector.
+    def sum(self, name: Hashable | None = None) -> Function:
+        """Compute the sum of the components of a function with multi-dimensional outputs.
 
         Internally calls `Operators.sum`.
 
         Parameters
         ----------
         name : Hashable | None, default=None
-            The name of the resulting measurable function. If `None`, a default name will be generated.
+            The name of the resulting function. If `None`, a default name will be generated.
 
         Returns
         -------
-        summed_vec : MeasurableFunction
-            The measurable function representing the sum of the components of the measurable vector.
+        summed_func : Function
+            A function representing the sum of the components of the input function.
 
         Examples
         --------
         >>> from sigalg.core import Domain, MeasurableVector
         >>> D = Domain.from_sequence(size=2, variable_name="flip", name="D")
         >>> X = (D ^ 3).with_name("X")
-        >>> f = MeasurableVector.from_identity(domain=X)
+        >>> f = X.to_function()
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
-        i                     0  1  2
-        flip_0 flip_1 flip_2
-        0      0      0       0  0  0
-                      1       0  0  1
-               1      0       0  1  0
-                      1       0  1  1
-        1      0      0       1  0  0
-                      1       1  0  1
-               1      0       1  1  0
-                      1       1  1  1
+        Function 'f':
+        i      flip_0  flip_1  flip_2
+        omega
+        0           0       0       0
+        1           0       0       1
+        2           0       1       0
+        3           0       1       1
+        4           1       0       0
+        5           1       0       1
+        6           1       1       0
+        7           1       1       1
         >>> g = f.sum(name="g")
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'g':
-                              g
-        flip_0 flip_1 flip_2
-        0      0      0       0
-                      1       1
-               1      0       1
-                      1       2
-        1      0      0       1
-                      1       2
-               1      0       2
-                      1       3
+        Function 'g':
+               g
+        omega
+        0      0
+        1      1
+        2      1
+        3      2
+        4      1
+        5      2
+        6      2
+        7      3
         """
-        return Operators.sum(vec=self, name=name)
+        return Operators.sum(func=self, name=name)
 
     def transform(
         self,
@@ -2748,7 +2826,6 @@ class OperatorsMethods:
         self,
         subset: Set | list[Hashable] | None = None,
         measure: Measure | ParametrizedMeasure | None = None,
-        variables: tuple[Hashable, Hashable] | None = None,
         subset_name: Hashable | None = None,
     ) -> Real | pd.Series | Function:
         r"""Compute the Lebesgue integral of a measurable vector with respect to a measure over an (optional) set.
@@ -2763,8 +2840,6 @@ class OperatorsMethods:
             The optional set over which to integrate. If `None`, the integral will be taken over the entire domain of the measurable vector.
         measure : Measure | ParametrizedMeasure | None, default=None
             The measure or parametrized measure with respect to which to integrate. If `None`, the measure of the underlying measure space is used (if it exists) carried by the measurable vector.
-        variables : tuple[Hashable, Hashable] | None, default=None
-            A pair of explicit domain variables over which the integral should be taken. The first item of the tuple should correspond to the variable name of the function's domain, while the second item should correspond to the variable name of the measure's domain.
         subset_name : Hashable | None, default=None
             If the `subset` is passed as a list, the name that will be
 
@@ -2928,7 +3003,6 @@ class OperatorsMethods:
             function=self,
             subset=subset,
             measure=measure,
-            variables=variables,
             subset_name=subset_name,
         )
 
