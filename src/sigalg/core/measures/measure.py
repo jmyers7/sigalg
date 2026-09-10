@@ -1280,6 +1280,18 @@ class Measure(Function):
     ) -> Measure:
         """Set the variable names of the underlying sigma-algebra of the measure and return a new instance.
 
+        Parameters
+        ----------
+        variable_names : list[Hashable]
+            The new variable names.
+        name : Hashable | None, default=None
+            The name of the new measure. If `None`, the name of the current instance will be used.
+
+        Returns
+        -------
+        renamed_measure : Measure
+            A new instance with the given variable names.
+
         Examples
         --------
         >>> from sigalg.core import Domain, SigmaAlgebra, Measure

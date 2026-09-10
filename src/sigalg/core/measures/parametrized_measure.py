@@ -1201,6 +1201,94 @@ class ParametrizedMeasure(Function):
             name=self.name,
         )
 
+    def with_variable_names(
+        self, variable_names: list[Hashable], name: Hashable | None = None
+    ) -> ParametrizedMeasure:
+        """Set the variable names of the underlying sigma-algebra of the parametrizec measure and return a new instance.
+
+        Parameters
+        ----------
+        variable_names : list[Hashable]
+            The new variable names.
+        name : Hashable | None, default=None
+            The name of the new measure. If `None`, the name of the current instance will be used.
+
+        Returns
+        -------
+        renamed_measure : ParametrizedMeasure
+            A new instance with the given variable names.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
+
+        Define a parametrized measure. Notice the custom variable name of the sigma-algebra.
+
+        >>> X = Domain.from_sequence(size=3)
+        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     },
+        ...     variable_names=["u"],
+        ... )
+        >>> mu = ParametrizedMeasure.from_domains(
+        ...     measure_domain=F,
+        ...     parameter_domain=Theta,
+        ...     mapping={
+        ...         (0, 0): 3,
+        ...         (0, 1): 4,
+        ...         (1, 0): 1,
+        ...         (1, 1): 2,
+        ...     },
+        ... )
+        >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measure 'mu':
+        theta  0  1
+        u
+        0      3  1
+        1      4  2
+
+        Set the variable names of the measure.
+
+        >>> nu = mu.with_variable_names(["v"])
+        >>> print(nu)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measure 'mu':
+        theta  0  1
+        v
+        0      3  1
+        1      4  2
+
+        The variable names of the underlying sigma-algebra change accordingly.
+
+        >>> print(nu.sig_alg.variable_names)
+        ['v']
+        """
+        new_data = self.data.copy()
+        new_data = new_data.rename_axis(
+            index=dict(zip(self.sig_alg.variable_names, variable_names))
+        )
+        sig_alg = self.sig_alg.with_variable_names(variable_names)
+
+        if name is not None:
+            new_data = new_data.rename(name)
+
+        else:
+            name = self.name
+
+        return type(self)._from_validated(
+            data=new_data,
+            sig_alg=sig_alg,
+            kind=self.kind,
+            complete_domain_name=self.domain.name,
+            parameter_domain_name=self.parameter_domain.name,
+            parameter_names=self.parameter_names,
+            name=name,
+        )
+
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
