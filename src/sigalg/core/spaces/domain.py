@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from ..indices.index import Index
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
+    from ..functions.function import Function
     from ..measures.measure import Measure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .measurable_space import MeasurableSpace
@@ -259,6 +262,84 @@ class Domain(Index):
         from .sample_space import SampleSpace
 
         return SampleSpace._from_validated(data=self.data.copy(), name=self.name)
+
+    def to_function(
+        self,
+        domain_name: Hashable = "Omega",
+        domain_variable_name: Hashable = "omega",
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable = "f",
+    ) -> Function:
+        """Convert the current domain to a `Function` instance.
+
+        Parameters
+        ----------
+        domain_name : Hashable, default="Omega"
+            Name of the domain of the function.
+        domain_variable_name : Hashable, default="omega"
+            Name of the domain variable.
+        index_kind : Literal["Index", "Time"], default="Index"
+            Kind of the index.
+        index_name : Hashable | None, default=None
+            Name of the index.
+        name : Hashable, default="f"
+            Name of the function.
+
+        Returns
+        -------
+        function : Function
+            A new `Function` object representing the current domain.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain
+
+        Define a 2-dimensional domain.
+
+        >>> X = Domain.cartesian_product([["a", "b"], [1, 2]], variable_names=["letter", "number"])
+
+        Convert to a function with default domain parameter values.
+
+        >>> f = X.to_function()
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+        i     letter  number
+        omega
+        0          a       1
+        1          a       2
+        2          b       1
+        3          b       2
+
+        Convert to a function with custom domain parameters values.
+
+        >>> g = X.to_function(name="g", domain_variable_name="s", domain_name="S")
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+        i letter  number
+        s
+        0      a       1
+        1      a       2
+        2      b       1
+        3      b       2
+        """
+        from ..functions.function import Function
+        from ..indices.time import Time
+
+        index_class = Index if index_kind == "Index" else Time
+        func_data = self.data.to_frame().squeeze(axis=1).reset_index(drop=True)
+        func_data.index.name = domain_variable_name
+        func_data.columns.name = index_class._variable_names_prefix
+
+        return Function._from_validated(
+            data=func_data,
+            kind="any",
+            domain_kind=type(self).__name__,
+            domain_name=domain_name,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+        )
 
     # --------------------- representation --------------------- #
 
