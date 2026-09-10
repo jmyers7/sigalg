@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from .measure_space import MeasureSpace
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from ...typing.index_like import IndexLike
     from ...typing.measure_domain import MeasureDomain
+    from ..functions.random_vector import RandomVector
     from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .domain import Domain
@@ -227,6 +230,136 @@ class ProbabilitySpace(MeasureSpace):
         2     0.367816
         """
         return cls.from_set(subset=event, measure=measure, normalize=True)
+
+    # --------------------- function methods --------------------- #
+
+    def to_rv(
+        self,
+        domain_name: Hashable = "Omega",
+        domain_variable_name: Hashable = "omega",
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable = "X",
+    ) -> RandomVector:
+        """Convert the current probability space to a `RandomVector` instance.
+
+        Parameters
+        ----------
+        domain_name : Hashable, default="Omega"
+            Name of the domain of the random vector.
+        domain_variable_name : Hashable, default="omega"
+            Name of the domain variable.
+        index_kind : Literal["Index", "Time"], default="Index"
+            Kind of the index.
+        index_name : Hashable | None, default=None
+            Name of the index.
+        name : Hashable, default="X"
+            Name of the random vector.
+
+        Returns
+        -------
+        rv : RandomVector
+            A new `RandomVector` object representing the current probability space.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, ProbabilitySpace, SampleSpace, SigmaAlgebra
+
+        Define a probability space with a 2-dimensional sample space.
+
+        >>> Omega = SampleSpace.cartesian_product([[1, 2], [1, 3]], variable_names=["A", "B"])
+        >>> F = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         (1, 1): 0,
+        ...         (1, 3): 1,
+        ...         (2, 1): 1,
+        ...         (2, 3): 2,
+        ...     },
+        ... )
+        >>> P = ProbabilityMeasure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 0.2,
+        ...         1: 0.7,
+        ...         2: 0.1,
+        ...     },
+        ... )
+        >>> prob_space = ProbabilitySpace(Omega, F, P)
+
+        Convert to a random vector with default domain parameter values.
+
+        >>> X = prob_space.to_rv()
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        i      A  B
+        omega
+        0      1  1
+        1      1  3
+        2      2  1
+        3      2  3
+
+        Convert to a random vector with custom domain parameters values.
+
+        >>> Y = prob_space.to_rv(domain_name="S", domain_variable_name="s", name="Y")
+        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+        i  A  B
+        s
+        0  1  1
+        1  1  3
+        2  2  1
+        3  2  3
+        """
+        from ..functions.random_vector import RandomVector
+        from ..indices.index import Index
+        from ..indices.time import Time
+        from ..measures.probability_measure import ProbabilityMeasure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        index_class = Index if index_kind == "Index" else Time
+        rv_data = self.domain.data.to_frame().squeeze(axis=1).reset_index(drop=True)
+        rv_data.index.name = domain_variable_name
+        rv_data.columns.name = index_class._variable_names_prefix
+
+        if self.sig_alg.is_power_set:
+            sig_alg = SigmaAlgebra.power_set(
+                rv_data.index,
+                domain_kind="SampleSpace",
+                domain_name=domain_name,
+            )
+            measure_data = self.measure.data.copy()
+            measure_data.index = rv_data.index
+
+        else:
+            sig_alg_data = self.sig_alg.data.reset_index(drop=True)
+            sig_alg_data.index = rv_data.index
+            sig_alg = SigmaAlgebra._from_validated(
+                data=sig_alg_data,
+                variable_names=self.sig_alg.variable_names,
+                domain_kind="SampleSpace",
+                domain_name=domain_name,
+                index_kind=self.sig_alg.index_kind,
+                index_name=self.sig_alg.index_name,
+                name=self.sig_alg.name,
+            )
+            measure_data = self.measure.data
+
+        measure = ProbabilityMeasure._from_validated(
+            data=measure_data,
+            kind="probability",
+            sig_alg=sig_alg,
+            name=self.measure.name,
+        )
+
+        return RandomVector._from_validated(
+            data=rv_data,
+            sig_alg=sig_alg,
+            measure=measure,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+        )
 
     # --------------------- validation methods --------------------- #
 
