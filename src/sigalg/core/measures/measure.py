@@ -1275,6 +1275,72 @@ class Measure(Function):
             name=self.name,
         )
 
+    def with_variable_names(
+        self, variable_names: list[Hashable], name: Hashable | None = None
+    ) -> Measure:
+        """Set the variable names of the underlying sigma-algebra of the measure and return a new instance.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, SigmaAlgebra, Measure
+
+        Define a measure. Notice the custom variable name of the sigma-algebra.
+
+        >>> X = Domain.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     },
+        ...     variable_names=["u"],
+        ... )
+        >>> mu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 3,
+        ...         1: 4,
+        ...     },
+        ... )
+        >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'mu':
+           mu
+        u
+        0   3
+        1   4
+
+        Set the variable names of the measure.
+
+        >>> nu = mu.with_variable_names(["v"])
+        >>> print(nu)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'mu':
+           mu
+        v
+        0   3
+        1   4
+
+        The variable names of the underlying sigma-algebra change accordingly.
+
+        >>> print(nu.sig_alg.variable_names)
+        ['v']
+        """
+        new_data = self.data.copy()
+        new_data.index.names = variable_names
+        sig_alg = self.sig_alg.with_variable_names(variable_names)
+
+        if name is not None:
+            new_data = new_data.rename(name)
+        else:
+            name = self.name
+
+        return type(self)._from_validated(
+            data=new_data,
+            kind=self.kind,
+            sig_alg=sig_alg,
+            name=name,
+        )
+
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
