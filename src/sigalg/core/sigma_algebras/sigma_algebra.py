@@ -2699,6 +2699,96 @@ class SigmaAlgebra:
 
             return joint_entropy - marginal_entropy
 
+    def mutual_info(
+        self,
+        other: SigmaAlgebra,
+        measure: ProbabilityMeasure,
+        base: Literal["2", "e", "10"] = "2",
+    ) -> Real:
+        """Compute the mutual information between this and another sigma-algebra relative to a given probability measure.
+
+        Parameters
+        ----------
+        other : SigmaAlgebra
+            The other sigma-algebra.
+        measure : ProbabilityMeasure
+            The probability measure.
+        base : Literal["2", "e", "10"], default="2"
+            The base of the logarithm used to compute the mutual information.
+
+        Returns
+        -------
+        mutual_info : Real
+            The mutual information between this and another sigma-algebra.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
+
+        Define a probability space and two sigma-algebras that we will compute the mutual information between.
+
+        >>> Omega = SampleSpace.from_sequence(size=5)
+        >>> F = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...         4: 3,
+        ...     },
+        ... )
+        >>> P = ProbabilityMeasure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 0.0,
+        ...         1: 0.2,
+        ...         2: 0.7,
+        ...         3: 0.1,
+        ...     },
+        ... )
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...         4: 2,
+        ...     },
+        ...     name="G",
+        ... )
+        >>> H = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...     },
+        ...     name="H",
+        ... )
+
+        Compute the mutual information between `G` and `H`.
+
+        >>> G.mutual_info(H, measure=P)
+        0.03414403902960417
+
+        Check that this value is equal to its mathematical definition as a difference between a marginal entropy and a conditional one.
+
+        >>> G.mutual_info(H, measure=P) == G.entropy(P) - G.entropy(P, given=H)
+        True
+
+        Check the symmetry propety of mutual information.
+
+        >>> G.mutual_info(H, measure=P) == H.mutual_info(G, measure=P)
+        True
+        """
+        return self.entropy(measure=measure, base=base) - self.entropy(
+            measure=measure, given=other, base=base
+        )
+
     # --------------------- sequence methods --------------------- #
 
     def __iter__(self) -> iter:
