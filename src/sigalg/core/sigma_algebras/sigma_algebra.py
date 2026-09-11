@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Hashable, Mapping
 from functools import cached_property
 from itertools import chain
+from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
     from ..functions.function import Function
     from ..indices.index import Index
     from ..measures.measure import Measure
+    from ..measures.probability_measure import ProbabilityMeasure
     from ..spaces.domain import Domain
     from ..spaces.set import Set
     from .lattice import Lattice
@@ -2544,6 +2546,158 @@ class SigmaAlgebra:
             raise TypeError(
                 "candidate must be a Set instance, a list of points in the domain, or a Function instance."
             )
+
+    # --------------------- information-theoretic methods --------------------- #
+
+    def entropy(
+        self,
+        measure: ProbabilityMeasure,
+        given: SigmaAlgebra | None = None,
+        base: Literal["2", "e", "10"] = "2",
+    ) -> Real:
+        """Compute the entropy of the current sigma-algebra with respect to a given probability measure.
+
+        Parameters
+        ----------
+        measure : ProbabilityMeasure
+            The probability measure.
+        base : Literal["2", "e", "10"], default="2"
+            The base of the logarithm used to compute the entropy.
+
+        Returns
+        -------
+        entropy : Real
+            The entropy of the sigma-algebra.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
+
+        Define a probability space. Notice that the sigma-algebra has a null atom.
+
+        >>> Omega = SampleSpace.from_sequence(size=5)
+        >>> F = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...         4: 3,
+        ...     },
+        ... )
+        >>> P = ProbabilityMeasure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 0.0,
+        ...         1: 0.2,
+        ...         2: 0.7,
+        ...         3: 0.1,
+        ...     },
+        ... )
+
+        Compute the entropy of the `F` with respect to `P`.
+
+        >>> F.entropy(P)
+        1.1567796494470395
+
+        Check that this value agrees with the mathematical definition.
+
+        >>> bool(F.entropy(P) == sum(-np.log2(P(A)) * P(A) for A in F if P(A) > 0))
+        True
+
+        We may also find the entropy of a sub-sigma-algebra of `F`.
+
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...         4: 2,
+        ...     },
+        ...     name="G",
+        ... )
+        >>> G.entropy(P)
+        0.7219280948873623
+
+        Define a second sub-sigma-algebra of `F` for conditional entropy.
+
+        >>> H = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...     },
+        ...     name="H",
+        ... )
+
+        Compute the conditional entropy of `G` given `H`.
+
+        >>> G.entropy(P, given=H)
+        0.6877840558577581
+
+        Check that the conditional entropy is equal to its mathematical definition, as the joint entropy (the entropy of the meet) minus the marginal entropy of the given sigma-algebra.
+
+        >>> G.entropy(P, given=H) == (G | H).entropy(P) - H.entropy(P)
+        True
+        """
+        from ..measures.probability_measure import ProbabilityMeasure
+
+        if not isinstance(measure, ProbabilityMeasure):
+            raise TypeError("measure must be a probability measure.")
+        if not self <= measure.sig_alg:
+            raise ValueError(
+                "This sigma-algebra must be a sub-sigma-algebra of the provided measure."
+            )
+
+        if base == "2":
+            log = np.log2
+        elif base == "e":
+            log = np.log
+        elif base == "10":
+            log = np.log10
+        else:
+            raise ValueError("base must be 2, e, or 10.")
+
+        if given is None:
+            measure = measure | self
+
+            with np.errstate(divide="ignore"):
+                surprisal = -log(measure.data)
+            surprisal = surprisal.replace(np.inf, 0)
+
+            return (surprisal * measure.data).sum().astype(Real)
+        else:
+            if not isinstance(given, SigmaAlgebra):
+                raise TypeError(
+                    "If it is given, the given sigma-algebra must be an instance of SigmaAlgebra."
+                )
+            if not given <= measure.sig_alg:
+                raise ValueError(
+                    "If it is given, the given must be a sub-sigma-algebra of the provided measure."
+                )
+
+            joint_measure = measure | (self | given)
+            marginal_measure = measure | given
+
+            with np.errstate(divide="ignore"):
+                joint_surprisal = -log(joint_measure.data)
+                marginal_surprisal = -log(marginal_measure.data)
+            joint_surprisal = joint_surprisal.replace(np.inf, 0)
+            marginal_surprisal = marginal_surprisal.replace(np.inf, 0)
+
+            joint_entropy = (joint_surprisal * joint_measure.data).sum().astype(Real)
+            marginal_entropy = (
+                (marginal_surprisal * marginal_measure.data).sum().astype(Real)
+            )
+
+            return joint_entropy - marginal_entropy
 
     # --------------------- sequence methods --------------------- #
 
