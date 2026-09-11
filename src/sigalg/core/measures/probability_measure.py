@@ -1218,7 +1218,7 @@ class ProbabilityMeasure(Measure):
         self,
         base_measure: Measure | None = None,
         given: SigmaAlgebra | RandomVector | None = None,
-        base: Literal["e", "2", "10"] = "e",
+        base: Literal["2", "e", "10"] = "2",
         name: Hashable | None = None,
         tol: float = 1e-8,
     ) -> MeasurableFunction | ParametrizedMeasurableFunction:
@@ -1232,7 +1232,7 @@ class ProbabilityMeasure(Measure):
             The base measure with respect to which the surprisal is computed. If `None`, the counting measure is used.
         given : SigmaAlgebra | RandomVector | None, default=None
             The optional sigma-algebra or random vector on which to condition the surprisal.
-        base : Literal["e", "2", "10"], default="e"
+        base : Literal["2", "e", "10"], default="2"
             The base of the logarithm used to compute the surprisal.
         name : Hashable | None, default=None
             The name of the surprisal. If `None`, a default name is generated.
@@ -1298,10 +1298,10 @@ class ProbabilityMeasure(Measure):
         Random variable 's(P; mu)':
                s(P; mu)
         omega
-        0      1.609438
-        1      1.203973
-        2      2.708050
-        3      2.708050
+        0      2.321928
+        1      1.736966
+        2      3.906891
+        3      3.906891
         4      0.000000
         5      0.000000
         6      0.000000
@@ -1348,11 +1348,11 @@ class ProbabilityMeasure(Measure):
         Parametrized random variable 's(P|G; mu)':
         G             0         1         2
         omega
-        0      1.386294  0.000000  1.386294
-        1      0.980829  0.000000  2.079442
-        2      0.000000  1.098612  2.484907
-        3      0.000000  1.098612  2.484907
-        4      0.000000  0.000000  2.772589
+        0      2.000000  0.000000  2.000000
+        1      1.415037  0.000000  3.000000
+        2      0.000000  1.584963  3.584963
+        3      0.000000  1.584963  3.584963
+        4      0.000000  0.000000  4.000000
         5      0.000000  0.000000  0.000000
         6      0.000000  0.000000  0.000000
 
@@ -1459,7 +1459,7 @@ class ProbabilityMeasure(Measure):
         self,
         base_measure: Measure | None = None,
         given: SigmaAlgebra | RandomVector | None = None,
-        base: Literal["e", "2", "10"] = "e",
+        base: Literal["2", "e", "10"] = "2",
         name: Hashable | None = None,
         tol: float = 1e-8,
     ) -> Real:
@@ -1473,7 +1473,7 @@ class ProbabilityMeasure(Measure):
             The base measure with respect to which the entropy is computed. If `None`, the counting measure is used.
         given : SigmaAlgebra | RandomVector | None, default=None
             The optional sigma-algebra or random vector on which to condition the entropy.
-        base : Literal["e", "2", "10"], default="e"
+        base : Literal["2", "e", "10"], default="2"
             The base of the logarithm used to compute the entropy.
         name : Hashable | None, default=None
             The name of the entropy. If `None`, a default name is generated.
@@ -1533,12 +1533,12 @@ class ProbabilityMeasure(Measure):
         Compute the entropy of `P` with respect to `mu`.
 
         >>> P.entropy(mu)
-        1.5858813053028238
+        2.2879430945988997
 
         Check that the entropy is the integral of the surprisal function.
 
         >>> P.surprisal(mu).integrate(measure=P)
-        1.5858813053028238
+        2.2879430945988997
 
         Define a sub-sigma-algebra for conditional entropies. Notice the null atom.
 
@@ -1559,7 +1559,7 @@ class ProbabilityMeasure(Measure):
         Compute the conditional entropy.
 
         >>> P.entropy(mu, G)
-        1.085478881764636
+        1.5660149997115376
 
         We check that this value coincides with the mathematical definition of the conditional entropy. First, we integrate the conditional entropy against the conditional distribution.
 
@@ -1568,14 +1568,14 @@ class ProbabilityMeasure(Measure):
         Function 'int s(P|G; mu) dP(-|G)':
            int s(P|G; mu) dP(-|G)
         G
-        0                1.082196
-        1                1.098612
-        2                1.744646
+        0                1.561278
+        1                1.584963
+        2                2.516993
 
         Notice that this is a function on the atom identifiers of `G`. We "ascend" to a function on the entire sample space using the `ascend` method, and then we integrate against `P`.
 
         >>> inner_integral.ascend(G).integrate(measure=P)
-        1.085478881764636
+        1.5660149997115376
 
         Note this value coincides with the conditional entropy computed above.
 
@@ -1636,7 +1636,7 @@ class ProbabilityMeasure(Measure):
         other: ProbabilityMeasure,
         base_measure: Measure | None = None,
         given: SigmaAlgebra | RandomVector | None = None,
-        base: Literal["e", "2", "10"] = "e",
+        base: Literal["2", "e", "10"] = "2",
         tol: float = 1e-8,
     ) -> Real:
         r"""Compute the cross entropy from this to another probability measure with respect to a base measure, optionally conditioned on a sigma-algebra or random vector.
@@ -1651,7 +1651,7 @@ class ProbabilityMeasure(Measure):
             The base measure with respect to which the cross entropy is computed. If `None`, the counting measure is used.
         given : SigmaAlgebra | RandomVector | None, default=None
             The optional sigma-algebra or random vector on which to condition the cross entropy.
-        base : Literal["e", "2", "10"], default="e"
+        base : Literal["2", "e", "10"], default="2"
             The base of the logarithm used to compute the cross entropy.
         tol : float, default=1e-8
             Tolerance for testing for absolute continuity.
@@ -1721,7 +1721,7 @@ class ProbabilityMeasure(Measure):
         Compute the cross entropy from `P` to `Q` with base measure `mu`.
 
         >>> P.cross_entropy(Q, mu)
-        1.7528106538695527
+        2.528771237954945
 
         We may check that the cross entropy agrees with its mathematical definition as an integral.
 
@@ -1747,7 +1747,7 @@ class ProbabilityMeasure(Measure):
         Compute the cross entropy from `P` to `Q`, conditioned on `G`.
 
         >>> P.cross_entropy(Q, mu, given=G)
-        1.1137787942193758
+        1.6068431430675827
 
         We may check that the cross entropy agrees with its mathematical definition as a double integral.
 
@@ -1836,7 +1836,7 @@ class ProbabilityMeasure(Measure):
         self,
         other: ProbabilityMeasure,
         given: SigmaAlgebra | RandomVector | None = None,
-        base: Literal["e", "2", "10"] = "e",
+        base: Literal["2", "e", "10"] = "2",
         tol: float = 1e-8,
     ) -> Real:
         r"""Compute the Kullback Leibler divergence from this to another probability measure, optinally conditioned on a sigma-algebra or random vector.
@@ -1849,7 +1849,7 @@ class ProbabilityMeasure(Measure):
             The other probability measure.
         given : SigmaAlgebra | RandomVector | None, default=None
             The optional sigma-algebra or random vector on which to condition the entropy.
-        base : Literal["e", "2", "10"], default="e"
+        base : Literal["2", "e", "10"], default="2"
             The base of the logarithm used to compute the divergence.
         tol : float, default=1e-8
             Tolerance for testing for absolute continuity.
@@ -1909,7 +1909,7 @@ class ProbabilityMeasure(Measure):
         Compute the KL divergence from `P` to `Q`.
 
         >>> P.divergence(Q)
-        0.16692934856672895
+        0.24082814335604508
 
         The KL divergence is the negative entropy of `P` with base measure `Q`.
 
@@ -1947,7 +1947,7 @@ class ProbabilityMeasure(Measure):
         self,
         first_variables: list[Hashable] | None = None,
         second_variables: list[Hashable] | None = None,
-        base: Literal["e", "2", "10"] = "e",
+        base: Literal["2", "e", "10"] = "2",
     ) -> Real:
         """Compute the mutual information of the current probability measure.
 
@@ -1957,7 +1957,7 @@ class ProbabilityMeasure(Measure):
             The variables for the first factor of the mutual information. See the Examples and Notes section below.
         second_variables : list[Hashable] | None, default=None
             The variables for the second factor of the mutual information. See the Examples and Notes section below.
-        base : Literal["e", "2", "10"], default="e"
+        base : Literal["2", "e", "10"], default="2"
             The base of the logarithm used to compute the mutual information.
 
         Returns
@@ -1988,7 +1988,7 @@ class ProbabilityMeasure(Measure):
         Since `P` is defined on a `2`-fold Cartesian product, we may leave `first_variables` and `second_variables` as their default values in the call to `mutual_info`. If this were not the case (see below), we would need to specify using these parameters which variables of the underlying domain correspond to which marginal distribution.
 
         >>> P.mutual_info()
-        0.00883792002041563
+        0.012750423385226917
 
         Notice that the mutual information is not `0.0`, and hence the measure is not the tensor product of its two marginals.
 
@@ -2032,7 +2032,7 @@ class ProbabilityMeasure(Measure):
         We pass lists of variables into the `mutual_info` method to specify which factors of the domain `S` correspond to which marginals in the computation of the mutual information. For this example, the first marginal corresponds to the first variable of the domain, while the second marginal corresponds to the second and third variables.
 
         >>> R.mutual_info(["s_0"], ["s_1", "s_2"])
-        0.10239927214841721
+        0.14773092211916083
 
         To be more precise, what this means is that the method will use the following pandas data for the marginals.
 

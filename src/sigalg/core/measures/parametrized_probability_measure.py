@@ -472,7 +472,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
     def surprisal(
         self,
         base_measure: Measure | None = None,
-        base: Literal["e", "2", "10"] = "e",
+        base: Literal["2", "e", "10"] = "2",
         name: Hashable | None = None,
         tol: float = 1e-8,
     ) -> ParametrizedMeasurableFunction:
@@ -484,7 +484,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         ----------
         base_measure : Measure | None, default=None
             The base measure with respect to which the surprisal is computed. If `None`, the counting measure on the domain of the sigma-algebra is used.
-        base : Literal["e", "2", "10"], default="e"
+        base : Literal["2", "e", "10"], default="2"
             The base of the logarithm used to compute the surprisal.
         name : Hashable | None, default=None
             The name of the resulting surprisal. If `None`, a default name will be generated.
@@ -555,12 +555,12 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         Parametrized measurable function 's(P; mu)':
         theta         0         1
         omega
-        0      1.203973  0.000000
-        1      1.203973  0.000000
-        2      1.386294  2.995732
-        3      1.386294  2.995732
-        4      2.995732  1.491655
-        5      2.995732  1.491655
+        0      1.736966  0.000000
+        1      1.736966  0.000000
+        2      2.000000  4.321928
+        3      2.000000  4.321928
+        4      4.321928  2.152003
+        5      4.321928  2.152003
 
         We may check that the surprisal is the negative logarithm of the Radon-Nikodym derivative of `P` with respect to `mu`.
 
@@ -611,7 +611,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
     def entropy(
         self,
         base_measure: Measure | None = None,
-        base: Literal["e", "2", "10"] = "e",
+        base: Literal["2", "e", "10"] = "2",
         name: Hashable | None = None,
         tol: float = 1e-8,
     ) -> Function:
@@ -623,7 +623,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         ----------
         base_measure : Measure | None, default=None
             The base measure with respect to which the entropy is computed. If `None`, the counting measure on the domain of the sigma-algebra is used.
-        base : Literal["e", "2", "10"], default="e"
+        base : Literal["2", "e", "10"], default="2"
             The base of the logarithm used to compute the entropy.
         name : Hashable | None, default=None
             The name of the resulting entropy. If `None`, a default name will be generated.
@@ -637,6 +637,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
         Examples
         --------
+        >>> import numpy as np
         >>> from sigalg import (
         ...     Domain,
         ...     Measure,
@@ -693,8 +694,8 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         Function 'H(P; mu)':
                H(P; mu)
         theta
-        0      1.653485
-        1      1.642063
+        0      2.385475
+        1      2.368996
 
         We may check that the entropy is given by the integral of the surprisal function.
 

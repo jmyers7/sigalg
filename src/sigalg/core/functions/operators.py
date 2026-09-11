@@ -2023,7 +2023,7 @@ class Operators:
         cls,
         rv: RandomVariable,
         given: SigmaAlgebra | RandomVector | None = None,
-        base: Literal["e", "2", "10"] = "e",
+        base: Literal["2", "e", "10"] = "2",
         name: Hashable | None = None,
         tol: float = 1e-8,
     ) -> MeasurableFunction | ParametrizedMeasurableFunction:
@@ -2059,7 +2059,7 @@ class Operators:
         cls,
         rv: RandomVariable,
         given: SigmaAlgebra | RandomVector | None = None,
-        base: Literal["e", "2", "10"] = "e",
+        base: Literal["2", "e", "10"] = "2",
         tol: float = 1e-8,
     ) -> Real:
         """Compute the entropy of a random variable with respect to a base measure, optionally conditioned on a sigma-algebra or random vector.
@@ -2072,7 +2072,7 @@ class Operators:
             The random variable whose entropy is to be computed.
         given : SigmaAlgebra | RandomVector | None, default=None
             The optional sigma-algebra or random vector on which to condition the entropy.
-        base : Literal["e", "2", "10"], default="e"
+        base : Literal["2", "e", "10"], default="2"
             The base of the logarithm used to compute the entropy.
         tol : float, default=1e-8
             Tolerance for testing for absolute continuity.
@@ -2131,7 +2131,7 @@ class Operators:
 
         >>> H = Operators.entropy
         >>> H(X)
-        0.9433483923290392
+        1.360964047443681
 
         We may check that the entropy is the integral of the surprisal of the pushforward measure.
 
@@ -2156,7 +2156,7 @@ class Operators:
         Compute the conditional entropy.
 
         >>> H(X, G)
-        0.6182654189375909
+        0.8919684538544
 
         Check that the conditional entropy agrees with its mathematical definition as a double integral.
 
@@ -2205,7 +2205,7 @@ class Operators:
         rv1: RandomVariable,
         rv2: RandomVariable,
         given: SigmaAlgebra | RandomVector | None = None,
-        base: Literal["e", "2", "10"] = "e",
+        base: Literal["2", "e", "10"] = "2",
         tol: float = 1e-8,
     ) -> Real:
         """Compute the cross entropy from an initial random variable to a second one, optionally conditioned on a sigma-algebra or random vector.
@@ -2220,7 +2220,7 @@ class Operators:
             The terminal random variable of the cross entropy. See the `Notes` section for an explanation of the "terminal" terminology.
         given : SigmaAlgebra | RandomVector | None, default=None
             The optional sigma-algebra or random vector on which to condition the cross entropy.
-        base : Literal["e", "2", "10"], default="e"
+        base : Literal["2", "e", "10"], default="2"
             The base of the logarithm used to compute the cross entropy.
         tol : float, default=1e-8
             Tolerance for testing for absolute continuity.
@@ -2292,7 +2292,7 @@ class Operators:
 
         >>> H = Operators.cross_entropy
         >>> H(X, Y)
-        1.4484941211906903
+        2.089735285398626
 
         Check that this computation agrees with the mathematical definition of the cross entropy as an integral.
 
@@ -2316,7 +2316,7 @@ class Operators:
         Compute the conditional cross entropy.
 
         >>> H(X, Y, given=G)
-        0.40546510810816433
+        0.5849625007211562
 
         Check that this computation agrees with the mathematical definition of the conditional cross entropy as a double integral.
 
@@ -2377,7 +2377,7 @@ class Operators:
         rv1: RandomVariable,
         rv2: RandomVariable,
         given: SigmaAlgebra | RandomVector | None = None,
-        base: Literal["e", "2", "10"] = "e",
+        base: Literal["2", "e", "10"] = "2",
         tol: float = 1e-8,
     ) -> Real:
         """Compute the Kullback Leibler divergence from an initial random variable to a second one, optionally conditioned on a sigma-algebra or random vector.
@@ -2392,7 +2392,7 @@ class Operators:
             The terminal random variable of the divergence. See the `Notes` section for an explanation of the "terminal" terminology.
         given : SigmaAlgebra | RandomVector | None, default=None
             The optional sigma-algebra or random vector on which to condition the divergence.
-        base : Literal["e", "2", "10"], default="e"
+        base : Literal["2", "e", "10"], default="2"
             The base of the logarithm used to compute the divergence.
         tol : float, default=1e-8
             Tolerance for testing for absolute continuity.
@@ -2434,7 +2434,7 @@ class Operators:
 
         >>> D = Operators.divergence
         >>> D(X[2], Y[2], given=X[1])
-        0.9716120048031052
+        1.4017398209976233
         """
         from .._utils.function_helpers import compute_integral
         from .._utils.measure_helpers import compute_surprisal

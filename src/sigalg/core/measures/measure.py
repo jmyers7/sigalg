@@ -889,7 +889,6 @@ class Measure(Function):
         if isinstance(obj, SigmaAlgebra):
             sig_alg = obj
 
-            # TODO: add fast path if pandas_all_equal
             if sig_alg is self.sig_alg:
                 return self
 
