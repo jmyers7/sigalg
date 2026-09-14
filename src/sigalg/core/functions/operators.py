@@ -2059,7 +2059,7 @@ class Operators:
         cls,
         rv: RandomVariable,
         given: SigmaAlgebra | RandomVector | None = None,
-        base: Literal["2", "e", "10"] = "2",
+        base: Real | Literal["2", "e", "10"] = "2",
         tol: float = 1e-8,
     ) -> Real:
         """Compute the entropy of a random variable with respect to a base measure, optionally conditioned on a sigma-algebra or random vector.
@@ -2072,7 +2072,7 @@ class Operators:
             The random variable whose entropy is to be computed.
         given : SigmaAlgebra | RandomVector | None, default=None
             The optional sigma-algebra or random vector on which to condition the entropy.
-        base : Literal["2", "e", "10"], default="2"
+        base : Real | Literal["2", "e", "10"], default="2"
             The base of the logarithm used to compute the entropy.
         tol : float, default=1e-8
             Tolerance for testing for absolute continuity.
@@ -2084,6 +2084,7 @@ class Operators:
 
         Examples
         --------
+        >>> import numpy as np
         >>> from sigalg.core import (
         ...     Operators,
         ...     ProbabilityMeasure,
@@ -2156,45 +2157,20 @@ class Operators:
         Compute the conditional entropy.
 
         >>> H(X, G)
-        0.8919684538544
+        0.8919684538543998
 
         Check that the conditional entropy agrees with its mathematical definition as a double integral.
 
         >>> P_X_G = P.conditional(G) >> X
-        >>> H(X, G) == P_X_G.surprisal().integrate(measure=P_X_G).ascend(G).integrate(measure=P)
+        >>> np.allclose(H(X, G), P_X_G.surprisal().integrate(measure=P_X_G).ascend(G).integrate(measure=P))
         True
         """
-        from .._utils.function_helpers import compute_integral
-        from .._utils.measure_helpers import compute_entropy
-        from ..measures.measure import Measure
         from .random_vector import RandomVector
 
-        if given is None:
-            pushforward = cls.pushforward(vec=rv)
+        if isinstance(given, RandomVector):
+            given = given.generated_sig_alg
 
-        else:
-            if isinstance(given, RandomVector):
-                given = given.generated_sig_alg
-            pushforward = cls.pushforward(vec=rv, measure=rv.measure.conditional(given))
-
-        base_measure = Measure.counting(pushforward.domain)
-
-        data = compute_entropy(
-            self_data=pushforward.data,
-            base_measure_data=base_measure.data,
-            sig_alg_data=pushforward.sig_alg.data,
-            parameter_names=getattr(given, "variable_names", None),
-            base=base,
-        )
-
-        if given is None:
-            return data.astype(Real)
-
-        else:
-            return compute_integral(
-                function_atom_data=data,
-                measure_data=(rv.measure | given).data,
-            ).astype(Real)
+        return rv.generated_sig_alg.entropy(measure=rv.measure, given=given, base=base)
 
     # TODO: Notes section missing
     # TODO: tol unused parameter
