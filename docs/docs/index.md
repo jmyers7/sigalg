@@ -25,21 +25,13 @@ hide:
   <img src="assets/sigalg-dark-no-logo.svg" class="hero-logo hero-logo--dark" alt="SigAlg">
 </header>
 
-SigAlg is a Python library for measure-theoretic probability: build probability spaces from sample spaces, $\sigma$-algebras, and probability measures, define random variables and stochastic processes, and compute derived objects (e.g., conditional expectations, checks for martingales).
+SigAlg is a Python library for measure-theoretic probability theory, designed as a general-purpose tool for researchers, instructors and students that work in the intersection of rigorous mathematics and computation. The central design philosophy of SigAlg is a high fidelity between mathematics and code, resulting in an API that closely mirrors the equations, formulas and expressions that a researcher would write on a sheet of paper or whiteboard. Many of the abstractions in mathematical probability theory — from primitive objects like sample spaces and probability measures, to richer structures like martingales and Radon-Nikodym derivatives — appear in SigAlg as first-class objects. *SigAlg is probability theory made computable.*
 
-Unlike most probabilistic computing libraries that treat probabilities primarily as arrays of numbers, SigAlg exposes the richer structures of measure-theoretic probability as manipulable, inspectable objects. The goal is to reduce friction when translating from mathematics to working code.
+Named after a *$\sigma$-algebra*, a type of foundational object in modern probability theory, SigAlg naturally complements and builds on the existing Python scientific computing stack while filling its own niche. It sits in the research/prototyping layer of a workflow, where a user is first beginning to translate an abstract mathematical model to something computable in a machine. SigAlg does not blackbox or hide the underlying mathematics; it is all completely exposed, open to manipulation and fine-tuning, allowing a researcher to experiment with novel probabilistic architectures before translating to a production-grade system.
 
-**Key Features:**
+SigAlg was first conceived as a tool for experiments in quantitative finance, but its scope has since grown, and its core is now general enough for use in any field that intersects rigorous probability theory. Current development is focused along the following axes:
 
-- **Core probabilistic objects** — Sample spaces, $\sigma$-algebras, and probability measures modeled close to their definitions.
-- **Filtrations of $\sigma$-algebras** — Support for time-evolving information structures used in stochastic processes.
-- **Random variables and vectors** — Algebraic operations and transformations, including conditional expectation and variance.
-- **$L^2$ spaces of random variables** — Inner products, norms, orthogonal projections, Fourier expansions, measure-theoretic regression.
-- **Stochastic processes** — Adapted and predictable processes, stopping times and stopped processes, discrete Itô integrals, and a growing library of built-in processes.
-- **Exact and Monte Carlo** — Support for Monte Carlo simulation, discrete approximations to continuous-time objects, and exhaustive exact enumeration.
-- **Integration with scientific Python** — NumPy/Pandas interoperability; visualization via Matplotlib/Plotly; probability distributions via SciPy.
-
-All the above is implemented according to SigAlg's core design philosophy of a focus on mathematical fidelity and accuracy, not just black-box simulation and speed. SigAlg is meant to be a different kind of library—an interface between abstract mathematics and concrete code that complements the rest of the Python ecosystem.
+- Blah.
 
 [Get Started →](getting_started/index.md)
 
