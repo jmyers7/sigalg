@@ -2553,15 +2553,17 @@ class SigmaAlgebra:
         self,
         measure: ProbabilityMeasure,
         given: SigmaAlgebra | None = None,
-        base: Literal["2", "e", "10"] = "2",
+        base: Real | Literal["2", "e", "10"] = "2",
     ) -> Real:
-        """Compute the entropy of the current sigma-algebra with respect to a given probability measure.
+        """Compute the entropy of the current sigma-algebra with respect to a given probability measure, optionally conditioned on a given sigma-algebra.
 
         Parameters
         ----------
         measure : ProbabilityMeasure
             The probability measure.
-        base : Literal["2", "e", "10"], default="2"
+        given : SigmaAlgebra | None, default=None
+            Optional sigma-algebra for conditional entropy.
+        base : Real | Literal["2", "e", "10"], default="2"
             The base of the logarithm used to compute the entropy.
 
         Returns
@@ -2656,14 +2658,23 @@ class SigmaAlgebra:
                 "This sigma-algebra must be a sub-sigma-algebra of the provided measure."
             )
 
-        if base == "2":
+        if base in ("2", 2):
             log = np.log2
-        elif base == "e":
+        elif base in ("e", np.e):
             log = np.log
-        elif base == "10":
+        elif base in ("10", 10):
             log = np.log10
+        elif isinstance(base, Real):
+            if base <= 0 or base == 1:
+                raise ValueError("base must be positive and not equal to 1.")
+            log_b = np.log(base)
+
+            def log(x):
+                return np.log(x) / log_b
         else:
-            raise ValueError("base must be 2, e, or 10.")
+            raise ValueError(
+                f"Invalid base '{base}'. Expected a positive real number != 1 or '2', 'e', '10'."
+            )
 
         if given is None:
             measure = measure | self
@@ -2703,7 +2714,7 @@ class SigmaAlgebra:
         self,
         other: SigmaAlgebra,
         measure: ProbabilityMeasure,
-        base: Literal["2", "e", "10"] = "2",
+        base: Real | Literal["2", "e", "10"] = "2",
     ) -> Real:
         """Compute the mutual information between this and another sigma-algebra relative to a given probability measure.
 
@@ -2713,7 +2724,7 @@ class SigmaAlgebra:
             The other sigma-algebra.
         measure : ProbabilityMeasure
             The probability measure.
-        base : Literal["2", "e", "10"], default="2"
+        base : Real | Literal["2", "e", "10"], default="2"
             The base of the logarithm used to compute the mutual information.
 
         Returns
