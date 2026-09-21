@@ -158,7 +158,7 @@ class L2:
         >>> mu = Measure(
         ...     domain=F,
         ...     mapping={
-        ...         0: 0.0,
+        ...         0: 0,
         ...         1: 5,
         ...         2: 4,
         ...     },
@@ -677,14 +677,16 @@ class L2:
         if function not in self:
             raise ValueError("The function must be in the L2-space.")
 
-        function_times_indicators = self.sig_alg.atom_indicator_df.mul(
+        indicators = self.sig_alg.atom_indicator_df.reindex(
+            columns=self.basis_df.columns
+        )
+        function_times_indicators = indicators.mul(
             function.data, axis=0
         ).drop_duplicates()
         measure_data = self.measure.data.reindex(function_times_indicators.columns)
         coefficients_series = function_times_indicators.mul(
             measure_data**0.5, axis=1
         ).sum()
-        coefficients_series = coefficients_series[coefficients_series.abs() > 1e-10]
 
         return coefficients_series.to_dict()
 
