@@ -116,8 +116,16 @@ class Filtration:
         from ...validation.filtration_validator import FiltrationValidator
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
+        if isinstance(sig_algs, list) and all(
+            isinstance(sig_alg, SigmaAlgebra) for sig_alg in sig_algs
+        ):
+            domain = sig_algs[0].domain
+            domain_name = sig_algs[0].domain.name
+        else:
+            domain = None
+
         u = DomainIndexValidator(
-            domain=None,
+            domain=domain,
             domain_kind=domain_kind,
             domain_name=domain_name,
             index=index,
