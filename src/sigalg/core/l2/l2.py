@@ -1098,6 +1098,10 @@ class L2:
                 raise ValueError(
                     "All functions in the subspace must be in the L2-space."
                 )
+        if len([rv.name for rv in subspace]) != len({rv.name for rv in subspace}):
+            raise ValueError(
+                "The names of the variables in the subspace must be uniue."
+            )
 
         A = np.zeros((self.dim, len(subspace)))
         for j, subspace_function in enumerate(subspace):
