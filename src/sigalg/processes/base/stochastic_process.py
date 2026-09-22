@@ -1433,7 +1433,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ax : Axes
             The matplotlib Axes object with the plot.
         """
-        if self._data is None:
+        if self.data is None:
             raise ValueError("Data must be generated before plotting trajectories.")
 
         columns = self.time.data
