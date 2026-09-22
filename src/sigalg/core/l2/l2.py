@@ -776,7 +776,7 @@ class L2:
         """
         if first not in self or second not in self:
             raise ValueError("Both measurable functions must be in the L2-space.")
-        return (first * second).integrate()
+        return (first * second).integrate(measure=self.measure)
 
     def norm(self, function: MeasurableFunction) -> Real:
         """Compute the norm of a measurable function.
