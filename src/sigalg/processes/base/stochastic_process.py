@@ -879,7 +879,12 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         3       1  1  0
         4       1  1  0
         """
-        return self._n_trajectories
+        if hasattr(self, "_n_trajectories"):
+            return self._n_trajectories
+        elif self.data is not None:
+            return self.data.shape[0]
+        else:
+            return None
 
     @n_trajectories.setter
     def n_trajectories(self, value: int) -> None:
@@ -1482,7 +1487,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
         if title is None:
-            title = f"{type(self)._repr_name} '{self.name}'"
+            title = f"{type(self)._str_name} '{self.name}'"
         ax.set_title(title)
 
         return ax
