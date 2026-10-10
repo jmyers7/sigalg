@@ -562,8 +562,8 @@ class ProcessTransforms:
     @classmethod
     def ito_integral(
         cls,
-        integrand: StochasticProcess,
-        integrator: StochasticProcess,
+        integrand: StochasticProcess | None = None,
+        integrator: StochasticProcess | None = None,
         name: Hashable | None = None,
     ) -> StochasticProcess:
         """Compute the Itô integral of a stochastic process with respect to another stochastic process.
@@ -619,23 +619,51 @@ class ProcessTransforms:
         """
         from ..base.stochastic_process import StochasticProcess
 
+        if integrand is None:
+            integrand_data = pd.DataFrame(
+                [[1] * len(integrator.index.data)],
+                index=integrator.domain.data,
+                columns=integrator.index.data,
+            )
+            integrand_name = None
+            initial_time = integrator.index[0]
+        else:
+            integrand_data = integrand.data
+            integrand_name = integrand.name
+            sig_alg = integrand.sig_alg
+            measure = integrand.measure
+            index_name = integrand.time.name
+            initial_time = integrand.index[0]
+
+        if integrator is None:
+            integrator_data = -1 * integrand.index.data.diff(periods=-1)
+            integrator_name = "t"
+        else:
+            integrator_data = integrator.increments().data
+            integrator_name = integrator.name
+            sig_alg = integrator.sig_alg
+            measure = integrator.measure
+            index_name = integrator.time.name
+
         if name is None:
-            name = f"int {integrand.name} d{integrator.name}"
+            name = (
+                f"int {integrand_name} d{integrator_name}"
+                if integrator_name is None
+                else f"int d{integrator_name}"
+            )
 
         data = (
-            (integrand.data * integrator.increments().data)
-            .cumsum(axis=1)
-            .dropna(axis=1, how="all")
+            (integrand_data * integrator_data).cumsum(axis=1).dropna(axis=1, how="all")
         )
         data.columns = data.columns + 1
-        data.insert(0, 0, 0)
+        data.insert(0, initial_time, 0)
 
         return StochasticProcess._from_validated(
             data=data,
-            sig_alg=integrand.sig_alg,
-            measure=integrand.measure,
+            sig_alg=sig_alg,
+            measure=measure,
             index_kind="Time",
-            index_name=integrand.time.name,
+            index_name=index_name,
             name=name,
         )
 
@@ -1230,7 +1258,7 @@ class ProcessTransformMethods:
     # TODO: update docstrings
     def ito_integral(
         self,
-        integrator: StochasticProcess,
+        integrator: StochasticProcess | None = None,
         name: Hashable | None = None,
     ) -> StochasticProcess:
         """Compute the Itô integral of a stochastic process with respect to another stochastic process.
