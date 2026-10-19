@@ -21,3 +21,12 @@ tests/test_blog_posts.py
 .vscode/
 .DS_Store
 docs/site
+
+# Docs
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.gz
+*.toc
