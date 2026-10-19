@@ -3134,6 +3134,16 @@ class Function(OperatorsMethods):
         """Iterate over the components of the measurable vector."""
         return iter(self.components)
 
+    def __len__(self) -> int | None:
+        """Pass."""
+        if self.data is not None:
+            if isinstance(self.data, pd.Series):
+                return len(self.data)
+            else:
+                return self.data.shape[1]
+        else:
+            return None
+
     # --------------------- conversion methods --------------------- #
 
     def to_measure(
