@@ -1,7 +1,8 @@
 \documentclass[11pt]{book}
 \usepackage{mathtools}
 \usepackage{amsthm, amssymb, amsmath}
-
+\usepackage{graphicx}
+\usepackage{subcaption}
 \usepackage{amssymb}
 \usepackage{microtype}
 
@@ -687,16 +688,91 @@ for all $\omega\in \Omega$.
 
 \chapter{Stochastic processes}
 
-\section{Markov processes}
+\section{Basic definitions}
 
-We recall from basic probability theory that a stochastic process $X_t$, defined on a probability space $(\Omega, \mathcal{F}, P)$ and indexed $t=0,1,\ldots,T$, is \textit{Markov} provided that
-\begin{equation}\label{eq:markov}
-	P\left( X_{t+1} \in A \mid X_0, \ldots,X_t \right) = P \left( X_{t+1} \in A \mid X_t \right),
-\end{equation}
-for all $t$ with $0\leq t < T$ and all Borel subsets $A\subset \mathbb{R}$.
+\begin{defn}
+	Let $(\Omega, \mathcal{F}, P)$ be a finite probability space. A \textit{stochastic process} (or simply, a \textit{process}) is a collection $\{X_t\}_{t\in T}$ of random variables on the probability space where $T\subset \mathbb{R}$ is a finite index set.
+\end{defn}
 
-A few comments about this definition are in order. First, in accordance with the general definition of conditional probabilities, \eqref{eq:markov} is an equation of \textit{random variables}. The one on the left is $\sigma(X_0,X_1,\ldots,X_t)$-measurable in general, while the one on the right is $\sigma(X_t)$-measurable. Equality of these two random variables means that they are both $\sigma(X_t)$-measurable, which is the stronger of the two measurability requirements. Second, provided that the sample space $\Omega$ is finite, there is no need to consider general Borel subsets $A$ in \eqref{eq:markov}; indeed, in this case it is equivalent to require that
-\begin{equation}\label{eq:markov-2}
+The index set $T$ in the definition is often referred to as \textit{time}, and we often write $X$ in place of $\{X_t\}_{t\in T}$ to refer to the process.
+
+By holding a sample point $\omega\in \Omega$ fixed and letting $t$ vary over the index set $T$, we obtain a real-valued function
+\[
+	X(\omega):T \to \mathbb{R}, \quad t\mapsto X_t(\omega),
+\]
+which is called a \textit{trajectory} or \textit{path} of the stochastic process. Thus, a stochastic process may be thought of as a collection of trajectories, indexed by the sample space $\Omega$.
+
+For each subset $\{t_1,t_2,\ldots,t_k\}$ of the index set $T$, there is a probability measure $P_{t_1,\ldots,t_k}$ on $\mathbb{R}^k$ given by
+\[
+	P_{t_1,\ldots,t_k}(G) = P\left( (X_{t_1},\ldots,X_{t_k}) \in G \right),
+\]
+for all Borel subsets $G\subset \mathbb{R}^k$. This measure is nothing but the pushforward of $P$ along the $k$-dimensional random vector $(X_{t_1},\ldots,X_{t_k})$, and it is called a \textit{finite-dimensional distribution} of the stochastic process.
+
+Perhaps the simplest example of a stochastic process is one of the following type.
+
+\begin{defn}
+	Let $(\Omega, \mathcal{F}, P)$ be a finite probability space. An \textit{independent and identically distributed} (\textit{IID}) \textit{process} is a stochastic process $\{X_t\}_{t\in T}$ with the following pair of properties:
+	\begin{enumerate}
+		\item The random variables $\{X_t\}_{t\in T}$ are independent, in the sense that the $\sigma$-algebras in the collection $\{\sigma(X_t)\}_{t\in T}$ are independent.
+		\item The random variables all have the same distribution, in the sense that $P(X_t\in G) = P(X_s\in G)$, for all $s,t\in T$ and all subsets $G\subset \mathbb{R}$.
+	\end{enumerate}
+\end{defn}
+
+An example of an IID process $X$ is a sequence of Bernoulli random variables indexed by a finite set $T = \{1,2,\ldots,n\}$, which can be used to model a sequence of $n$ coin flips, where $X_t = 1$ represents a head and $X_t = 0$ a tail on the $t$-th flip. A trajectory of such a process may be visualized as in Figure~\ref{fig:bernoulli-trajectories}.
+
+
+\begin{figure}[ht]
+	\centering
+	\begin{subfigure}{\textwidth}
+		\centering
+		\includegraphics{images/bernoulli-trajectories.pdf}
+		\caption{A trajectory of an IID process $X$ consisting of $100$ Bernoulli random variables.}
+		\label{fig:bernoulli-trajectories}
+	\end{subfigure}
+
+	\begin{subfigure}{\textwidth}
+		\centering
+		\includegraphics{images/rw-trajectories.pdf}
+		\caption{A trajectory of a random walk $X$ with initial state $X_0=2$ and probability $p=0.7$ of an upward movement.}
+		\label{fig:rw-trajectories}
+	\end{subfigure}
+	\caption{Trajectories of an IID process and a random walk. Technically, the trajectories should be visualized as sequences of dots, but for easier visualization the dots are connected with lines.}
+\end{figure}
+
+\section{Families of stochastic processes}
+
+\subsection{Random walks}
+
+\begin{defn}
+	Let $n$ be a positive integer, $a$ a real number, and $p$ a real number in the interval $[0,1]$. A \textit{random walk} of length $n$, beginning at $a$, is a stochastic process $X$ indexed by $T = \{0,1,\ldots,n\}$ with the following properties:
+
+	\begin{enumerate}
+		\item The variable $X_0$ is deterministic, equal to $a$ for all $\omega\in \Omega$. It is called the \textit{initial state} of the random walk.
+		\item The (\textit{forward}) \textit{increments}
+		      \[
+			      \Delta X_t \stackrel{\text{def}}{=} X_{t+1} - X_{t}, \quad t = 0,1,\ldots,n-1,
+		      \]
+		      are IID random variables.
+		\item Each increment $\Delta X_t$ takes either the value $1$ or $-1$, the former with probability $p$ and the latter with probability $q=1-p$.
+	\end{enumerate}
+
+	If $p\neq 0.5$, the process $X$ is called a random walk \textit{with drift}; otherwise, it is called a \textit{symmetric} random walk.
+\end{defn}
+
+The ``drift'' terminology will be explained below when we plot trajectories of random walks.
+
+\subsection{Markov processes}
+
+\begin{defn}
+	Let $(\Omega, \mathcal{F}, P)$ be a finite probability space. A stochastic process $X$ with index set $T = \{0,1,\ldots,n\}$ is called a \textit{Markov process} provided that
+	\begin{equation}\label{eqn:markov}
+		P(X_{t+1} \in G \mid X_0,X_1,\ldots,X_t) = P(X_{t+1} \in G \mid X_t)
+	\end{equation}
+	for all $t$ with $0\leq t < n$ and all Borel subsets $G\subset \mathbb{R}$.
+\end{defn}
+
+A few comments regarding the definition are in order. First, in accordance with the general definition of conditional probabilities, \eqref{eqn:markov} is an equation of \textit{random variables}. The one on the left is $\sigma(X_0,X_1,\ldots,X_t)$-measurable in general, while the one on the right is $\sigma(X_t)$-measurable. Equality of these two random variables means that they are both $\sigma(X_t)$-measurable, which is the stronger of the two measurability requirements. Second, provided that the sample space $\Omega$ is finite, there is no need to consider general Borel subsets $G$ in \eqref{eqn:markov}; indeed, in this case it is equivalent to require that
+\begin{equation}\label{eqn:markov-2}
 	P\left( X_{t+1} = x_{t+1} \mid X_0, \ldots,X_t \right) = P \left( X_{t+1} = x_{t+1} \mid X_t \right),
 \end{equation}
 for all $x_{t+1}\in \mathbb{R}$. Of course, this latter is still an equation of random variables. To verify it, it is equivalent to check the equations
@@ -708,17 +784,17 @@ of real numbers, one for each vector $(x_0,\ldots,x_{t+1})\in \mathbb{R}^{t+2}$.
 The next theorem gives an equivalent characterization of Markov processes in terms of conditional expectations. We restrict to the case of a finite sample space so that the proof is easier, though the result is true in full generality.
 
 \begin{thm}
-	Let $X_t$ be a stochastic process defined on a finite probability space $(\Omega, \mathcal{F}, P)$, indexed $t=0,1,\ldots,T$. Then $X_t$ is Markov if and only if
-	\begin{equation}\label{eq:markov-cond}
+	Let $X$ be a stochastic process defined on a finite probability space $(\Omega, \mathcal{F}, P)$, with index set $T = \{0,1,\ldots,n\}$. Then $X$ is Markov if and only if
+	\begin{equation}\label{eqn:markov-cond}
 		E\left(g(X_{t+1}) \mid X_0, X_1,\ldots,X_t\right) = E \left( g(X_{t+1}) \mid X_t \right)
 	\end{equation}
-	for all $t$ with $0\leq t < T$ and all functions $g: \mathbb{R} \to \mathbb{R}$.
+	for all $t$ with $0\leq t < n$ and all functions $g: \mathbb{R} \to \mathbb{R}$.
 	\begin{proof}
 		For simplicity, write
 		\[
 			\mathcal{F}_t = \sigma\left(X_0,X_1,\ldots,X_t \right)
 		\]
-		for each $t$, and suppose first that the equations \eqref{eq:markov-cond} all hold. Given a Borel subset $A\subset \mathbb{R}$ and a $t$ with $0\leq t < T$, select $g=I_A$, the indicator function of $A$. Then we compute:
+		for each $t$, and suppose first that the equations \eqref{eqn:markov-cond} all hold. Given a Borel subset $A\subset \mathbb{R}$ and a $t$ with $0\leq t < T$, select $g=I_A$, the indicator function of $A$. Then we compute:
 		\begin{align*}
 			P\left(X_{t+1} \in A \mid \mathcal{F}_t\right) & = E\left( I_{\{X_{t+1} \in A\}} \mid \mathcal{F}_t \right) \\
 			                                               & = E \left( I_A(X_{t+1}) \mid \mathcal{F}_t \right)         \\
@@ -749,6 +825,58 @@ The next theorem gives an equivalent characterization of Markov processes in ter
 \end{thm}
 
 \section{Martingales}
+
+\chapter{Stochastic calculus}
+
+\section{The need for a new calculus}
+
+In this section we continue with the discussion begun in the introduction. Our purpose is to give an informal construction of the fundamental stochastic differential equation (SDE) that characterizes \textit{diffusion processes}, whose new ingredient is a mathematical model of Brownian motion. Interpreting the solutions of the SDE will require a new type of integral belonging to stochastic calculus. In the most general setting, a careful, rigorous construction of this integral requires a good amount of measure-theoretic machinery. We leave that to the relevant textbooks; our purpose here is only to offer intuitions in the general case.
+
+In later sections, we will specialize to the case of finite probability spaces, in which this new type of integral is a sum of random variables, Brownian motions are (approximated by) scaled random walks, and the fundamental SDE is a difference equation. All of these objects are handled by SigAlg with ease, which we will leverage to gain even more intuition.
+
+We begin by observing a moving object. For simplicity, suppose that this object is one of the idealized ``particles'' that we encounter in textbooks on classical mechanics; that is, a so-called ``point mass,'' or a featureless speck that carries mass but lacks extension. Suppose that the motion of our particle is $1$-dimensional, along some directed axis that we use to measure lengths, distances and directions. Then, over a time interval of length $\Delta t$, our particle will have undergone a net displacement of $\Delta x$ units. The ratio of these two changes, call it $\mu$, is the average velocity of the particle over that time interval. This gives the \textit{difference} equation
+\[
+	\Delta x = \mu \, \Delta t.
+\]
+
+We may imagine shortening the length $\Delta t$ of the time interval while keeping the initial instant of time fixed. This will, of course, also shrink the magnitude of the net displacement $\Delta x$, and the average velocity $\mu$ will (in general) change as well. Under the idealized conditions in which it is appropriate to apply classical calculus, taken ``to the limit,'' the elapsed time $\Delta t$ transforms into its infinitesimal cousin $dt$, $\Delta x$ becomes $dx$, and the equation above is preserved, yielding the \textit{differential} equation
+\begin{equation} \label{eqn:classic-diff-eq}
+	dx = \mu(t) \, dt,
+\end{equation}
+where $\mu(t)$ is now the instantaneous velocity of the particle at the initial instant of time $t$.
+
+To obtain the position of the particle $x(t)$ at time $t$, given its position $a = x(t_0)$ at some earlier time $t_0$ and all velocities $\mu(s)$ for $t_0 \leq s \leq t$, we integrate the differential equation:
+\[
+	x(t) = a + \int_{t_0}^t \mu(s) \, ds.
+\]
+
+This completes the description of the motion of a \textit{classical particle} via classical calculus. In what follows, it will be useful to refer to this particle as a \textit{deterministic} one, in the sense that its position is entirely determined at all future times $t\geq t_0$ from the velocity function $v(t)$ and its initial position. This deterministic particle contrasts with a \textit{stochastic particle}, whose infinitesimal dynamics are modeled on the classical differential equation above, but with the addition of a new term:
+\begin{equation} \label{eqn:stochastic-diff-eq}
+	dx = \mu(t) \, dt + \sigma(t) \, dw.
+\end{equation}
+The first term on the right is called the \textit{drift term}; it is carried along from the classical setting, and its role in the dynamics of the stochastic particle is no mystery. In the second term, the value $w$ is the position of a \textit{Brownian particle}: One with no drift, whose motion is entirely random, and whose mean squared displacement over any time interval equals the length of that interval. This latter particle is the idealized, mathematical avatar of one of Brown's grains of pollen. The coefficient $\sigma(t)$ is a nonnegative function of time that scales the randomness contributed by the Brownian particle. This new differential equation is an example of a \textit{stochastic differential equation} (\textit{SDE}).
+
+And here we link up with the discussion in the introduction: If in the classical differential equation \eqref{eqn:classic-diff-eq} we are quantifying the movement of a particle by comparing its change in position $dx$ against $dt$, which is the regular and predictable (infinitesimal) time between two ticks of a clock, then in the new differential equation \eqref{eqn:stochastic-diff-eq} we are also comparing $dx$ against $dw$, which is the entirely random change in position of a Brownian particle.
+
+Drawing inspiration from the classical case, we might then imagine that the position of the stochastic particle is obtained by integration:
+\begin{equation} \label{eqn:sde-solution}
+	x(t) = a + \int_{t_0}^t \mu(s) \, ds + \int_{t_0}^t \sigma(s) \, dw.
+\end{equation}
+The first integral on the right may be interpreted as a classical Riemann integral --- there is no issue there. The second integral on the right might be interpreted as a Riemann-Stieltjes integral, which, provided that $w$ is continuously differentiable, gives us
+\begin{equation} \label{eqn:wrong-ito-integral}
+	\int_{t_0}^t \sigma(s) \, dw = \int_{t_0}^t \sigma(s) w'(s) \, ds,
+\end{equation}
+where the integral on the right is a Riemann integral.
+
+But there's a problem. We mentioned that the mean squared displacement of the Brownian particle over a time interval is the length of that interval. Pretending for a moment that the Brownian motion is deterministic and not random, so that we may dispense with mean values, this would imply that
+\begin{equation} \label{eqn:mystery}
+	(\Delta w)^2 = \Delta t.
+\end{equation}
+But the derivative of $w$ that appears in \eqref{eqn:wrong-ito-integral} is the limit of the ratio $\Delta w / \Delta t$ as $\Delta t \to 0$. So, to the degree that these heuristic reasonings may be trusted, we conclude that the derivative \textit{does not exist} precisely because the Brownian particle has infinite instantaneous velocity. This further implies that the differential $dw$ appearing in \eqref{eqn:stochastic-diff-eq} is a fantasy, at least in the classical sense. So, we seem to be in a jam.
+
+In textbooks that focus more on the applications of stochastic calculus than its theoretical foundations, the SDE \eqref{eqn:stochastic-diff-eq} is left simply as informal notational shorthand that stands for \eqref{eqn:sde-solution}, and the texts instead focus their energy on making sense of the mysterious $dw$-integral. It turns out that the standard interpretation of this integral is as an \textit{Itô integral}. In the finite setting, we will see how the mysterious relation \eqref{eqn:mystery}, which seems to be one of the reasons that stochastic calculus is so different from the classical kind, is unavoidably forced on us by simple physical constraints, and we will see the discrete version of the fundamental SDE \eqref{eqn:stochastic-diff-eq} emerge naturally.
+
+
 
 \bibliographystyle{amsplain}
 \bibliography{references.bib}
