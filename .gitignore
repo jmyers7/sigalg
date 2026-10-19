@@ -22,7 +22,7 @@ tests/test_blog_posts.py
 .DS_Store
 docs/site
 
-# Docs
+# LaTeX
 *.aux
 *.bbl
 *.blg
@@ -30,3 +30,5 @@ docs/site
 *.out
 *.gz
 *.toc
+*.fdb_latexmk
+*.fls
