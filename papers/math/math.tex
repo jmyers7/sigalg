@@ -6,7 +6,7 @@
 \usepackage{amssymb}
 \usepackage{microtype}
 
-\newtheorem{thm}{Theorem}[section]
+\newtheorem{thm}{The[orem}[section]
 \newtheorem{prop}[thm]{Proposition}
 \newtheorem{cor}[thm]{Corollary}
 \theoremstyle{definition}
@@ -686,7 +686,7 @@ for all $\omega\in \Omega$.
 	\]
 \end{defn}
 
-\chapter{Stochastic processes}
+\chapter{Stochastic processes and calculus}
 
 \section{Basic definitions}
 
@@ -718,25 +718,14 @@ Perhaps the simplest example of a stochastic process is one of the following typ
 	\end{enumerate}
 \end{defn}
 
-An example of an IID process $X$ is a sequence of Bernoulli random variables indexed by a finite set $T = \{1,2,\ldots,n\}$, which can be used to model a sequence of $n$ coin flips, where $X_t = 1$ represents a head and $X_t = 0$ a tail on the $t$-th flip. A trajectory of such a process may be visualized as in Figure~\ref{fig:bernoulli-trajectories}.
+An example of an IID process $X$ is a sequence of Bernoulli random variables indexed by a finite set $T = \{1,2,\ldots,n\}$, which may be used to model a sequence of $n$ coin flips, where $X_t = 1$ represents a head and $X_t = 0$ a tail on the $t$-th flip. A trajectory of such a process may be visualized as in Figure~\ref{fig:bernoulli-trajectories}.
 
 
-\begin{figure}[ht]
+\begin{figure}[t]
 	\centering
-	\begin{subfigure}{\textwidth}
-		\centering
-		\includegraphics{images/bernoulli-trajectories.pdf}
-		\caption{A trajectory of an IID process $X$ consisting of $100$ Bernoulli random variables.}
-		\label{fig:bernoulli-trajectories}
-	\end{subfigure}
-
-	\begin{subfigure}{\textwidth}
-		\centering
-		\includegraphics{images/rw-trajectories.pdf}
-		\caption{A trajectory of a random walk $X$ with initial state $X_0=2$ and probability $p=0.7$ of an upward movement.}
-		\label{fig:rw-trajectories}
-	\end{subfigure}
-	\caption{Trajectories of an IID process and a random walk. Technically, the trajectories should be visualized as sequences of dots, but for easier visualization the dots are connected with lines.}
+	\includegraphics{images/bernoulli-trajectories.pdf}
+	\caption{A trajectory of an IID process $X$ consisting of $100$ Bernoulli random variables. (Technically, the trajectories should be visualized as sequences of dots, but for easier visualization the dots are connected with lines creating a continuous trajectory.)}
+	\label{fig:bernoulli-trajectories}
 \end{figure}
 
 \section{Families of stochastic processes}
@@ -759,7 +748,24 @@ An example of an IID process $X$ is a sequence of Bernoulli random variables ind
 	If $p\neq 0.5$, the process $X$ is called a random walk \textit{with drift}; otherwise, it is called a \textit{symmetric} random walk.
 \end{defn}
 
-The ``drift'' terminology will be explained below when we plot trajectories of random walks.
+An example of a single trajectory of a random walk is shown in Figure~\ref{fig:rw-single-trajectories}, with probability $p=0.7$ of an upward movement. In Figure~\ref{fig:rw-trajectories}, ten simulated trajectories are shown, displaying an evident drift upward. Had $p<0.5$, there would be a visible drift downward.
+
+\begin{figure}[t]
+	\begin{subfigure}{\textwidth}
+		\centering
+		\includegraphics{images/rw-single-trajectories.pdf}
+		\caption{A single trajectory of a random walk.}
+		\label{fig:rw-single-trajectories}
+	\end{subfigure}
+
+	\begin{subfigure}{\textwidth}
+		\centering
+		\includegraphics{images/rw-trajectories.pdf}
+		\caption{Ten trajectories of a random walk. Notice the upward drift.}
+		\label{fig:rw-trajectories}
+	\end{subfigure}
+	\caption{Trajectories of a random walk $X$ with initial state $X_0=2$ and probability $p=0.7$ of an upward movement.}
+\end{figure}
 
 \subsection{Markov processes}
 
@@ -826,9 +832,9 @@ The next theorem gives an equivalent characterization of Markov processes in ter
 
 \section{Martingales}
 
-\chapter{Stochastic calculus}
+\section{Stochastic calculus}
 
-\section{The need for a new calculus}
+\subsection{The need for a new calculus}
 
 In this section we continue with the discussion begun in the introduction. Our purpose is to give an informal construction of the fundamental stochastic differential equation (SDE) that characterizes \textit{diffusion processes}, whose new ingredient is a mathematical model of Brownian motion. Interpreting the solutions of the SDE will require a new type of integral belonging to stochastic calculus. In the most general setting, a careful, rigorous construction of this integral requires a good amount of measure-theoretic machinery. We leave that to the relevant textbooks; our purpose here is only to offer intuitions in the general case.
 
@@ -876,8 +882,26 @@ But the derivative of $w$ that appears in \eqref{eqn:wrong-ito-integral} is the 
 
 In textbooks that focus more on the applications of stochastic calculus than its theoretical foundations, the SDE \eqref{eqn:stochastic-diff-eq} is left simply as informal notational shorthand that stands for \eqref{eqn:sde-solution}, and the texts instead focus their energy on making sense of the mysterious $dw$-integral. It turns out that the standard interpretation of this integral is as an \textit{Itô integral}. In the finite setting, we will see how the mysterious relation \eqref{eqn:mystery}, which seems to be one of the reasons that stochastic calculus is so different from the classical kind, is unavoidably forced on us by simple physical constraints, and we will see the discrete version of the fundamental SDE \eqref{eqn:stochastic-diff-eq} emerge naturally.
 
+\subsection{Random walks with drift}
+
+\begin{defn}
+Let $Y_t$ be a symmetric random walk, indexed by $T = \{0,1,\ldots,n\}$, and let $\mu$ and $\sigma$ be real numbers with $\sigma>0$.
+\begin{enumerate}
+\item A \textit{random walk with drift} is a $T$-indexed process $X_t$ such that
+\[
+	\Delta X_t = \mu + \sigma \Delta Y_t.
+\]
+\item A \textit{geometric random walk with drift} is a $T$-indexed process $S_t$ such that
+\[
+	\Delta S_t = \mu S_t + \sigma S_t \Delta Y_t.
+\]
+\end{enumerate}
+\end{defn}
 
 
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{\bibname}
 \bibliographystyle{amsplain}
 \bibliography{references.bib}
 

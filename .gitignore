@@ -32,3 +32,5 @@ docs/site
 *.toc
 *.fdb_latexmk
 *.fls
+papers/**/*.ipynb
+papers/*.mplstyle
