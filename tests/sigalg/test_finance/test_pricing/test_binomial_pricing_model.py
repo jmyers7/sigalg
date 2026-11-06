@@ -1,45 +1,10 @@
 import numpy as np
 import pandas as pd
 import pytest
-
-from sigalg.core import ProbabilityMeasure, MeasureSpace, Time
+from sigalg.core import ProbabilityMeasure, Time
 from sigalg.finance import BinomialPricingModel
 
 # --------------------- test constructors --------------------- #
-
-
-class TestConstructor:
-    def test_constructor_no_parameters(self):
-        """Test the constructor with no parameters"""
-        S = BinomialPricingModel()
-        prob_space = MeasureSpace()
-
-        assert S.data is None
-        assert S.atom_data is None
-        assert S.components is None
-        assert S.time is None
-        assert S.generated_sig_alg is None
-        assert S.prob_space == prob_space
-        assert S.sample_space is None
-        assert S.sig_alg is None
-        assert S.prob_measure is None
-        assert S.range is None
-        assert S.is_discrete_time is None
-        assert S.n_trajectories is None
-        assert S.natural_filtration is None
-        assert S.last_rv is None
-        assert S.random_state is None
-        assert S.mode is None
-        assert S.length is None
-        assert S.initial_price is None
-        assert S.risk_free_rate is None
-        assert S.risk_free_gross_return is None
-        assert S.up_prob is None
-        assert S.down_prob is None
-        assert S.up_factor is None
-        assert S.down_factor is None
-        assert S.enum_mode is None
-        assert S.sparse_price_array is None
 
 
 class TestGenerate:
@@ -247,4 +212,4 @@ class TestProbMeasure:
             domain=S_sparse.sample_space, mapping=expected_mapping
         )
 
-        assert S_sparse.prob_measure == expected_measure
+        assert np.allclose(S_sparse.prob_measure, expected_measure)

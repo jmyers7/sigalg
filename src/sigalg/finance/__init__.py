@@ -6,7 +6,6 @@ from .pricing import (
     BinomialPricingModel,
     Claim,
     EuropeanOption,
-    GeometricPricingModel,
     TrinomialPricingModel,
 )
 
@@ -16,6 +15,5 @@ __all__ = [
     "TrinomialPricingModel",
     "EuropeanOption",
     "Claim",
-    "GeometricPricingModel",
     "AsianOption",
 ]

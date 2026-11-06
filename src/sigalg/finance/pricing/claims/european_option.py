@@ -1,65 +1,87 @@
-"""Later."""
+"""A class modeling a European option."""
 
 from __future__ import annotations
 
-from collections.abc import Hashable
-from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
-from ....processes.base.stochastic_process import StochasticProcess
+from .claim import Claim
 
 if TYPE_CHECKING:
-    from ..geometric_pricing_models.binomial_pricing_model import BinomialPricingModel
-    from ..geometric_pricing_models.geometric_pricing_model import GeometricPricingModel
+    from collections.abc import Hashable
+    from numbers import Real
+
+    from ....processes.stopping_times.stopping_time import StoppingTime
+    from ..discrete_pricing_models.discrete_pricing_model import DiscretePricingModel
 
 
-class EuropeanOption(StochasticProcess):
-    """Pass."""
+class EuropeanOption(Claim):
+    """A class modeling a European option."""
 
     @classmethod
     def from_model(
         cls,
-        model: GeometricPricingModel,
+        model: DiscretePricingModel,
         strike: Real,
         option_type: Literal["call", "put"],
         name: Hashable = "Phi",
     ):
         """Pass."""
-        S_T = model.last_rv
-        factors = [0] * (len(model.time) - 1)
+        data = model.data.copy()
+        data.iloc[:, :-1] = 0
 
         if option_type == "call":
-            factors += [(S_T >= strike) * (S_T - strike)]
+            data.iloc[:, -1] = (data.iloc[:, -1] - strike).clip(lower=0)
+
         elif option_type == "put":
-            factors += [(S_T <= strike) * (strike - S_T)]
+            data.iloc[:, -1] = (strike - data.iloc[:, -1]).clip(lower=0)
 
-        result = cls.concatenate(factors=factors, name=name)
-        result._model = model
-        result._strike = strike
-        result._option_type = option_type
+        claim = cls._from_validated(
+            data=data,
+            sig_alg=model.sig_alg,
+            measure=model.measure,
+            index_kind=model.index_kind,
+            index_name=model.index_name,
+            name=name,
+        )
 
-        return result
+        claim._model = model
+        claim._strike = strike
+        claim._option_type = option_type
+
+        return claim
 
     # --------------------- properties --------------------- #
 
     @property
-    def model(self) -> GeometricPricingModel | None:
-        """Pass."""
+    def model(self) -> DiscretePricingModel | None:
+        """Get the underlying model of the option."""
         return self._model
 
     @property
     def strike(self) -> Real | None:
-        """Pass."""
+        """Get the strike price of the option."""
         return self._strike
 
     @property
     def option_type(self) -> Literal["call", "put"] | None:
-        """Pass."""
+        """Get the option type."""
         return self._option_type
 
     # --------------------- binomial model methods --------------------- #
+
+    def replicating_portfolio(
+        self,
+    ) -> tuple[
+        DiscretePricingModel,
+        DiscretePricingModel,
+        DiscretePricingModel,
+        Real,
+        StoppingTime,
+    ]:
+        """Pass."""
+        return self.model._replicating_portfolio(claim=self)
 
     def _backward_induction_base_case(self) -> tuple[np.ndarray, np.ndarray]:
         S = self.model.last_rv.data.values

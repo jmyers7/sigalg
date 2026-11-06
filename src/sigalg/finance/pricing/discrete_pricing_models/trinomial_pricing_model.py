@@ -2,26 +2,26 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
 
-from .geometric_pricing_model import GeometricPricingModel
+from ....processes.base.stochastic_process import StochasticProcess
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from ....core.indices.index import Index
     from ....core.measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
     )
     from ....core.measures.probability_measure import ProbabilityMeasure
-    from ....processes.base.stochastic_process import StochasticProcess
     from ..claims.claim import Claim
 
 
-class TrinomialPricingModel(GeometricPricingModel):
+class TrinomialPricingModel(StochasticProcess):
     r"""A class modeling a trinomial pricing model.
 
     The base constructor is not meant to be called directly by users. Instead, the user should call the `generate` class method. See the Examples section below for usage.

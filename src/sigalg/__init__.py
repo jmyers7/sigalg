@@ -31,7 +31,6 @@ from .finance import (
     BinomialPricingModel,
     Claim,
     EuropeanOption,
-    GeometricPricingModel,
     TrinomialPricingModel,
 )
 from .processes import (
