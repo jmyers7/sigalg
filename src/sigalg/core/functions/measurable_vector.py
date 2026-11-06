@@ -1142,7 +1142,8 @@ class MeasurableVector(Function, OperatorsMethods):
 
         elif isinstance(self.measure, ProbabilityMeasure):
             if isinstance(self.index, Time):
-                self.__class__ = StochasticProcess
+                if not issubclass(self.__class__, StochasticProcess):
+                    self.__class__ = StochasticProcess
 
             else:
                 self.__class__ = RandomVector
