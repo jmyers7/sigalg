@@ -98,10 +98,11 @@ class BinomialPricingModel(DiscretePricingModel):
     def generate(
         cls,
         initial_price: Real,
-        risk_free_rate: Real,
         up_prob: Real,
         up_factor: Real,
         down_factor: Real | None = None,
+        risk_free_rate: Real | None = None,
+        risk_free_gross_return: Real | None = None,
         enum_mode: Literal["dense", "sparse"] = "dense",
         mode: Literal["enum", "sim"] = "sim",
         n_trajectories: int | None = None,
@@ -117,14 +118,16 @@ class BinomialPricingModel(DiscretePricingModel):
         ----------
         initial_price : Real
             The initial price of the asset.
-        risk_free_rate : Real
-            The per-period risk-free rate.
         up_prob : Real
             The probability of an upward move in the price.
         up_factor : Real
             The up-factor of the model.
         down_factor : Real | None, default=None
             The down-factor of the model. If `None`, then it will be set to the reciprocal of the up-factor.
+        risk_free_rate : Real | None, default=None
+            The per-period risk-free rate. If `None`, the risk-free gross return must be given.
+        risk_free_gross_return : Real | None, default=None
+            The per-period risk-free gross return. If `None`, the risk-free rate must be given.
         enum_mode : Literal["dense", "sparse"], default="dense"
             The mode of enumeration. If the generation mode is set to `sim`, this parameter is ignore.
         mode : Literal["enum", "sim"]
@@ -180,8 +183,20 @@ class BinomialPricingModel(DiscretePricingModel):
         """
         if not isinstance(initial_price, Real) or initial_price <= 0:
             raise TypeError("initial_price must be a positive real number.")
-        if not isinstance(risk_free_rate, Real) or risk_free_rate <= 0:
+        if risk_free_rate is not None and (
+            not isinstance(risk_free_rate, Real) or risk_free_rate <= 0
+        ):
             raise TypeError("risk_free_rate must be a positive real number.")
+        if risk_free_gross_return is not None and (
+            not isinstance(risk_free_gross_return, Real) or risk_free_gross_return <= 1
+        ):
+            raise TypeError(
+                "The risk-free gross return must be a real number greater than 1."
+            )
+        if risk_free_rate is None and risk_free_gross_return is None:
+            raise TypeError(
+                "One of risk_free_rate or risk_free_gross_return must be given."
+            )
         if not isinstance(up_factor, Real) or up_factor <= 1:
             raise TypeError("up_factor must be a real number greater than 1.")
         if not isinstance(up_prob, Real) or not (0 < up_prob < 1):
@@ -196,10 +211,15 @@ class BinomialPricingModel(DiscretePricingModel):
 
         if down_factor is None:
             down_factor = 1 / up_factor
+        if risk_free_gross_return is None:
+            risk_free_gross_return = 1 + risk_free_rate
+        if risk_free_rate is None:
+            risk_free_rate = risk_free_gross_return - 1
 
         return {
             "initial_price": initial_price,
             "risk_free_rate": risk_free_rate,
+            "risk_free_gross_return": risk_free_gross_return,
             "up_prob": up_prob,
             "up_factor": up_factor,
             "down_factor": down_factor,
@@ -618,7 +638,7 @@ class BinomialPricingModel(DiscretePricingModel):
         >>> S.risk_free_gross_return
         1.05
         """
-        return 1 + self.risk_free_rate
+        return self._risk_free_gross_return
 
     @risk_free_gross_return.setter
     def risk_free_gross_return(self, value: Real) -> None:
@@ -627,7 +647,7 @@ class BinomialPricingModel(DiscretePricingModel):
             raise ValueError(
                 "The risk-free gross return must be a real number greater than 1."
             )
-        self.risk_free_rate = value - 1
+        self._risk_free_gross_return = value
 
     @property
     def risk_neutral_probs(self) -> tuple[Real, Real]:
