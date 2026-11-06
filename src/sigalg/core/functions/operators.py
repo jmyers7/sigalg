@@ -105,6 +105,150 @@ class Operators:
             measure=getattr(func, "measure", None),
         )
 
+    @classmethod
+    def max(
+        cls,
+        func1: Function | Real,
+        func2: Function | Real,
+        name: Hashable | None = None,
+    ) -> Function:
+        """Compute the pointwise maximum of a pair of functions with multi-dimensional outputs.
+
+        Parameters
+        ----------
+        func1 : Function | Real
+            The first function (or scalar). One of `func1` or `func2` must be an instance of `Function`.
+        func1 : Function | Real
+            The second function (or scalar). One of `func1` or `func2` must be an instance of `Function`.
+        name : Hashable | None, default=None
+            The name of the resulting function. If `None`, a default name will be generated.
+
+        Returns
+        -------
+        maximum : Function
+            A function representing the pointwise maximum of the pair of functions.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> from sigalg.core import Domain, Function, Operators
+
+        Define two functions with 2-dimensional outputs.
+
+        >>> X = Domain.from_sequence(size=3)
+        >>> mapping_f = pd.DataFrame([(1, 2), (3, 4), (5, 6)])
+        >>> f = Function(domain=X, mapping=mapping_f)
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+        i  0  1
+        x
+        0  1  2
+        1  3  4
+        2  5  6
+        >>> mapping_g = pd.DataFrame([(2, 1), (0, 5), (1, 2)])
+        >>> g = Function(domain=X, mapping=mapping_g, name="g")
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+        i  0  1
+        x
+        0  2  1
+        1  0  5
+        2  1  2
+
+        Compute the maximum of the two functions.
+
+        >>> max = Operators.max(f, g)
+        >>> print(max)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'max(f, g)':
+        i  0  1
+        x
+        0  2  2
+        1  3  5
+        2  5  6
+
+        Compute the maximum of the function `f` with a scalar value.
+
+        >>> max = Operators.max(f, 4)
+        >>> print(max)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'max(f, 4)':
+        i  0  1
+        x
+        0  4  4
+        1  4  4
+        2  5  6
+        """
+        from .function import Function
+
+        if not isinstance(func1, Function) and not isinstance(func2, Function):
+            raise TypeError(
+                "One of either func1 or func2 must be an instance of Function."
+            )
+
+        if isinstance(func1, Real):
+            func1 = type(func2).from_constant(
+                domain=func2.domain,
+                constant=func1,
+                index=func2.index,
+                sig_alg=getattr(func2, "sig_alg", None),
+                measure=getattr(func2, "measure", None),
+                name=func1,
+            )
+            function_class = type(func2)
+
+        elif isinstance(func2, Real):
+            func2 = type(func1).from_constant(
+                domain=func1.domain,
+                constant=func2,
+                index=func1.index,
+                sig_alg=getattr(func1, "sig_alg", None),
+                measure=getattr(func1, "measure", None),
+                name=func2,
+            )
+            function_class = type(func1)
+
+        else:
+            function_class = (
+                func1.__class__
+                if issubclass(func1.__class__, func2.__class__)
+                else func2.__class_
+            )
+
+        if func1.domain != func2.domain or func1.index != func2.index:
+            raise ValueError("The two functions must have the same domain and index.")
+
+        if (
+            hasattr(func1, "sig_alg")
+            and hasattr(func2, "sig_alg")
+            and func1.sig_alg != func2.sig_alg
+        ):
+            raise ValueError(
+                "If both functions have sigma-algebras, they must be equal."
+            )
+
+        if (
+            hasattr(func1, "measure")
+            and hasattr(func2, "measure")
+            and func1.measure != func2.measure
+        ):
+            raise ValueError("If both functions have measures, they must be equal.")
+
+        data = func1.data.where(func1.data >= func2.data, func2.data)
+
+        if name is None:
+            name = f"max({func1.name}, {func2.name})"
+
+        return function_class._from_validated(
+            data=data,
+            kind="any",
+            domain_kind=func1.domain_kind,
+            domain_name=func1.domain_name,
+            index_kind=func1.index_kind,
+            index_name=func1.index_name,
+            name=name,
+            sig_alg=getattr(func1, "sig_alg", None),
+            measure=getattr(func1, "measure", None),
+        )
+
     # TODO: add Notes section
     @classmethod
     def transform(
@@ -2505,6 +2649,76 @@ class OperatorsMethods:
         7      3
         """
         return Operators.sum(func=self, name=name)
+
+    def max(
+        self,
+        func: Function | Real,
+        name: Hashable | None = None,
+    ) -> Function:
+        """Compute the pointwise maximum of the function with another function or scalar.
+
+        Internally calls `Operators.max`.
+
+        Parameters
+        ----------
+        func : Function | Real
+            The second function or scalar.
+        name : Hashable | None, default=None
+            The name of the resulting function. If `None`, a default name will be generated.
+
+        Returns
+        -------
+        maximum : Function
+            A function representing the pointwise maximum of the pair of functions.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> from sigalg.core import Domain, Function
+
+        Define two functions with 2-dimensional outputs.
+
+        >>> X = Domain.from_sequence(size=3)
+        >>> mapping_f = pd.DataFrame([(1, 2), (3, 4), (5, 6)])
+        >>> f = Function(domain=X, mapping=mapping_f)
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+        i  0  1
+        x
+        0  1  2
+        1  3  4
+        2  5  6
+        >>> mapping_g = pd.DataFrame([(2, 1), (0, 5), (1, 2)])
+        >>> g = Function(domain=X, mapping=mapping_g, name="g")
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+        i  0  1
+        x
+        0  2  1
+        1  0  5
+        2  1  2
+
+        Compute the maximum of the two functions.
+
+        >>> print(f.max(g))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'max(f, g)':
+        i  0  1
+        x
+        0  2  2
+        1  3  5
+        2  5  6
+
+        Compute the maximum of the function `f` with a scalar value.
+
+        >>> print(f.max(4))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'max(f, 4)':
+        i  0  1
+        x
+        0  4  4
+        1  4  4
+        2  5  6
+        """
+        return Operators.max(func1=self, func2=func, name=name)
 
     def transform(
         self,
