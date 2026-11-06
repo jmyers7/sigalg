@@ -29,55 +29,6 @@ if TYPE_CHECKING:
     from ...typing.mapping_like import MappingLike
 
 
-def generator(func):
-    """Decorator that handles common setup and execution for generate methods."""  # noqa: D401
-
-    @wraps(func)
-    def wrapper(
-        cls,
-        *args,
-        mode: Literal["enum", "sim"] = "sim",
-        n_trajectories: int | None = None,
-        domain_name: Hashable | None = None,
-        index: IndexLike | None = None,
-        length: int | None = None,
-        name: Hashable = "X",
-        random_state: int | np.random.Generator | None = None,
-        **kwargs,
-    ):
-        subclass_kwargs = func(cls, *args, mode=mode, **kwargs)
-
-        index, random_state = cls._validate_and_return_generation_params(
-            index=index,
-            length=length,
-            n_trajectories=n_trajectories,
-            mode=mode,
-            random_state=random_state,
-        )
-
-        process = cls.__new__(cls)
-        process.domain_kind = "SampleSpace"
-        process.domain_name = domain_name if domain_name is not None else "Omega"
-        process.index_kind = "Time"
-        process.index_name = "I"
-        process.name = name
-
-        process._mode = mode
-        process._index = index
-        process._n_trajectories = n_trajectories
-        process._random_state = random_state
-
-        for key, value in subclass_kwargs.items():
-            setattr(process, "_" + key, value)
-
-        if mode == "enum":
-            return process._enumeration_logic()
-        else:
-            return process._simulation_logic()
-
-    return classmethod(wrapper)
-
-
 class StochasticProcess(RandomVector, ProcessTransformMethods):
     r"""Base class for stochastic processes.
 
@@ -260,6 +211,57 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             index_name=index_name,
             name=name,
         )
+
+    @staticmethod
+    def generator(func):
+        """Decorator that handles common setup and execution for generate methods."""  # noqa: D401
+
+        @wraps(func)
+        def wrapper(
+            cls,
+            *args,
+            mode: Literal["enum", "sim"] = "sim",
+            n_trajectories: int | None = None,
+            domain_name: Hashable | None = None,
+            index: IndexLike | None = None,
+            length: int | None = None,
+            name: Hashable | None = None,
+            random_state: int | np.random.Generator | None = None,
+            **kwargs,
+        ):
+            subclass_kwargs = func(cls, *args, mode=mode, **kwargs)
+            if name is None:
+                name = inspect.signature(func).parameters["name"].default
+
+            index, random_state = cls._validate_and_return_generation_params(
+                index=index,
+                length=length,
+                n_trajectories=n_trajectories,
+                mode=mode,
+                random_state=random_state,
+            )
+
+            process = cls.__new__(cls)
+            process.domain_kind = "SampleSpace"
+            process.domain_name = domain_name if domain_name is not None else "Omega"
+            process.index_kind = "Time"
+            process.index_name = "I"
+            process.name = name
+
+            process._mode = mode
+            process._index = index
+            process._n_trajectories = n_trajectories
+            process._random_state = random_state
+
+            for key, value in subclass_kwargs.items():
+                setattr(process, "_" + key, value)
+
+            if mode == "enum":
+                return process._enumeration_logic()
+            else:
+                return process._simulation_logic()
+
+        return classmethod(wrapper)
 
     @generator
     def generate(
@@ -504,6 +506,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 raise TypeError("If given, n_trajectories must be an integer.")
             if n_trajectories <= 0:
                 raise ValueError("If given, n_trajectories must be positive.")
+        if n_trajectories is None and mode == "sim":
+            raise TypeError(
+                "If the generation mode is 'sim', n_trajectories must not be None."
+            )
 
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)

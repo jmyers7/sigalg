@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 import pandas as pd
 
-from ..base.stochastic_process import StochasticProcess, generator
+from ..base.stochastic_process import StochasticProcess
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
@@ -84,7 +84,7 @@ class IIDProcess(StochasticProcess):
 
     # --------------------- constructors --------------------- #
 
-    @generator
+    @StochasticProcess.generator
     def generate(
         cls,
         distribution: rv_frozen | multinomial_frozen,

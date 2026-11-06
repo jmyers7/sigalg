@@ -5,7 +5,7 @@ from __future__ import annotations
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
-from ..base.stochastic_process import StochasticProcess, generator
+from ..base.stochastic_process import StochasticProcess
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
@@ -112,7 +112,7 @@ class PoissonProcess(StochasticProcess):
 
     # --------------------- constructors --------------------- #
 
-    @generator
+    @StochasticProcess.generator
     def generate(
         cls,
         rate: Real,
