@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
     from ....core.measures.probability_measure import ProbabilityMeasure
     from ....core.spaces.domain import Domain
+    from ....processes.base.stochastic_process import StochasticProcess
     from ....processes.stopping_times.stopping_time import StoppingTime
     from ....typing.index_like import IndexLike
     from ..claims.claim import Claim
@@ -816,13 +817,65 @@ class BinomialPricingModel(DiscretePricingModel):
 
     # --------------------- finance methods --------------------- #
 
-    def _replicating_portfolio(
+    def price(self, claim: Claim) -> Real:
+        """Pass."""
+        if claim.model is not self and not claim.is_adapted(self.natural_filtration):
+            raise ValueError(
+                "The claim must be adapated to the natural filtration of the binomial model."
+            )
+
+        if not claim.is_early_exercise:
+            T = self.time[-1]
+            R = self.risk_free_gross_return
+            Phi_T = claim.last_rv
+            Q = self.emm
+
+            return Phi_T.expectation(measure=Q).item() / R**T
+
+        else:
+            raise NotImplementedError(
+                "Have not yet implemented pricing with an early-exercise claim and a binomial model."
+            )
+
+    def price_process(self, claim: Claim) -> StochasticProcess:
+        """Pass."""
+        if claim.model is not self and not claim.is_adapted(self.natural_filtration):
+            raise ValueError(
+                "The claim must be adapated to the natural filtration of the binomial model."
+            )
+
+        if not claim.is_early_exercise:
+            _, _, V, _ = self.replicating_portfolio(claim=claim)
+
+            return V.with_name("X")
+
+        else:
+            raise NotImplementedError()
+
+    def delta(self, claim: Claim) -> StochasticProcess:
+        """Pass."""
+        if claim.model is not self and not claim.is_adapted(self.natural_filtration):
+            raise ValueError(
+                "The claim must be adapated to the natural filtration of the binomial model."
+            )
+
+        if not claim.is_early_exercise:
+            _, Delta, _, _ = self.replicating_portfolio(claim=claim)
+
+            return Delta
+
+        else:
+            raise NotImplementedError(
+                "Have not yet implemented delta processes with an early-exercise claim and a binomial model."
+            )
+
+    def replicating_portfolio(
         self, claim: Claim
     ) -> tuple[
-        DiscretePricingModel,
-        DiscretePricingModel,
-        DiscretePricingModel,
-        Real,
+        StochasticProcess,
+        StochasticProcess,
+        StochasticProcess,
+        StochasticProcess,
         StoppingTime,
     ]:
         """Compute the replicating portfolio for a given contingent claim.
@@ -834,98 +887,243 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Examples
         --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.finance import AsianOption, BinomialPricingModel, EuropeanOption
-        >>> S_0 = 100
-        >>> u = 1.1
-        >>> p = 0.7
-        >>> r = 0.01
-        >>> T = Time.discrete(length=3)
+        >>> from sigalg.finance import BinomialPricingModel, Claim
+
+        Define a binomial pricing model.
+
         >>> S = BinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     up_factor=1.1,
+        ...     down_factor=0.9,
+        ...     up_prob=0.7,
+        ...     risk_free_rate=0.05,
         ...     mode="enum",
-        ...     initial_price=S_0,
-        ...     up_factor=u,
-        ...     up_prob=p,
-        ...     risk_free_rate=r,
-        ...     index=T,
+        ...     length=3,
         ... )
         >>> print(S) # doctest: +NORMALIZE_WHITESPACE
         Binomial price process 'S':
-        t           0           1           2           3
+        t          0      1      2      3
         omega
-        0       100.0  110.000000  121.000000  133.100000
-        1       100.0  110.000000  121.000000  110.000000
-        2       100.0  110.000000  100.000000  110.000000
-        3       100.0  110.000000  100.000000   90.909091
-        4       100.0   90.909091  100.000000  110.000000
-        5       100.0   90.909091  100.000000   90.909091
-        6       100.0   90.909091   82.644628   90.909091
-        7       100.0   90.909091   82.644628   75.131480
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  108.9
+        2      100.0  110.0   99.0  108.9
+        3      100.0  110.0   99.0   89.1
+        4      100.0   90.0   99.0  108.9
+        5      100.0   90.0   99.0   89.1
+        6      100.0   90.0   81.0   89.1
+        7      100.0   90.0   81.0   72.9
+
+        Define a European call option with strike `K=100`.
+
         >>> K = 100
-        >>> euro_call = EuropeanOption.from_model(model=S, strike=K, option_type="call")
-        >>> B, Delta, V, price, tau = euro_call.replicating_portfolio()
-        >>> print(B)  # doctest: +NORMALIZE_WHITESPACE
-        Discrete pricing model 'B':
-        t               0          1          2
+        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
+        European option 'euro_call':
+        t        0    1    2     3
         omega
-        0      -50.150931 -73.822294 -99.009901
-        1      -50.150931 -73.822294 -99.009901
-        2      -50.150931 -73.822294 -47.147572
-        3      -50.150931 -73.822294 -47.147572
-        4      -50.150931 -24.674118 -47.147572
-        5      -50.150931 -24.674118 -47.147572
-        6      -50.150931 -24.674118   0.000000
-        7      -50.150931 -24.674118   0.000000
-        >>> print(Delta) # doctest: +NORMALIZE_WHITESPACE
-        Discrete pricing model 'Delta':
-        t              0         1        2
-        omega
-        0       0.587304  0.797939  1.00000
-        1       0.587304  0.797939  1.00000
-        2       0.587304  0.797939  0.52381
-        3       0.587304  0.797939  0.52381
-        4       0.587304  0.301542  0.52381
-        5       0.587304  0.301542  0.52381
-        6       0.587304  0.301542 -0.00000
-        7       0.587304  0.301542 -0.00000
-        >>> print(V) # doctest: +NORMALIZE_WHITESPACE
-        Discrete pricing model 'V':
+        0      0.0  0.0  0.0  33.1
+        1      0.0  0.0  0.0   8.9
+        2      0.0  0.0  0.0   8.9
+        3      0.0  0.0  0.0   0.0
+        4      0.0  0.0  0.0   8.9
+        5      0.0  0.0  0.0   0.0
+        6      0.0  0.0  0.0   0.0
+        7      0.0  0.0  0.0   0.0
+
+        Generate the replicating portfolio for the European call.
+
+        >>> X, Delta, B, V, tau = euro_call.replicating_portfolio()
+
+        Print the price process for the option. Note the initial price.
+
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
         t              0          1          2     3
         omega
-        0       8.579463  13.950993  21.990099  33.1
-        1       8.579463  13.950993  21.990099  10.0
-        2       8.579463  13.950993   5.233380  10.0
-        3       8.579463  13.950993   5.233380   0.0
-        4       8.579463   2.738827   5.233380  10.0
-        5       8.579463   2.738827   5.233380   0.0
-        6       8.579463   2.738827   0.000000   0.0
-        7       8.579463   2.738827   0.000000   0.0
-        >>> print(price)
-        8.57946313365138
+        0      15.306122  19.914966  25.761905  33.1
+        1      15.306122  19.914966  25.761905   8.9
+        2      15.306122  19.914966   6.357143   8.9
+        3      15.306122  19.914966   6.357143   0.0
+        4      15.306122   4.540816   6.357143   8.9
+        5      15.306122   4.540816   6.357143   0.0
+        6      15.306122   4.540816   0.000000   0.0
+        7      15.306122   4.540816   0.000000   0.0
+
+        Print the `Delta` and `B` price processes of the hedging portfolio, along with its value process `V`.
+
+        >>> print(Delta) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'Delta':
+        t             0         1         2
+        omega
+        0      0.768707  0.882035  1.000000
+        1      0.768707  0.882035  1.000000
+        2      0.768707  0.882035  0.449495
+        3      0.768707  0.882035  0.449495
+        4      0.768707  0.353175  0.449495
+        5      0.768707  0.353175  0.449495
+        6      0.768707  0.353175 -0.000000
+        7      0.768707  0.353175 -0.000000
+        >>> print(B)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'B':
+        t              0          1          2
+        omega
+        0     -61.564626 -77.108844 -95.238095
+        1     -61.564626 -77.108844 -95.238095
+        2     -61.564626 -77.108844 -38.142857
+        3     -61.564626 -77.108844 -38.142857
+        4     -61.564626 -27.244898 -38.142857
+        5     -61.564626 -27.244898 -38.142857
+        6     -61.564626 -27.244898   0.000000
+        7     -61.564626 -27.244898   0.000000
+        >>> print(V) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'V':
+        t              0          1          2     3
+        omega
+        0      15.306122  19.914966  25.761905  33.1
+        1      15.306122  19.914966  25.761905   8.9
+        2      15.306122  19.914966   6.357143   8.9
+        3      15.306122  19.914966   6.357143   0.0
+        4      15.306122   4.540816   6.357143   8.9
+        5      15.306122   4.540816   6.357143   0.0
+        6      15.306122   4.540816   0.000000   0.0
+        7      15.306122   4.540816   0.000000   0.0
+
+        Print the exercise time `tau`. Since a European option does not allow early exercise, the option will either be exercised at maturity (if it is in the money) or never.
+
+        >>> print(tau)  # doctest: +NORMALIZE_WHITESPACE
+        Stopping time 'tau':
+               tau
+        omega
+        0      3.0
+        1      3.0
+        2      3.0
+        3      inf
+        4      3.0
+        5      inf
+        6      inf
+        7      inf
+
+        Now define an Asian put option with early-exercise and the same strike.
+
+        >>> asian_put = Claim.asian_option(strike=100, model=S, type="put", early_exercise=True, name="asian_put")
+        >>> print(asian_put)  # doctest: +NORMALIZE_WHITESPACE
+        Asian option 'asian_put':
+        t        0    1         2       3
+        omega
+        0      0.0  0.0  0.000000   0.000
+        1      0.0  0.0  0.000000   0.000
+        2      0.0  0.0  0.000000   0.000
+        3      0.0  0.0  0.000000   0.475
+        4      0.0  5.0  3.666667   0.525
+        5      0.0  5.0  3.666667   5.475
+        6      0.0  5.0  9.666667   9.975
+        7      0.0  5.0  9.666667  14.025
+
+        Compute and print the replicating portfolio.
+
+        >>> X, Delta, B, V, tau = asian_put.replicating_portfolio()
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        t            0         1          2       3
+        omega
+        0      1.23603  0.026927   0.000000   0.000
+        1      1.23603  0.026927   0.000000   0.000
+        2      1.23603  0.026927   0.113095   0.000
+        3      1.23603  0.026927   0.113095   0.475
+        4      1.23603  5.110544   3.666667   0.525
+        5      1.23603  5.110544   3.666667   5.475
+        6      1.23603  5.110544  10.464286   9.975
+        7      1.23603  5.110544  10.464286  14.025
+        >>> print(Delta)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'Delta':
+        t             0         1        2
+        omega
+        0     -0.254181 -0.005141 -0.00000
+        1     -0.254181 -0.005141 -0.00000
+        2     -0.254181 -0.005141 -0.02399
+        3     -0.254181 -0.005141 -0.02399
+        4     -0.254181 -0.377646 -0.25000
+        5     -0.254181 -0.377646 -0.25000
+        6     -0.254181 -0.377646 -0.25000
+        7     -0.254181 -0.377646 -0.25000
+        >>> print(B)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'B':
+        t              0          1          2
+        omega
+        0      26.654114   0.592404   0.000000
+        1      26.654114   0.592404   0.000000
+        2      26.654114   0.592404   2.488095
+        3      26.654114   0.592404   2.488095
+        4      26.654114  39.098639  26.428571
+        5      26.654114  39.098639  26.428571
+        6      26.654114  39.098639  30.714286
+        7      26.654114  39.098639  30.714286
+        >>> print(V)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'V':
+        t            0         1          2       3
+        omega
+        0      1.23603  0.026927   0.000000   0.000
+        1      1.23603  0.026927   0.000000   0.000
+        2      1.23603  0.026927   0.113095   0.000
+        3      1.23603  0.026927   0.113095   0.475
+        4      1.23603  5.110544   1.678571   0.525
+        5      1.23603  5.110544   1.678571   5.475
+        6      1.23603  5.110544  10.464286   9.975
+        7      1.23603  5.110544  10.464286  14.025
+        >>> print(tau)  # doctest: +NORMALIZE_WHITESPACE
+        Stopping time 'tau':
+               tau
+        omega
+        0      inf
+        1      inf
+        2      inf
+        3      3.0
+        4      2.0
+        5      2.0
+        6      3.0
+        7      3.0
         """
         T = self.time[-1]
-        B_arr, Delta_arr, V_arr, tau_arr = self._initialize_replicating_arrays()
-        V_arr[:, -1], tau_arr[:, -1] = claim._backward_induction_base_case()
 
-        for t in reversed(range(T)):
-            V_forward, S_forward, S_curr = self._extract_tree_nodes(t, V_arr)
-
-            B_curr, Delta_curr, V_curr, tau_curr = claim._backward_induction(
-                enum_mode=self.enum_mode,
-                V_forward=V_forward,
-                S_forward=S_forward,
-                S_curr=S_curr,
-                risk_free_rate=self.risk_free_rate,
-                risk_neutral_prob=self.risk_neutral_probs[0],
+        if claim.model is not self and not claim.is_adapted(self.natural_filtration):
+            raise ValueError(
+                "The claim must be adapated to the natural filtration of the binomial model."
             )
 
-            B_arr[:, t], Delta_arr[:, t], V_arr[:, t], tau_arr[:, t] = (
-                self._broadcast_node_values(
+        B_arr, Delta_arr, V_arr, X_arr, tau_arr = self._initialize_replicating_arrays()
+
+        Phi_arr = claim.to_numpy()
+        V_arr[:, -1] = claim.last_rv
+        X_arr[:, -1] = claim.last_rv
+        tau_arr[:, -1] = np.where(X_arr[:, -1] == 0, 0, 1)
+
+        for t in reversed(range(T)):
+            V_forward, X_forward, S_forward, S_curr, Phi_curr = (
+                self._extract_tree_nodes(
                     t,
-                    B_curr,
-                    Delta_curr,
-                    V_curr,
-                    tau_curr,
+                    V_arr,
+                    X_arr,
+                    Phi_arr,
+                )
+            )
+
+            B_curr, Delta_curr, V_curr, X_curr, tau_curr = self._backward_induction(
+                enum_mode=self.enum_mode,
+                V_forward=V_forward,
+                X_forward=X_forward,
+                S_forward=S_forward,
+                S_curr=S_curr,
+                Phi_curr=Phi_curr,
+            )
+
+            B_arr[:, t], Delta_arr[:, t], V_arr[:, t], X_arr[:, t], tau_arr[:, t] = (
+                self._broadcast_node_values(
+                    t=t,
+                    B_curr=B_curr,
+                    Delta_curr=Delta_curr,
+                    V_curr=V_curr,
+                    X_curr=X_curr,
+                    tau_curr=tau_curr,
                 )
             )
 
@@ -935,11 +1133,15 @@ class BinomialPricingModel(DiscretePricingModel):
             np.argmax(tau_arr, axis=1),
         )
 
-        B, Delta, V, price, tau = self._convert_replicating_arrays_to_processes(
-            B_arr, Delta_arr, V_arr, tau_arr
+        B, Delta, V, X, tau = self._convert_replicating_arrays_to_processes(
+            B_arr=B_arr,
+            Delta_arr=Delta_arr,
+            V_arr=V_arr,
+            X_arr=X_arr,
+            tau_arr=tau_arr,
         )
 
-        return B, Delta, V, price, tau
+        return X, Delta, B, V, tau
 
     def _initialize_replicating_arrays(
         self,
@@ -950,33 +1152,76 @@ class BinomialPricingModel(DiscretePricingModel):
             B_arr = np.zeros(shape=(2**T, T))
             Delta_arr = np.zeros(shape=(2**T, T))
             V_arr = np.zeros(shape=(2**T, T + 1))
+            X_arr = np.zeros(shape=(2**T, T + 1))
             tau_arr = np.zeros(shape=(2**T, T + 1))
 
         elif self.enum_mode == "sparse":
             B_arr = np.zeros(shape=(T + 1, T))
             Delta_arr = np.zeros(shape=(T + 1, T))
             V_arr = np.zeros(shape=(T + 1, T + 1))
+            X_arr = np.zeros(shape=(T + 1, T + 1))
             tau_arr = np.zeros(shape=(T + 1, T + 1))
 
-        return B_arr, Delta_arr, V_arr, tau_arr
+        return B_arr, Delta_arr, V_arr, X_arr, tau_arr
 
     def _extract_tree_nodes(
-        self, t: int, V_arr: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        self,
+        t: int,
+        V_arr: np.ndarray,
+        X_arr: np.ndarray,
+        Phi_arr: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         T = self.time[-1]
         S_arr = self.data.values
 
         if self.enum_mode == "dense":
             V_forward = V_arr[:: (2 ** (T - t - 1)), t + 1]  # shape (2^(t+1),)
+            X_forward = X_arr[:: (2 ** (T - t - 1)), t + 1]  # shape (2^(t+1),)
             S_forward = S_arr[:: (2 ** (T - t - 1)), t + 1]  # shape (2^(t+1),)
             S_curr = S_arr[:: (2 ** (T - t)), t]  # shape (2^t,)
+            Phi_curr = Phi_arr[:: (2 ** (T - t)), t]  # shape (2^t,)
 
         elif self.enum_mode == "sparse":
             V_forward = V_arr[: t + 2, t + 1]  # shape (t+2,)
+            X_forward = X_arr[: t + 2, t + 1]  # shape (t+2,)
             S_forward = self.data.values[: t + 2, t + 1]  # shape(t+2,)
             S_curr = self.data.values[: t + 1, t]  # shape (t+1,)
 
-        return V_forward, S_forward, S_curr
+        return V_forward, X_forward, S_forward, S_curr, Phi_curr
+
+    def _backward_induction(
+        self,
+        enum_mode: str,
+        V_forward: np.ndarray,
+        X_forward: np.ndarray,
+        S_forward: np.ndarray,
+        S_curr: np.ndarray,
+        Phi_curr: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        R = self.risk_free_gross_return
+        q = self.risk_neutral_probs[0]
+
+        if enum_mode == "dense":
+            V_curr = (X_forward.reshape(-1, 2) @ np.array([q, 1 - q])) / R
+            X_curr = np.maximum(Phi_curr, V_curr)
+            tau_curr = Phi_curr > V_curr
+            Delta_curr = (
+                np.diff(X_forward.reshape(-1, 2)).squeeze()
+                / np.diff(S_forward.reshape(-1, 2)).squeeze()
+            )
+            B_curr = V_curr - S_curr * Delta_curr
+
+            return B_curr, Delta_curr, V_curr, X_curr, tau_curr
+
+        elif enum_mode == "sparse":
+            V_curr = (q * V_forward[:-1] + (1 - q) * V_forward[1:]) / R
+            Delta_curr = (V_forward[:-1] - V_forward[1:]) / (
+                S_forward[:-1] - S_forward[1:]
+            )
+            B_curr = V_curr - S_curr * Delta_curr
+            tau_curr = np.zeros(shape=(len(V_curr),))
+
+            return B_curr, Delta_curr, V_curr, X_curr, tau_curr
 
     def _broadcast_node_values(
         self,
@@ -984,8 +1229,9 @@ class BinomialPricingModel(DiscretePricingModel):
         B_curr: np.ndarray,
         Delta_curr: np.ndarray,
         V_curr: np.ndarray,
+        X_curr: np.ndarray,
         tau_curr: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         T = self.time[-1]
 
         if self.enum_mode == "dense":
@@ -993,6 +1239,7 @@ class BinomialPricingModel(DiscretePricingModel):
             B = np.repeat(B_curr, repeats=2 ** (T - t))
             Delta = np.repeat(Delta_curr, repeats=2 ** (T - t))
             V = np.repeat(V_curr, repeats=2 ** (T - t))
+            X = np.repeat(X_curr, repeats=2 ** (T - t))
             tau = np.repeat(tau_curr, repeats=2 ** (T - t))
 
         elif self.enum_mode == "sparse":
@@ -1000,51 +1247,59 @@ class BinomialPricingModel(DiscretePricingModel):
             B = np.concatenate((B_curr, np.repeat(B_curr[-1], T - t)))
             Delta = np.concatenate((Delta_curr, np.repeat(Delta_curr[-1], T - t)))
             V = np.concatenate((V_curr, np.repeat(V_curr[-1], T - t)))
+            X = np.concatenate((X_curr, np.repeat(V_curr[-1], T - t)))
             tau = np.concatenate((tau_curr, np.repeat(tau_curr[-1], T - t)))
 
-        return B, Delta, V, tau
+        return B, Delta, V, X, tau
 
     def _convert_replicating_arrays_to_processes(
         self,
         B_arr: np.ndarray,
         Delta_arr: np.ndarray,
         V_arr: np.ndarray,
+        X_arr: np.ndarray,
         tau_arr: np.ndarray,
     ) -> tuple[
-        DiscretePricingModel,
-        DiscretePricingModel,
-        DiscretePricingModel,
-        Real,
+        StochasticProcess,
+        StochasticProcess,
+        StochasticProcess,
+        StochasticProcess,
         StoppingTime,
     ]:
+        from ....processes.base.stochastic_process import StochasticProcess
         from ....processes.stopping_times.stopping_time import StoppingTime
 
-        B = DiscretePricingModel(
+        B = StochasticProcess(
             *self.prob_space,
             index=self.time[:-1],
             name="B",
             mapping=B_arr,
         )
 
-        Delta = DiscretePricingModel(
+        Delta = StochasticProcess(
             *self.prob_space,
             index=self.time[:-1],
             name="Delta",
             mapping=Delta_arr,
         )
 
-        V = DiscretePricingModel(
+        V = StochasticProcess(
             *self.prob_space,
             index=self.time,
             name="V",
             mapping=V_arr,
         )
 
-        price = V[0].data.to_numpy()[0]
+        X = StochasticProcess(
+            *self.prob_space,
+            index=self.time,
+            name="X",
+            mapping=X_arr,
+        )
 
         tau = StoppingTime.from_filtration(process=self, mapping=tau_arr, name="tau")
 
-        return B, Delta, V, price, tau
+        return B, Delta, V, X, tau
 
     # --------------------- enumeration methods --------------------- #
 
