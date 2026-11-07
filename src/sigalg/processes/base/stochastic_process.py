@@ -123,95 +123,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             name=name,
         )
 
-    @classmethod
-    def from_time(
-        cls,
-        domain: IndexLike | None = None,
-        sig_alg: SigmaAlgebra | None = None,
-        measure: ProbabilityMeasure | None = None,
-        domain_name: Hashable | None = None,
-        index: IndexLike | None = None,
-        index_name: Hashable | None = None,
-        name: Hashable | None = None,
-    ) -> StochasticProcess:
-        """Define a stochastic process whose trajectories are the time index itself.
-
-        Parameters
-        ----------
-        domain : IndexLike
-            The domain of the underlying probability space.
-        sig_alg : SigmaAlgebra | None, default=None
-            The sigma-algebra of the underlying probability space.
-        measure : ProbabilityMeasure | None, default=None
-            The probability measure of the underlying probability space.
-        domain_name : Hashable | None, default=None
-            The name of the domain.
-        index : IndexLike | None, default=None
-            The time index of the stochastic process.
-        index_name : Hashable | None, default=None
-            The name of the index.
-        name : Hashable | None, default=None
-            The name of the stochastic process. If `None`, a default will be generated.
-
-        Returns
-        -------
-        process : StochasticProcess
-            A stochastic process whose trajectories are the time index itself.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace, Time
-        >>> from sigalg.processes import StochasticProcess
-        >>> Omega = SampleSpace.from_sequence(size=2)
-        >>> T = Time.discrete(length=3)
-        >>> X = StochasticProcess.from_time(domain=Omega, index=T)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X':
-        t       0  1  2  3
-        omega
-        0       0  1  2  3
-        1       0  1  2  3
-        """
-        from ...core.measures.probability_measure import ProbabilityMeasure
-        from ...validation.domain_index_validator import DomainIndexValidator
-
-        v = DomainIndexValidator(
-            domain=domain,
-            domain_kind="SampleSpace",
-            domain_name=domain_name,
-            index=index,
-            index_kind="Time",
-            index_name=index_name,
-        )
-
-        domain = v.domain
-        domain_name = v.domain_name
-        index = v.index
-        index_name = v.index_name
-
-        if name is None:
-            name = cls._default_name
-
-        data = pd.DataFrame(
-            {t: [t] * len(domain) for t in index},
-            index=domain.data,
-        )
-        data.columns = index.data
-
-        if measure is None:
-            measure = ProbabilityMeasure.uniform(domain)
-
-        return cls(
-            domain=domain,
-            sig_alg=sig_alg,
-            measure=measure,
-            mapping=data,
-            domain_name=domain_name,
-            index=index,
-            index_name=index_name,
-            name=name,
-        )
-
     @staticmethod
     def generator(func):
         """Decorator that handles common setup and execution for generate methods."""  # noqa: D401
@@ -1272,7 +1183,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 raise TypeError(
                     "If filtration is provided, it must be an instance of Filtration."
                 )
-            if filtration.sample_space != self.sample_space:
+            if filtration.domain != self.sample_space:
                 raise TypeError(
                     "If filtration is provided, its sample space must match the sample_space of the process."
                 )
