@@ -210,7 +210,7 @@ class Operators:
             function_class = (
                 func1.__class__
                 if issubclass(func1.__class__, func2.__class__)
-                else func2.__class_
+                else func2.__class__
             )
 
         if func1.domain != func2.domain or func1.index != func2.index:
@@ -574,6 +574,79 @@ class Operators:
         data_trans = data_trans.cumprod(axis=1)
         if name is None:
             name = f"{vec.name}_cumprod"
+
+        return MeasurableVector._from_validated(
+            data=data_trans,
+            sig_alg=vec.sig_alg,
+            measure=vec.measure,
+            index_kind=vec.index_kind,
+            index_name=vec.index_name,
+            name=name,
+            mapping=data_trans,
+            index=vec.index,
+        )
+
+    @classmethod
+    def cumavg(
+        cls,
+        vec: MeasurableVector,
+        name: Hashable | None = None,
+    ) -> MeasurableVector:
+        """Compute the cumulative average of a measurable vector along its index.
+
+        Parameters
+        ----------
+        vec : MeasurableVector
+            The measurable vector for which to compute the cumulative average.
+        name : Hashable | None, default=None
+            The name of the transformed vector. If `None`, a default name will be generated.
+
+        Returns
+        -------
+        cumavg_vector : MeasurableVector
+            A new measurable vector representing the cumulative average of the input vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import Operators, Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(length=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        t           0  1  2  3
+        omega
+        0           3  2  1  0
+        1           3  2  1  2
+        2           3  2  3  2
+        3           3  2  3  4
+        4           3  4  3  2
+        5           3  4  3  4
+        6           3  4  5  4
+        7           3  4  5  6
+        >>> X_cumavg = Operators.cumavg(X)
+        >>> print(X_cumavg) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_cumavg':
+        t        0    1         2    3
+        omega
+        0      3.0  2.5  2.000000  1.5
+        1      3.0  2.5  2.000000  2.0
+        2      3.0  2.5  2.666667  2.5
+        3      3.0  2.5  2.666667  3.0
+        4      3.0  3.5  3.333333  3.0
+        5      3.0  3.5  3.333333  3.5
+        6      3.0  3.5  4.000000  4.0
+        7      3.0  3.5  4.000000  4.5
+        """
+        from .measurable_vector import MeasurableVector
+
+        if not isinstance(vec, MeasurableVector):
+            raise TypeError("vec must be an instance of MeasurableVector.")
+
+        data_trans = vec.data.copy()
+        data_trans = data_trans.T.expanding().mean().T
+        if name is None:
+            name = f"{vec.name}_cumavg"
 
         return MeasurableVector._from_validated(
             data=data_trans,
@@ -2949,6 +3022,56 @@ class OperatorsMethods:
         7           3  12  60  360
         """
         return Operators.cumprod(vec=self, name=name)
+
+    def cumavg(self, name: Hashable | None = None) -> MeasurableVector:
+        """Compute the cumulative average of a measurable vector along its index.
+
+        Internally calls `Operators.cumavg`.
+
+        Parameters
+        ----------
+        vec : MeasurableVector
+            The measurable vector for which to compute the cumulative average.
+        name : Hashable | None, default=None
+            The name of the transformed vector. If `None`, a default name will be generated.
+
+        Returns
+        -------
+        cumavg_vector : MeasurableVector
+            A new measurable vector representing the cumulative average of the input vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(length=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        t           0  1  2  3
+        omega
+        0           3  2  1  0
+        1           3  2  1  2
+        2           3  2  3  2
+        3           3  2  3  4
+        4           3  4  3  2
+        5           3  4  3  4
+        6           3  4  5  4
+        7           3  4  5  6
+        >>> print(X.cumavg()) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_cumavg':
+        t        0    1         2    3
+        omega
+        0      3.0  2.5  2.000000  1.5
+        1      3.0  2.5  2.000000  2.0
+        2      3.0  2.5  2.666667  2.5
+        3      3.0  2.5  2.666667  3.0
+        4      3.0  3.5  3.333333  3.0
+        5      3.0  3.5  3.333333  3.5
+        6      3.0  3.5  4.000000  4.0
+        7      3.0  3.5  4.000000  4.5
+        """
+        return Operators.cumavg(vec=self, name=name)
 
     def max_value(self) -> Real:
         """Get the maximum value across all outputs and indices of the measurable vector.
