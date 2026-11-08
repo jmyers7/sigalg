@@ -6,6 +6,7 @@ from itertools import product
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
+import numpy as np
 import pandas as pd
 
 from .discrete_pricing_model import DiscretePricingModel
@@ -13,14 +14,15 @@ from .discrete_pricing_model import DiscretePricingModel
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-    import numpy as np
-
     from ...core.measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
     )
     from ...core.measures.probability_measure import ProbabilityMeasure
     from ...core.spaces.domain import Domain
+    from ...processes.base.stochastic_process import StochasticProcess
+    from ...processes.stopping_times.stopping_time import StoppingTime
     from ...typing.index_like import IndexLike
+    from ..claims.claim import Claim
 
 
 class TrinomialPricingModel(DiscretePricingModel):
@@ -30,9 +32,10 @@ class TrinomialPricingModel(DiscretePricingModel):
 
     Examples
     --------
+    >>> from sigalg.finance import TrinomialPricingModel
+
     Given parameters of a trinomial model, generate all length-2 price trajectories in `enum` mode.
 
-    >>> from sigalg.finance import TrinomialPricingModel
     >>> S_0 = 4
     >>> u = 1.2
     >>> m = 1.1
@@ -53,37 +56,38 @@ class TrinomialPricingModel(DiscretePricingModel):
     ... )
     >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
     Trinomial price process 'S':
-    time    0    1     2
-    sample
-    0       4  4.8  5.76
-    1       4  4.8  5.28
-    2       4  4.8  4.32
-    3       4  4.4  5.28
-    4       4  4.4  4.84
-    5       4  4.4  3.96
-    6       4  3.6  4.32
-    7       4  3.6  3.96
-    8       4  3.6  3.24
+    t         0    1     2
+    omega
+    0       4.0  4.8  5.76
+    1       4.0  4.8  5.28
+    2       4.0  4.8  4.32
+    3       4.0  4.4  5.28
+    4       4.0  4.4  4.84
+    5       4.0  4.4  3.96
+    6       4.0  3.6  4.32
+    7       4.0  3.6  3.96
+    8       4.0  3.6  3.24
 
     Simulate ten length-2 trajectories in `sim` mode.
 
     >>> S.n_trajectories = 10
     >>> S.random_state = 42
     >>> S.mode = "sim"
+    >>> S.regenerate()
     >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
     Trinomial price process 'S':
-    time    0    1     2
-    sample
-    0       4  4.4  4.84
-    1       4  4.8  4.32
-    2       4  4.4  5.28
-    3       4  4.8  5.28
-    4       4  4.4  5.28
-    5       4  4.8  5.76
-    6       4  4.4  4.84
-    7       4  3.6  3.96
-    8       4  4.8  5.76
-    9       4  4.8  5.28
+    t        0    1     2
+    omega
+    0      4.0  4.4  5.28
+    1      4.0  4.4  4.84
+    2      4.0  4.8  4.32
+    3      4.0  4.4  4.84
+    4      4.0  4.8  5.76
+    5      4.0  4.8  4.32
+    6      4.0  4.4  4.84
+    7      4.0  4.8  5.76
+    8      4.0  4.8  5.76
+    9      4.0  4.4  4.84
     """
 
     _repr_name = "TrinomialPricingModel"
@@ -116,39 +120,98 @@ class TrinomialPricingModel(DiscretePricingModel):
 
         Parameters
         ----------
+        initial_price : Real
+            The initial price of the asset.
+        up_prob : Real
+            The probability of an upward move in the price.
+        down_prob : Real
+            The probability of an upward move in the price.
+        up_factor : Real
+            The up-factor of the model.
+        middle_factor : Real
+            The middle-factor of the model.
+        down_factor : Real
+            The down-factor of the model.
+        risk_free_rate : Real | None, default=None
+            The per-period risk-free rate. If `None`, the risk-free gross return must be given.
+        risk_free_gross_return : Real | None, default=None
+            The per-period risk-free gross return. If `None`, the risk-free rate must be given.
         mode : Literal["enum", "sim"]
             Whether to generate trajectories by exhuastive enumeration or Monte Carlo simulation.
-        initial_price : Real
-            The initial price of the risky asset.
-        risk_free_rate : Real
-            The risk-free rate of the non-risky asset, which must be positive.
-        up_prob : Real
-            The probability of an upward move in the price of the risky asset.
-        down_prob : Real
-            The probability of a downward move in the price of the risky asset.
-        up_factor : Real
-            The up-factor of the model. Must have `down_factor < middle_factor < up_factor`.
-        middle_factor : Real
-            The middle-factor of the model. Must have `down_factor < middle_factor < up_factor`.
-        down_factor : Real
-            The down-factor of the model. Must have `down_factor < middle_factor < up_factor`.
-        enum_mode : Literal["dense", "sparse"], default="dense"
-            The mode of enumeration. If the generation mode is set to `sim`, this parameter is ignore.
         n_trajectories : int | None, default=None
             The number of trajectories to simulate. If the generation mode is set to `enum`, this parameter is ignored.
-        index : Index | None, default=None
+        index : IndexLike | None, default=None
             The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
         length : int | None, default=None
             The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
         name : Hashable, default="S"
             The name of the stochastic process.
         random_state : int | np.random.Generator | None, default=None
-            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded. If the generation mode is set to `enum`, this parameter is ignored.
+            An optional random state for reproducibility.
 
         Returns
         -------
-        self : TrinomialPricingModel
-            The current instance with generated trajectories.
+        info : dict[str, object]
+            A dictionary containing the names of the BinomialPricingModel-specific parameters and their values.
+
+        Examples
+        --------
+        >>> from sigalg.finance import TrinomialPricingModel
+
+        Given parameters of a trinomial model, generate all length-2 price trajectories in `enum` mode.
+
+        >>> S_0 = 4
+        >>> u = 1.2
+        >>> m = 1.1
+        >>> d = 0.9
+        >>> p_u = 0.6
+        >>> p_d = 0.1
+        >>> r = 0.01
+        >>> S = TrinomialPricingModel.generate(
+        ...     mode="enum",
+        ...     initial_price=S_0,
+        ...     up_factor=u,
+        ...     middle_factor=m,
+        ...     down_factor=d,
+        ...     up_prob=p_u,
+        ...     down_prob=p_d,
+        ...     risk_free_rate=r,
+        ...     length=2,
+        ... )
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Trinomial price process 'S':
+        t         0    1     2
+        omega
+        0       4.0  4.8  5.76
+        1       4.0  4.8  5.28
+        2       4.0  4.8  4.32
+        3       4.0  4.4  5.28
+        4       4.0  4.4  4.84
+        5       4.0  4.4  3.96
+        6       4.0  3.6  4.32
+        7       4.0  3.6  3.96
+        8       4.0  3.6  3.24
+
+        Simulate ten length-2 trajectories in `sim` mode.
+
+        >>> S.n_trajectories = 10
+        >>> S.random_state = 42
+        >>> S.mode = "sim"
+        >>> S.regenerate()
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Trinomial price process 'S':
+        t        0    1     2
+        omega
+        0      4.0  4.4  5.28
+        1      4.0  4.4  4.84
+        2      4.0  4.8  4.32
+        3      4.0  4.4  4.84
+        4      4.0  4.8  5.76
+        5      4.0  4.8  4.32
+        6      4.0  4.4  4.84
+        7      4.0  4.8  5.76
+        8      4.0  4.8  5.76
+        9      4.0  4.4  4.84
         """
         if not isinstance(initial_price, Real) or initial_price <= 0:
             raise TypeError("initial_price must be a positive real number.")
@@ -728,13 +791,13 @@ class TrinomialPricingModel(DiscretePricingModel):
 
     # --------------------- finance methods --------------------- #
 
-    def risk_neutral_probs(self, theta: Real) -> tuple[Real, Real, Real]:
-        r"""Get the risk-neutral probabilities of the model.
+    def risk_neutral_probs(self, theta: Real, **kwargs) -> tuple[Real, Real, Real]:
+        """Get the risk-neutral probabilities of the model.
 
         Parameters
         ----------
         theta : Real
-            A real number parameterizing the risk-neutral probabilities.
+            A real number in the open interval `(0, 1)` parameterizing the risk-neutral probabilities.
 
         Returns
         -------
@@ -744,23 +807,30 @@ class TrinomialPricingModel(DiscretePricingModel):
         Examples
         --------
         >>> from sigalg.finance import TrinomialPricingModel
+
+        Define the parameters of a trinomial pricing model.
+
         >>> S_0 = 4
+        >>> r = 0.01
+        >>> p_u = 0.6
+        >>> p_d = 0.1
         >>> u = 1.2
         >>> m = 1.1
         >>> d = 0.9
-        >>> p_u = 0.6
-        >>> p_d = 0.1
-        >>> r = 0.01
+        >>> T = 2
+
+        Exhaustively generate all price trajectories and print them.
+
         >>> S = TrinomialPricingModel.generate(
-        ...     mode="enum",
         ...     initial_price=S_0,
+        ...     risk_free_rate=r,
+        ...     up_prob=p_u,
+        ...     down_prob=p_d,
         ...     up_factor=u,
         ...     middle_factor=m,
         ...     down_factor=d,
-        ...     up_prob=p_u,
-        ...     down_prob=p_d,
-        ...     risk_free_rate=r,
-        ...     length=2,
+        ...     mode="enum",
+        ...     length=T,
         ... )
         >>> print(S) # doctest: +NORMALIZE_WHITESPACE
         Trinomial price process 'S':
@@ -775,8 +845,10 @@ class TrinomialPricingModel(DiscretePricingModel):
         6      4.0  3.6  4.32
         7      4.0  3.6  3.96
         8      4.0  3.6  3.24
-        >>> risk_neutral_probs = S.risk_neutral_probs(theta=0.42)
-        >>> print(risk_neutral_probs)
+
+        The risk-neutral probabilities are a one-parameter family of probabilities. Get these probabilities for a specific parameter.
+
+        >>> S.risk_neutral_probs(theta=0.42)
         (0.15400000000000003, 0.31899999999999973, 0.5270000000000001)
         """
         if not isinstance(theta, Real):
@@ -806,132 +878,350 @@ class TrinomialPricingModel(DiscretePricingModel):
 
         return q_u, q_m, q_d
 
-    def emms(self) -> ParametrizedProbabilityMeasure:
-        r"""Return the equivalent martingale measures of the model.
+    def emm(
+        self, theta: Real | None = None, **kwargs
+    ) -> ProbabilityMeasure | ParametrizedProbabilityMeasure:
+        """Return the equivalent martingale measures of the model.
 
-        Raises
-        ------
-        ValueError
-            If one of the parameters used to generate the EMMs is none. This likely means that the `generate` method was not called first.
+        Parameters
+        ----------
+        theta : Real | None, default=None
+            An optional real number in the open interval `(0, 1)` parameterizing the risk-neutral probabilities. If not `None`, an instance of `ProbabilityMeasure` is returned; otherwise, an instance of `ParametrizedProbabilityMeasure` is returned.
 
         Returns
         -------
-        EMMs : ParametrizedProbabilityMeasure
+        emm : ProbabilityMeasure | ParametrizedProbabilityMeasure
             The equivalent martingale measures of the model.
 
         Examples
         --------
         >>> from sigalg.finance import TrinomialPricingModel
+
+        Define the parameters of a trinomial pricing model.
+
         >>> S_0 = 4
+        >>> r = 0.01
+        >>> p_u = 0.6
+        >>> p_d = 0.1
         >>> u = 1.2
         >>> m = 1.1
         >>> d = 0.9
-        >>> p_u = 0.6
-        >>> p_d = 0.1
-        >>> r = 0.01
+        >>> T = 2
+
+        Exhaustively generate all price trajectories and print them.
+
         >>> S = TrinomialPricingModel.generate(
-        ...     mode="enum",
         ...     initial_price=S_0,
+        ...     risk_free_rate=r,
+        ...     up_prob=p_u,
+        ...     down_prob=p_d,
         ...     up_factor=u,
         ...     middle_factor=m,
         ...     down_factor=d,
-        ...     up_prob=p_u,
-        ...     down_prob=p_d,
-        ...     risk_free_rate=r,
-        ...     length=2,
+        ...     mode="enum",
+        ...     length=T,
         ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
         Trinomial price process 'S':
-        time    0    1     2
-        sample
-        0       4  4.8  5.76
-        1       4  4.8  5.28
-        2       4  4.8  4.32
-        3       4  4.4  5.28
-        4       4  4.4  4.84
-        5       4  4.4  3.96
-        6       4  3.6  4.32
-        7       4  3.6  3.96
-        8       4  3.6  3.24
-        >>> Q = S.EMMs
+        t        0    1     2
+        omega
+        0      4.0  4.8  5.76
+        1      4.0  4.8  5.28
+        2      4.0  4.8  4.32
+        3      4.0  4.4  5.28
+        4      4.0  4.4  4.84
+        5      4.0  4.4  3.96
+        6      4.0  3.6  4.32
+        7      4.0  3.6  3.96
+        8      4.0  3.6  3.24
+
+        Get the equivalent martingale measures of the model as an instance of `ParametrizedProbabilityMeasure`.
+
+        >>> Q = S.emm()
         >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized probability measure 'Q(theta, sample)'
-        >>> print(Q(theta=0.5))  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'Q(theta=0.5)':
-                probability
-        sample
-        0          0.033611
-        1          0.050417
-        2          0.099306
-        3          0.050417
-        4          0.075625
-        5          0.148958
-        6          0.099306
-        7          0.148958
-        8          0.293403
-        >>> print(Q(theta=0.5, sample=4))
-        0.07562500000000004
-        >>> is_martingale_wrt_real_world_measure = S.discount(r).is_martingale()
-        >>> print(is_martingale_wrt_real_world_measure)
-        False
-        >>> is_martingale_wrt_EMM = S.discount(r).is_martingale(prob_measure=Q(theta=0.5))
-        >>> print(is_martingale_wrt_EMM)
+        ParametrizedProbabilityMeasure(parameters=(theta), domain_vars=(omega), sig_alg=R, name=Q)
+
+        Get the EMM corresponding to a specific parameter value.
+
+        >>> print(Q(theta=0.2))  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'Q(theta=0.2)':
+               Q(theta=0.2)
+        omega
+        0          0.005378
+        1          0.032267
+        2          0.035689
+        3          0.032267
+        4          0.193600
+        5          0.214133
+        6          0.035689
+        7          0.214133
+        8          0.236844
+
+        Alternativaly, pass the parameter value directly into the `emm` method to get the same EMM.
+
+        >>> print(S.emm(theta=0.2))  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'Q':
+                          Q
+        omega
+        0          0.005378
+        1          0.032267
+        2          0.035689
+        3          0.032267
+        4          0.193600
+        5          0.214133
+        6          0.035689
+        7          0.214133
+        8          0.236844
+
+        Check that the discounted model is a martingale with repsect to an EMM.
+
+        >>> S.discount(r).is_martingale(prob_measure=Q(theta=0.2))
         True
         """
-        from scipy.stats import multinomial
-
         from ...core.measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,
         )
-        from ...processes.types.iid_process import IIDProcess
+        from ...core.measures.probability_measure import ProbabilityMeasure
 
-        if None in [
-            self.risk_free_gross_return,
-            self.up_factor,
-            self.middle_factor,
-            self.down_factor,
-            self.time,
-        ]:
-            raise ValueError(
-                "One of the parameters needed to generate the EMMs is None. Be sure to call 'generate' first."
+        num_steps = len(self._index) - 1
+        domain = self.domain
+
+        if theta is not None:
+            q_u, q_m, q_d = self.risk_neutral_probs(theta=theta)
+
+            probabilities = pd.DataFrame(
+                list(product([q_u, q_m, q_d], repeat=num_steps)), index=domain.data
+            ).product(axis=1)
+
+            probabilities /= probabilities.sum()
+
+            return ProbabilityMeasure(
+                domain=domain,
+                mapping=probabilities,
+                name="Q",
             )
 
-        if self._emms is None:
-            T = self.time[1:]
+        else:
 
-            def mapping(*, theta, sample):
+            def mapping(*, theta, omega):
                 q_u, q_m, q_d = self.risk_neutral_probs(theta=theta)
 
-                prob_measure = IIDProcess.generate(
-                    mode="enum",
-                    distribution=multinomial(1, [q_u, q_m, q_d]),
-                    support=[0, 1, 2],
-                    index=T,
-                ).prob_measure
+                probabilities = pd.DataFrame(
+                    list(product([q_u, q_m, q_d], repeat=num_steps)), index=domain.data
+                ).product(axis=1)
 
-                return prob_measure(sample)
+                probabilities /= probabilities.sum()
 
-            self._emms = ParametrizedProbabilityMeasure(
-                domain=self.sample_space, mapping=mapping, name="Q"
+                return probabilities.loc[omega]
+
+            return ParametrizedProbabilityMeasure.from_domains(
+                measure_domain=self.domain,
+                mapping=mapping,
+                parameter_names=["theta"],
+                name="Q",
             )
 
-        return self._emms
-
-    def price(self, claim):
+    def price(self, claim: Claim, theta: Real, **kwargs) -> Real:
         """Pass."""
-        return super().price(claim)
+        from ...core.measures.probability_measure import ProbabilityMeasure
 
-    def price_process(self, claim):
-        """Pass."""
-        return super().price_process(claim)
+        if not claim.is_early_exercise:
+            num_steps = len(self._index) - 1
+            domain = self.domain
+            risk_neutral_probs = self.risk_neutral_probs(theta=theta)
 
-    def delta(self, claim):
-        """Pass."""
-        return super().delta(claim)
+            probabilities = pd.DataFrame(
+                list(product(list(risk_neutral_probs), repeat=num_steps)),
+                index=domain.data,
+            ).product(axis=1)
+            probabilities /= probabilities.sum()
+            Q = ProbabilityMeasure(
+                domain=domain,
+                mapping=probabilities,
+                name="Q",
+            )
 
-    def replicating_portfolio(self, claim):
+            T = self.time[-1]
+            R = self.risk_free_gross_return
+            Phi_T = claim.last_rv
+            return (Phi_T.expectation(measure=Q).item() / R**T).astype(Real)
+        else:
+            self._compute_pricing_data(claim=claim, theta=theta)
+            return claim.pricing_data[theta].price
+
+    def price_process(self, claim: Claim, theta: Real, **kwargs) -> StochasticProcess:
         """Pass."""
-        return super().replicating_portfolio(claim)
+        self._compute_pricing_data(claim=claim, theta=theta)
+        return claim.pricing_data[theta].price_process
+
+    def continuation_process(
+        self, claim: Claim, theta: Real, **kwargs
+    ) -> StochasticProcess:
+        """Pass."""
+        self._compute_pricing_data(claim=claim, theta=theta)
+        return claim.pricing_data[theta].continuation_process
+
+    def exercise_time(self, claim: Claim, theta: Real, **kwargs) -> StoppingTime:
+        """Pass."""
+        self._compute_pricing_data(claim=claim, theta=theta)
+        return claim.pricing_data[theta].exercise_time
+
+    def _compute_pricing_data(self, claim: Claim, theta: Real, **kwargs) -> None:
+        from ..claims.claim import Claim
+
+        if hasattr(claim, "_pricing_data") and theta in claim._pricing_data.keys():
+            return claim._pricing_data[theta]
+
+        if claim.model is not self and not claim.is_adapted(self.natural_filtration):
+            raise ValueError(
+                "The claim must be adapated to the natural filtration of the binomial model."
+            )
+
+        T = self.time[-1]
+        X_arr, V_arr, tau_arr = self._initialize_pricing_arrays()
+        risk_neutral_probs = self.risk_neutral_probs(theta=theta)
+
+        X_arr[:, -1] = claim.last_rv
+        V_arr[:, -1] = claim.last_rv
+        tau_arr[:, -1] = np.where(X_arr[:, -1] == 0, 0, 1)
+        Phi_arr = claim.to_numpy()
+
+        for t in reversed(range(T)):
+            X_forward, Phi_curr = self._extract_tree_nodes(
+                t=t, X_arr=X_arr, Phi_arr=Phi_arr
+            )
+
+            X_curr, V_curr, tau_curr = self._backward_induction(
+                X_forward=X_forward,
+                Phi_curr=Phi_curr,
+                risk_neutral_probs=risk_neutral_probs,
+            )
+
+            X_arr[:, t], V_arr[:, t], tau_arr[:, t] = self._broadcast_node_values(
+                t=t, X_curr=X_curr, V_curr=V_curr, tau_curr=tau_curr
+            )
+
+        tau_arr = np.where(
+            tau_arr.max(axis=1) == 0,
+            np.inf,
+            np.argmax(tau_arr, axis=1),
+        )
+
+        X, V, tau = self._convert_pricing_arrays_to_processes(
+            X_arr=X_arr, V_arr=V_arr, tau_arr=tau_arr
+        )
+
+        pricing_data = Claim.PricingData(
+            price=X[claim.time[0]].item(),
+            price_process=X,
+            continuation_process=V,
+            exercise_time=tau,
+        )
+
+        if hasattr(claim, "_pricing_data"):
+            claim._pricing_data[theta] = pricing_data
+        else:
+            claim._pricing_data = {theta: pricing_data}
+
+    def _initialize_pricing_arrays(
+        self,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        T = self.time[-1]
+        X_arr = np.zeros(shape=(3**T, T + 1))
+        V_arr = np.zeros(shape=(3**T, T + 1))
+        tau_arr = np.zeros(shape=(3**T, T + 1))
+
+        return X_arr, V_arr, tau_arr
+
+    def _extract_tree_nodes(
+        self,
+        t: int,
+        X_arr: np.ndarray,
+        Phi_arr: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        T = self.time[-1]
+        X_forward = X_arr[:: (3 ** (T - t - 1)), t + 1]  # shape (3^(t+1),)
+        Phi_curr = Phi_arr[:: (3 ** (T - t)), t]  # shape (3^t,)
+
+        return X_forward, Phi_curr
+
+    def _backward_induction(
+        self,
+        X_forward: np.ndarray,
+        Phi_curr: np.ndarray,
+        risk_neutral_probs: tuple[Real, Real, Real],
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        R = self.risk_free_gross_return
+        V_curr = (X_forward.reshape(-1, 3) @ np.array(risk_neutral_probs)) / R
+        X_curr = np.maximum(Phi_curr, V_curr)
+        tau_curr = Phi_curr > V_curr
+
+        return X_curr, V_curr, tau_curr
+
+    def _broadcast_node_values(
+        self,
+        t: int,
+        X_curr: np.ndarray,
+        V_curr: np.ndarray,
+        tau_curr: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        T = self.time[-1]
+
+        # all have shape (3^T,)
+        X = np.repeat(X_curr, repeats=3 ** (T - t))
+        V = np.repeat(V_curr, repeats=3 ** (T - t))
+        tau = np.repeat(tau_curr, repeats=3 ** (T - t))
+
+        return X, V, tau
+
+    def _convert_pricing_arrays_to_processes(
+        self,
+        X_arr: np.ndarray,
+        V_arr: np.ndarray,
+        tau_arr: np.ndarray,
+    ) -> tuple[
+        StochasticProcess,
+        StochasticProcess,
+        StoppingTime,
+    ]:
+        from ...processes.base.stochastic_process import StochasticProcess
+        from ...processes.stopping_times.stopping_time import StoppingTime
+
+        X_data = pd.DataFrame(X_arr, index=self.domain.data, columns=self.time.data)
+        X = StochasticProcess._from_validated(
+            data=X_data,
+            sig_alg=self.sig_alg,
+            measure=self.measure,
+            index_kind=self.index_kind,
+            index_name=self.index_name,
+            name="X",
+        )
+
+        V_data = pd.DataFrame(V_arr, index=self.domain.data, columns=self.time.data)
+        V = StochasticProcess._from_validated(
+            data=V_data,
+            sig_alg=self.sig_alg,
+            measure=self.measure,
+            index_kind=self.index_kind,
+            index_name=self.index_name,
+            name="V",
+        )
+
+        tau = StoppingTime.from_filtration(process=self, mapping=tau_arr, name="tau")
+
+        return X, V, tau
+
+    def delta(self, *args, **kwargs) -> None:
+        """Pass."""
+        raise NotImplementedError(
+            "Trinomial models are not complete. Delta processes do not exist."
+        )
+
+    def replicating_portfolio(self, *args, **kwargs) -> None:
+        """Pass."""
+        raise NotImplementedError(
+            "Trinomial models are not complete. Replicating portfolios do not exist."
+        )
 
     # --------------------- enumeration methods --------------------- #
 

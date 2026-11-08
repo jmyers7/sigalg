@@ -14,21 +14,21 @@ class DiscretePricingModel(StochasticProcess, ABC):
     _str_name = "Discrete pricing model"
 
     @abstractmethod
-    def price(self, claim: Claim) -> Real:
+    def price(self, claim: Claim, **kwargs) -> Real:
         """Pass."""
         ...
 
     @abstractmethod
-    def price_process(self, claim: Claim) -> StochasticProcess:
+    def price_process(self, claim: Claim, **kwargs) -> StochasticProcess:
         """Pass."""
         ...
 
     @abstractmethod
-    def delta(self, claim: Claim) -> StochasticProcess:
+    def delta(self, claim: Claim, **kwargs) -> StochasticProcess:
         """Pass."""
         ...
 
     @abstractmethod
-    def replicating_portfolio(self, claim: Claim):
+    def replicating_portfolio(self, claim: Claim, **kwargs):
         """Pass."""
         ...

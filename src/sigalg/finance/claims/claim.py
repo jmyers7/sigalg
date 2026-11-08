@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
     from collections.abc import Hashable
 
     from ...core.functions.random_variable import RandomVariable
+    from ...processes.stopping_times import StoppingTime
     from ..discrete_pricing_models.discrete_pricing_model import DiscretePricingModel
     from .american_option import AmericanOption
     from .asian_option import AsianOption
@@ -24,6 +26,17 @@ class Claim(StochasticProcess):
 
     _repr_name = "Claim"
     _str_name = "Claim"
+
+    @dataclass
+    class PricingData:
+        """Pass."""
+
+        price: Real | None = None
+        price_process: StochasticProcess | None = None
+        continuation_process: StochasticProcess | None = None
+        Delta: StochasticProcess | None = None
+        B: StochasticProcess | None = None
+        exercise_time: StoppingTime | None = None
 
     # --------------------- constructors --------------------- #
 
@@ -322,6 +335,14 @@ class Claim(StochasticProcess):
         """Pass."""
         return not bool((self.data.iloc[:, :-1] == 0).all().all())
 
+    @property
+    def pricing_data(self) -> PricingData | dict[Real, PricingData] | None:
+        """Pass."""
+        if not hasattr(self, "_pricing_data"):
+            raise ValueError("Pricing data has not yet been computed for this claim.")
+        else:
+            return self._pricing_data
+
     # --------------------- types --------------------- #
 
     @classmethod
@@ -576,18 +597,25 @@ class Claim(StochasticProcess):
 
     # --------------------- finance methods --------------------- #
 
-    def price(self) -> Real:
+    def price(self, **kwargs) -> Real:
         """Pass."""
-        return self.model.price(claim=self)
+        if hasattr(self, "_price"):
+            return self._price
+        else:
+            return self.model.price(claim=self, **kwargs)
 
-    def price_process(self) -> Real:
+    def price_process(self, **kwargs) -> StochasticProcess:
         """Pass."""
-        return self.model.price_process(claim=self)
+        return self.model.price_process(claim=self, **kwargs)
 
-    def delta(self) -> StochasticProcess:
+    def exercise_time(self, **kwargs) -> StoppingTime:
         """Pass."""
-        return self.model.delta(claim=self)
+        return self.model.exercise_time(claim=self, **kwargs)
 
-    def replicating_portfolio(self) -> Real:
+    def delta(self, **kwargs) -> StochasticProcess:
         """Pass."""
-        return self.model.replicating_portfolio(claim=self)
+        return self.model.delta(claim=self, **kwargs)
+
+    def replicating_portfolio(self, **kwargs):
+        """Pass."""
+        return self.model.replicating_portfolio(claim=self, **kwargs)

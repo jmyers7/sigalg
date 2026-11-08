@@ -238,7 +238,8 @@ class ProcessTransforms:
     def discount(
         cls,
         process: StochasticProcess,
-        rate: Real,
+        rate: Real | None = None,
+        gross_return: Real | None = None,
         name: Hashable | None = None,
     ) -> StochasticProcess:
         r"""Return the discounted process of a given stochastic process.
@@ -249,8 +250,10 @@ class ProcessTransforms:
         ----------
         process : StochasticProcess
             The original process to be discounted.
-        rate : Real
-            The discount rate.
+        rate : Real | None, default=None
+            The per-period rate. If `None`, the gross return must be given.
+        gross_return : Real | None, default=None
+            The per-period gross return. If `None`, the rate must be given.
         name : Hashable | None, default=None
             The name of the discounted process. If `None`, a default name will be generated.
 
@@ -288,23 +291,30 @@ class ProcessTransforms:
         The *discounted process* is given by
 
         $$
-        \tilde{S}_t = \frac{S_t}{(1+r)^t},
+        \tilde{S}_t = \frac{S_t}{R^t},
         $$
 
-        where $S_t$ is the original process and $r$ is the discount rate.
+        where $S_t$ is the original process and $R = 1 + r$ is the gross return and $r$ is the rate.
         """
         from ..base.stochastic_process import StochasticProcess
 
         if not isinstance(process, StochasticProcess):
             raise TypeError("process must be an instance of StochasticProcess.")
-        if not isinstance(rate, Real):
-            raise TypeError("rate must be a real number.")
-        if rate <= 0:
-            raise ValueError("rate must be positive.")
+        if rate is not None and (not isinstance(rate, Real) or rate <= 0):
+            raise TypeError("rate must be a positive real number.")
+        if gross_return is not None and (
+            not isinstance(gross_return, Real) or gross_return <= 1
+        ):
+            raise TypeError("The gross return must be a real number greater than 1.")
+        if rate is None and gross_return is None:
+            raise TypeError("One of rate or gross_return must be given.")
         if name is not None and not isinstance(name, Hashable):
             raise TypeError("name must be a hashable object or None.")
 
-        discount_factors = (1 + rate) ** (-process.time.data)
+        if gross_return is None:
+            gross_return = 1 + rate
+
+        discount_factors = gross_return ** (-process.time.data)
         discounted_data = process.data.multiply(discount_factors, axis=1)
 
         return StochasticProcess._from_validated(
@@ -1037,7 +1047,12 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.remove_rv(self, time=time, pos=pos, name=name)
 
-    def discount(self, rate: float, name: Hashable | None = None) -> StochasticProcess:
+    def discount(
+        self,
+        rate: Real | None = None,
+        gross_return: Real | None = None,
+        name: Hashable | None = None,
+    ) -> StochasticProcess:
         r"""Return the discounted process of the stochastic process.
 
         Internally calls `ProcessTransforms.discount`.
@@ -1046,8 +1061,10 @@ class ProcessTransformMethods:
 
         Parameters
         ----------
-        rate : Real
-            The discount rate.
+        rate : Real | None, default=None
+            The per-period rate. If `None`, the gross return must be given.
+        gross_return : Real | None, default=None
+            The per-period gross return. If `None`, the rate must be given.
         name : Hashable | None, default=None
             The name of the discounted process. If `None`, a default name will be generated.
 
@@ -1085,12 +1102,14 @@ class ProcessTransformMethods:
         The discounted process is given by
 
         $$
-        \tilde{S}_t = \frac{S_t}{(1+r)^t},
+        \tilde{S}_t = \frac{S_t}{R^t},
         $$
 
-        where $S_t$ is the original process and $r$ is the discount rate.
+        where $S_t$ is the original process and $R = 1 + r$ is the gross return and $r$ is the rate.
         """
-        return ProcessTransforms.discount(self, rate=rate, name=name)
+        return ProcessTransforms.discount(
+            self, rate=rate, gross_return=gross_return, name=name
+        )
 
     # TODO: update docstrings
     def increments(
