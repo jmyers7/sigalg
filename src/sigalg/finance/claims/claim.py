@@ -7,12 +7,12 @@ from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
 
-from ....processes.base.stochastic_process import StochasticProcess
+from ...processes.base.stochastic_process import StochasticProcess
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-    from ....core.functions.random_variable import RandomVariable
+    from ...core.functions.random_variable import RandomVariable
     from ..discrete_pricing_models.discrete_pricing_model import DiscretePricingModel
     from .american_option import AmericanOption
     from .asian_option import AsianOption
@@ -258,8 +258,8 @@ class Claim(StochasticProcess):
         6      0.0  0.0   0.0   0.0
         7      0.0  0.0   0.0   0.0
         """
-        from ....core.functions.random_variable import RandomVariable
-        from ....core.indices.time import Time
+        from ...core.functions.random_variable import RandomVariable
+        from ...core.indices.time import Time
         from ..discrete_pricing_models.discrete_pricing_model import (
             DiscretePricingModel,
         )

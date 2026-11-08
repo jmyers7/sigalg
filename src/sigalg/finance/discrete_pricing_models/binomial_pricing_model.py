@@ -14,11 +14,11 @@ from .discrete_pricing_model import DiscretePricingModel
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-    from ....core.measures.probability_measure import ProbabilityMeasure
-    from ....core.spaces.domain import Domain
-    from ....processes.base.stochastic_process import StochasticProcess
-    from ....processes.stopping_times.stopping_time import StoppingTime
-    from ....typing.index_like import IndexLike
+    from ...core.measures.probability_measure import ProbabilityMeasure
+    from ...core.spaces.domain import Domain
+    from ...processes.base.stochastic_process import StochasticProcess
+    from ...processes.stopping_times.stopping_time import StoppingTime
+    from ...typing.index_like import IndexLike
     from ..claims.claim import Claim
 
 
@@ -153,34 +153,64 @@ class BinomialPricingModel(DiscretePricingModel):
         --------
         >>> from sigalg.finance import BinomialPricingModel
 
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 2
-
-        Exhaustively generate all price trajectories and print them.
+        Given parameters of a binomial model, enumerate all length-3 price trajectories in `dense` enumeration mode.
 
         >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
+        ...     initial_price=100,
+        ...     risk_free_rate=0.01,
+        ...     up_factor=1.1,
+        ...     up_prob=0.7,
+        ...     length=3,
+        ...     enum_mode="dense",
         ...     mode="enum",
-        ...     length=T,
         ... )
         >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
         Binomial price process 'S':
-        t          0      1      2
+        t          0           1           2           3
         omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   99.0
-        2      100.0   90.0   99.0
-        3      100.0   90.0   81.0
+        0      100.0  110.000000  121.000000  133.100000
+        1      100.0  110.000000  121.000000  110.000000
+        2      100.0  110.000000  100.000000  110.000000
+        3      100.0  110.000000  100.000000   90.909091
+        4      100.0   90.909091  100.000000  110.000000
+        5      100.0   90.909091  100.000000   90.909091
+        6      100.0   90.909091   82.644628   90.909091
+        7      100.0   90.909091   82.644628   75.131480
+
+        Enumerate all length-3 price trajectories in `sparse` enumeration mode.
+
+        >>> S.enum_mode = "sparse"
+        >>> S.regenerate()
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0           1           2           3
+        omega
+        0      100.0  110.000000  121.000000  133.100000
+        1      100.0   90.909091  100.000000  110.000000
+        2      100.0   90.909091   82.644628   90.909091
+        3      100.0   90.909091   82.644628   75.131480
+
+        Simulate ten length-3 trajectories in `sim` mode.
+
+        >>> S.n_trajectories = 10
+        >>> S.random_state = 42
+        >>> S.mode = "sim"
+        >>> S.regenerate()
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0           1           2           3
+        omega
+        0      100.0   90.909091  100.000000   90.909091
+        1      100.0  110.000000  121.000000  110.000000
+        2      100.0   90.909091   82.644628   90.909091
+        3      100.0  110.000000  121.000000  110.000000
+        4      100.0  110.000000  100.000000  110.000000
+        5      100.0  110.000000  121.000000  133.100000
+        6      100.0   90.909091  100.000000   90.909091
+        7      100.0  110.000000  100.000000   90.909091
+        8      100.0   90.909091  100.000000  110.000000
+        9      100.0  110.000000  121.000000  133.100000
+
         """
         if not isinstance(initial_price, Real) or initial_price <= 0:
             raise TypeError("initial_price must be a positive real number.")
@@ -198,10 +228,10 @@ class BinomialPricingModel(DiscretePricingModel):
             raise TypeError(
                 "One of risk_free_rate or risk_free_gross_return must be given."
             )
-        if not isinstance(up_factor, Real) or up_factor <= 1:
-            raise TypeError("up_factor must be a real number greater than 1.")
         if not isinstance(up_prob, Real) or not (0 < up_prob < 1):
             raise TypeError("up_prob must be a probability in the interval (0, 1).")
+        if not isinstance(up_factor, Real) or up_factor <= 1:
+            raise TypeError("up_factor must be a real number greater than 1.")
         if down_factor is not None:
             if not isinstance(down_factor, Real) or not (0 < down_factor < 1):
                 raise TypeError(
@@ -212,15 +242,12 @@ class BinomialPricingModel(DiscretePricingModel):
 
         if down_factor is None:
             down_factor = 1 / up_factor
-        if risk_free_gross_return is None:
-            risk_free_gross_return = 1 + risk_free_rate
         if risk_free_rate is None:
             risk_free_rate = risk_free_gross_return - 1
 
         return {
             "initial_price": initial_price,
             "risk_free_rate": risk_free_rate,
-            "risk_free_gross_return": risk_free_gross_return,
             "up_prob": up_prob,
             "up_factor": up_factor,
             "down_factor": down_factor,
@@ -309,7 +336,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Examples
         --------
-        >>> from sigalg.finance import BinomialPricingModel
+        >>> from sigalg.finance import BinomialPricingModel, Claim
 
         Define the parameters of a binomial pricing model.
 
@@ -340,18 +367,29 @@ class BinomialPricingModel(DiscretePricingModel):
         2      100.0   90.0   99.0
         3      100.0   90.0   81.0
 
-        Reset the initial price and regenerate new price trajectories.
+        Define a European call option.
 
-        >>> S.initial_price = 120
-        >>> S.regenerate()
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
+        >>> Phi = Claim.european_option(strike=100, model=S)
+        >>> print(Phi)  # doctest: +NORMALIZE_WHITESPACE
+        European option 'Phi':
+        t        0    1     2
         omega
-        0      120.0  132.0  145.2
-        1      120.0  132.0  118.8
-        2      120.0  108.0  118.8
-        3      120.0  108.0   97.2
+        0      0.0  0.0  21.0
+        1      0.0  0.0   0.0
+        2      0.0  0.0   0.0
+        3      0.0  0.0   0.0
+
+        Compute the risk-neutral price of the option with respect to the risk-free rate given above.
+
+        >>> print(Phi.price())
+        10.714285714285719
+
+        Reset the risk-free rate, regenerate trajectories, and compute the new risk-neutral price.
+
+        >>> S.risk_free_rate = 0.025
+        >>> S.regenerate()
+        >>> print(Phi.price())
+        7.807852468768577
         """
         return self._risk_free_rate
 
@@ -361,72 +399,6 @@ class BinomialPricingModel(DiscretePricingModel):
         if not isinstance(value, Real) or value <= 0:
             raise TypeError("risk_free_rate must be a positive real number.")
         self._risk_free_rate = value
-
-    @property
-    def up_factor(self) -> Real | None:
-        """Get the up-factor of the model.
-
-        This attribute is settable. See the Examples below.
-
-        Returns
-        -------
-        up_factor : Real
-            The up-factor of the model.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 2
-
-        Exhaustively generate all price trajectories and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   99.0
-        2      100.0   90.0   99.0
-        3      100.0   90.0   81.0
-
-        Reset the up-factor and regenerate new price trajectories.
-
-        >>> S.up_factor = 1.2
-        >>> S.regenerate()
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  120.0  144.0
-        1      100.0  120.0  108.0
-        2      100.0   90.0  108.0
-        3      100.0   90.0   81.0
-        """
-        return self._up_factor
-
-    @up_factor.setter
-    def up_factor(self, value: Real) -> None:
-        """Set the up-factor of the model."""
-        if not isinstance(value, Real) or value <= 1:
-            raise TypeError("up_factor must be a real number greater than 1.")
-        self._up_factor = value
 
     @property
     def up_prob(self) -> Real | None:
@@ -517,6 +489,72 @@ class BinomialPricingModel(DiscretePricingModel):
         return 1 - self.up_prob
 
     @property
+    def up_factor(self) -> Real | None:
+        """Get the up-factor of the model.
+
+        This attribute is settable. See the Examples below.
+
+        Returns
+        -------
+        up_factor : Real
+            The up-factor of the model.
+
+        Examples
+        --------
+        >>> from sigalg.finance import BinomialPricingModel
+
+        Define the parameters of a binomial pricing model.
+
+        >>> S_0 = 100
+        >>> r = 0.05
+        >>> p = 0.55
+        >>> u = 1.1
+        >>> d = 0.9
+        >>> T = 2
+
+        Exhaustively generate all price trajectories and print them.
+
+        >>> S = BinomialPricingModel.generate(
+        ...     initial_price=S_0,
+        ...     risk_free_rate=r,
+        ...     up_prob=p,
+        ...     up_factor=u,
+        ...     down_factor=d,
+        ...     mode="enum",
+        ...     length=T,
+        ... )
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0      1      2
+        omega
+        0      100.0  110.0  121.0
+        1      100.0  110.0   99.0
+        2      100.0   90.0   99.0
+        3      100.0   90.0   81.0
+
+        Reset the up-factor and regenerate new price trajectories.
+
+        >>> S.up_factor = 1.2
+        >>> S.regenerate()
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0      1      2
+        omega
+        0      100.0  120.0  144.0
+        1      100.0  120.0  108.0
+        2      100.0   90.0  108.0
+        3      100.0   90.0   81.0
+        """
+        return self._up_factor
+
+    @up_factor.setter
+    def up_factor(self, value: Real) -> None:
+        """Set the up-factor of the model."""
+        if not isinstance(value, Real) or value <= 1:
+            raise TypeError("up_factor must be a real number greater than 1.")
+        self._up_factor = value
+
+    @property
     def down_factor(self) -> Real | None:
         """Get the down-factor of the model.
 
@@ -578,16 +616,79 @@ class BinomialPricingModel(DiscretePricingModel):
     @down_factor.setter
     def down_factor(self, value: Real) -> None:
         """Set the down-factor of the model."""
+        if not isinstance(value, Real) or not (0 < value < 1):
+            raise TypeError("down_factor must be a real number between 0 and 1.")
         self._down_factor = value
 
     @property
     def enum_mode(self) -> Literal["dense", "sparse"] | None:
-        """Pass."""
+        """Get the enumeration mode of the model.
+
+        This attribute is settable. See the Examples below.
+
+        Returns
+        -------
+        enum_mode : Literal["dense", "sparse"]
+            The enumeration mode of the model.
+
+        Examples
+        --------
+        >>> from sigalg.finance import BinomialPricingModel
+
+        Define the parameters of a binomial pricing model.
+
+        >>> S_0 = 100
+        >>> r = 0.05
+        >>> p = 0.55
+        >>> u = 1.1
+        >>> d = 0.9
+        >>> T = 3
+
+        Exhaustively generate all price trajectories in `dense` enumeration mode and print them.
+
+        >>> S = BinomialPricingModel.generate(
+        ...     initial_price=S_0,
+        ...     risk_free_rate=r,
+        ...     up_prob=p,
+        ...     up_factor=u,
+        ...     down_factor=d,
+        ...     enum_mode="dense",
+        ...     mode="enum",
+        ...     length=T,
+        ... )
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0      1      2      3
+        omega
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  108.9
+        2      100.0  110.0   99.0  108.9
+        3      100.0  110.0   99.0   89.1
+        4      100.0   90.0   99.0  108.9
+        5      100.0   90.0   99.0   89.1
+        6      100.0   90.0   81.0   89.1
+        7      100.0   90.0   81.0   72.9
+
+        Reset the enumeration mode, regenerate the trajectories, and print them.
+
+        >>> S.enum_mode = "sparse"
+        >>> S.regenerate()
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0      1      2      3
+        omega
+        0      100.0  110.0  121.0  133.1
+        1      100.0   90.0   99.0  108.9
+        2      100.0   90.0   81.0   89.1
+        3      100.0   90.0   81.0   72.9
+        """
         return self._enum_mode
 
     @enum_mode.setter
     def enum_mode(self, value: Literal["dense", "sparse"]) -> None:
-        """Pass."""
+        """Set the enumeration mode of the model."""
+        if value not in ["dense", "sparse"]:
+            raise ValueError("The enumeration mode must be either 'dense' or 'sparse'.")
         self._enum_mode = value
 
     @property
@@ -603,7 +704,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Examples
         --------
-        >>> from sigalg.finance import BinomialPricingModel
+        >>> from sigalg.finance import BinomialPricingModel, Claim
 
         Define the parameters of a binomial pricing model.
 
@@ -634,12 +735,31 @@ class BinomialPricingModel(DiscretePricingModel):
         2      100.0   90.0   99.0
         3      100.0   90.0   81.0
 
-        Print the per-period risk-free gross return.
+        Define a European call option.
 
-        >>> S.risk_free_gross_return
-        1.05
+        >>> Phi = Claim.european_option(strike=100, model=S)
+        >>> print(Phi)  # doctest: +NORMALIZE_WHITESPACE
+        European option 'Phi':
+        t        0    1     2
+        omega
+        0      0.0  0.0  21.0
+        1      0.0  0.0   0.0
+        2      0.0  0.0   0.0
+        3      0.0  0.0   0.0
+
+        Compute the risk-neutral price of the option with respect to the risk-free rate given above.
+
+        >>> print(Phi.price())
+        10.714285714285719
+
+        Reset the risk-free gross return, regenerate trajectories, and compute the new risk-neutral price.
+
+        >>> S.risk_free_gross_return = 1.025
+        >>> S.regenerate()
+        >>> print(Phi.price())
+        7.807852468768577
         """
-        return self._risk_free_gross_return
+        return 1 + self.risk_free_rate
 
     @risk_free_gross_return.setter
     def risk_free_gross_return(self, value: Real) -> None:
@@ -648,9 +768,10 @@ class BinomialPricingModel(DiscretePricingModel):
             raise ValueError(
                 "The risk-free gross return must be a real number greater than 1."
             )
-        self._risk_free_gross_return = value
+        self._risk_free_rate = value - 1
 
-    @property
+    # --------------------- finance methods --------------------- #
+
     def risk_neutral_probs(self) -> tuple[Real, Real]:
         """Get the risk-neutral probabilities of the model.
 
@@ -694,7 +815,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Get the risk-neutral probabilities of the model.
 
-        >>> S.risk_neutral_probs
+        >>> S.risk_neutral_probs()
         (0.7499999999999999, 0.2500000000000001)
         """
         R, u, d = self.risk_free_gross_return, self.up_factor, self.down_factor
@@ -705,7 +826,7 @@ class BinomialPricingModel(DiscretePricingModel):
             )
         if R <= d or R >= u:
             raise ValueError(
-                "The following no-arbitrage condition violated: down_factor < risk_free_gross_return < up_factor"
+                "There is arbitrage in the model. The risk-free gross return R must be in the interval [down_factor, up_factor]."
             )
 
         q_u = (R - d) / (u - d)
@@ -713,8 +834,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         return q_u, q_d
 
-    @property
-    def emm(self) -> ProbabilityMeasure:
+    def emms(self) -> ProbabilityMeasure:
         """Get the equivalent martingale measure of the model.
 
         Returns
@@ -757,7 +877,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Print the equivalent martingale measure.
 
-        >>> print(S.emm)  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(S.emms())  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'Q':
                     Q
         omega
@@ -766,11 +886,11 @@ class BinomialPricingModel(DiscretePricingModel):
         2      0.1875
         3      0.0625
         """
-        from ....core.measures.probability_measure import ProbabilityMeasure
+        from ...core.measures.probability_measure import ProbabilityMeasure
 
         num_steps = len(self._index) - 1
         domain = self.domain
-        q = self.risk_neutral_probs[0]
+        q = self.risk_neutral_probs()[0]
 
         if self.enum_mode == "sparse":
             # self._emms = self._generate_prob_measure(
@@ -791,32 +911,6 @@ class BinomialPricingModel(DiscretePricingModel):
                 name="Q",
             )
 
-    @property
-    def sparse_price_array(self) -> np.ndarray | None:
-        """Pass."""
-        u = self.up_factor
-        d = self.down_factor
-        T = self._index[-1]
-
-        total_powers = np.tile(np.array(range(1, T + 1)), reps=[T + 1, 1])
-        self._u_powers = np.maximum(
-            0, total_powers - np.array(range(T + 1)).reshape(-1, 1)
-        )
-        self._d_powers = total_powers - self._u_powers
-
-        price_factors = (np.ones(shape=(T + 1, T)) * u**self._u_powers) * (
-            np.ones(shape=(T + 1, T)) * d**self._d_powers
-        )
-
-        return self.initial_price * np.insert(
-            arr=price_factors,
-            obj=[0],
-            values=np.ones(shape=(T + 1, 1)),
-            axis=1,
-        )
-
-    # --------------------- finance methods --------------------- #
-
     def price(self, claim: Claim) -> Real:
         """Pass."""
         if claim.model is not self and not claim.is_adapted(self.natural_filtration):
@@ -828,7 +922,7 @@ class BinomialPricingModel(DiscretePricingModel):
             T = self.time[-1]
             R = self.risk_free_gross_return
             Phi_T = claim.last_rv
-            Q = self.emm
+            Q = self.emms()
 
             return Phi_T.expectation(measure=Q).item() / R**T
 
@@ -1199,7 +1293,7 @@ class BinomialPricingModel(DiscretePricingModel):
         Phi_curr: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         R = self.risk_free_gross_return
-        q = self.risk_neutral_probs[0]
+        q = self.risk_neutral_probs()[0]
 
         if enum_mode == "dense":
             V_curr = (X_forward.reshape(-1, 2) @ np.array([q, 1 - q])) / R
@@ -1266,8 +1360,8 @@ class BinomialPricingModel(DiscretePricingModel):
         StochasticProcess,
         StoppingTime,
     ]:
-        from ....processes.base.stochastic_process import StochasticProcess
-        from ....processes.stopping_times.stopping_time import StoppingTime
+        from ...processes.base.stochastic_process import StochasticProcess
+        from ...processes.stopping_times.stopping_time import StoppingTime
 
         B = StochasticProcess(
             *self.prob_space,
@@ -1312,7 +1406,28 @@ class BinomialPricingModel(DiscretePricingModel):
             A data frame containing the trajectories of the stochastic process.
         """  # noqa: D401
         if self.enum_mode == "sparse":
-            return pd.DataFrame(self.sparse_price_array)
+            u = self.up_factor
+            d = self.down_factor
+            T = self._index[-1]
+
+            total_powers = np.tile(np.array(range(1, T + 1)), reps=[T + 1, 1])
+            self._u_powers = np.maximum(
+                0, total_powers - np.array(range(T + 1)).reshape(-1, 1)
+            )
+            self._d_powers = total_powers - self._u_powers
+
+            price_factors = (np.ones(shape=(T + 1, T)) * u**self._u_powers) * (
+                np.ones(shape=(T + 1, T)) * d**self._d_powers
+            )
+
+            sparse_price_array = self.initial_price * np.insert(
+                arr=price_factors,
+                obj=[0],
+                values=np.ones(shape=(T + 1, 1)),
+                axis=1,
+            )
+
+            return pd.DataFrame(sparse_price_array)
 
         elif self.enum_mode == "dense":
             time = self._index[1:].data
@@ -1346,7 +1461,7 @@ class BinomialPricingModel(DiscretePricingModel):
         """
         from scipy.stats import binom
 
-        from ....core.measures.probability_measure import ProbabilityMeasure
+        from ...core.measures.probability_measure import ProbabilityMeasure
 
         num_steps = len(self._index) - 1
         T = self._index[-1]

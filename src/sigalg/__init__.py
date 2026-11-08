@@ -26,11 +26,8 @@ from .core import (
     Time,
 )
 from .finance import (
-    AmericanOption,
-    AsianOption,
     BinomialPricingModel,
     Claim,
-    EuropeanOption,
     TrinomialPricingModel,
 )
 from .processes import (

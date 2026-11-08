@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from numbers import Real
 
-from ....processes.base.stochastic_process import StochasticProcess
+from ...processes.base.stochastic_process import StochasticProcess
 from ..claims.claim import Claim
 
 
