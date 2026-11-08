@@ -83,10 +83,14 @@ class ParametrizedDomainConstructor(BaseModel):
                 else self.complete_domain.name
             )
 
-        elif self.parameter_domain is not None:
-            raise TypeError("Cannot pass both parameter_domain and complete_domain.")
+        elif self.complete_domain is not None and (
+            self.parameter_domain is not None or self.component_domain is not None
+        ):
+            raise TypeError(
+                "Cannot pass both complete_domain and (parameter_domain or measure_domain)."
+            )
 
-        else:
+        elif self.complete_domain is not None:
             if self.complete_domain_name is not None:
                 self.complete_domain.name = self.complete_domain_name
             else:

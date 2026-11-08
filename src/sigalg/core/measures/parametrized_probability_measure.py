@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class ParametrizedProbabilityMeasure(ParametrizedMeasure):
     r"""A class representing a parametrized probability measure.
 
-    The `__init__` constructor is not meant to be used directly. Instead, the user should use the `from_domains` class method.
+    The `__init__` constructor is not meant to be used directly. Instead, the user should use the `from_domains` class method. See the Examples section below.
 
     See the Notes section below for the mathematical details.
 

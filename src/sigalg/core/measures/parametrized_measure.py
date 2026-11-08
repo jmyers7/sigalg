@@ -1014,14 +1014,10 @@ class ParametrizedMeasure(Function):
         1   2                           0
         2   3                           7
         """
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.set import Set
         from .measure import Measure
         from .parametrized_probability_measure import ParametrizedProbabilityMeasure
-
-        if self.data is None:
-            raise NotImplementedError(
-                "The __call__ method is not yet implemented for parametrized measures without data."
-            )
 
         measurable_set = None
         if len(args) != 0:
@@ -1076,35 +1072,52 @@ class ParametrizedMeasure(Function):
         if no_specified_atom_ids:
             if no_parameters_specified:
                 name = f"{self.name}({measurable_set.name})"
-                data = (
-                    (self.data * atom_data)
-                    .unstack(level=self.measure_domain_names)
-                    .sum(axis=1)
-                ).rename(name)
 
-                return Function._from_validated(
-                    data=data,
-                    kind="any",
-                    domain_kind="Domain",
-                    domain_name=self.parameter_domain.name,
-                    index_kind="Index",
-                    index_name=None,
-                    name=name,
-                )
+                if isinstance(self.data, pd.Series):
+                    data = (
+                        (self.data * atom_data)
+                        .unstack(level=self.measure_domain_names)
+                        .sum(axis=1)
+                    ).rename(name)
+
+                    return Function._from_validated(
+                        data=data,
+                        kind="any",
+                        domain_kind="Domain",
+                        domain_name=self.parameter_domain.name,
+                        index_kind="Index",
+                        index_name=None,
+                        name=name,
+                    )
+
+                else:
+                    raise NotImplementedError(
+                        "Evaluating a parametrized measure with no parameters given, and without an explicit complete domain, is not yet implemented."
+                    )
 
             else:
                 parameter_string = ", ".join(
                     f"{name}={value}" for name, value in specified_parameters.items()
                 )
                 name = f"{self.name}({parameter_string})"
-                data = self.data.xs(
-                    key=tuple(specified_parameters.values()),
-                    level=tuple(specified_parameters.keys()),
-                ).rename(name)
+
+                if isinstance(self.data, pd.Series):
+                    data = self.data.xs(
+                        key=tuple(specified_parameters.values()),
+                        level=tuple(specified_parameters.keys()),
+                    ).rename(name)
+
+                else:
+                    data = super().__call__(**specified_parameters).data
 
                 if all_parameters_specified:
                     if measurable_set:
-                        return (atom_data * data).sum().astype(Real)
+                        if isinstance(data, pd.Series):
+                            return (atom_data * data).sum().astype(Real)
+                        else:
+                            raise NotImplementedError(
+                                "Evaluating a parametrized measure with all parameters specified and a measurable set, without an explicit complete domain, is not yet implemented."
+                            )
 
                     else:
                         kind = (
@@ -1112,14 +1125,34 @@ class ParametrizedMeasure(Function):
                             if type(self) is ParametrizedProbabilityMeasure
                             else "measure"
                         )
-                        return Measure._from_validated(
-                            data=data,
-                            kind=kind,
-                            sig_alg=self.sig_alg,
-                            name=name,
-                        )
+
+                        if isinstance(data, pd.Series):
+                            return Measure._from_validated(
+                                data=data,
+                                kind=kind,
+                                sig_alg=self.sig_alg,
+                                name=name,
+                            )
+
+                        else:
+                            if isinstance(self.sig_alg, SigmaAlgebra):
+                                return Measure(
+                                    domain=self.sig_alg,
+                                    mapping=data,
+                                    kind=kind,
+                                    name=name,
+                                )
+                            else:
+                                raise NotImplementedError(
+                                    "Evaluating a parametrized measure with all parameters specified, without an explicit complete domain and sigma-algebra, is not yet implemented."
+                                )
 
                 else:
+                    if callable(self.data):
+                        raise NotImplementedError(
+                            "Evaluating a parametrized measure with only a partial set of parameters specified, without an explicit complete domain, is not yet implemented."
+                        )
+
                     parameter_domain_name = (
                         f"{self.parameter_domain_name}|{{{parameter_string}}}"
                     )
@@ -1165,12 +1198,17 @@ class ParametrizedMeasure(Function):
                 result = super().__call__(**kwargs)
 
                 if hasattr(result, "data"):
-                    if isinstance(result.data, pd.Series) and result.data.empty:
-                        return 0.0
-                    else:
-                        result.data.name = result.name
+                    if isinstance(result.data, pd.Series):
+                        if result.data.empty:
+                            return 0.0
+                        else:
+                            result.data.name = result.name
+                            return result
 
-                return result
+                if isinstance(result, np.number):
+                    return result.astype(Real)
+                else:
+                    return result
 
             except Exception as e:
                 raise ValueError(

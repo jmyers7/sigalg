@@ -474,10 +474,10 @@ class MappingValidator(BaseModel):
                         "For each parameter level, the values of the probability measure must sum to 1."
                     )
 
-            else:
-                raise ValueError(
-                    "data must be a pd.Series when kind is 'probability' or 'measure'."
-                )
+            # else:
+            #     raise ValueError(
+            #         "data must be a pd.Series when kind is 'probability' or 'measure'."
+            #     )
 
     @property
     def data(self) -> PandasLike | None:  # noqa: D102
