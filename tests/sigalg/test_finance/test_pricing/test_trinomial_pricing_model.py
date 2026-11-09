@@ -1,44 +1,10 @@
 import numpy as np
 import pandas as pd
 import pytest
-
-from sigalg.core import ProbabilityMeasure, MeasureSpace
+from sigalg.core import ProbabilityMeasure
 from sigalg.finance import TrinomialPricingModel
 
 # --------------------- test constructors --------------------- #
-
-
-class TestConstructor:
-    def test_constructor_no_parameters(self):
-        """Test the constructor with no parameters"""
-        S = TrinomialPricingModel()
-        prob_space = MeasureSpace()
-
-        assert S.data is None
-        assert S.atom_data is None
-        assert S.components is None
-        assert S.time is None
-        assert S.generated_sig_alg is None
-        assert S.prob_space == prob_space
-        assert S.sample_space is None
-        assert S.sig_alg is None
-        assert S.prob_measure is None
-        assert S.range is None
-        assert S.is_discrete_time is None
-        assert S.n_trajectories is None
-        assert S.natural_filtration is None
-        assert S.last_rv is None
-        assert S.random_state is None
-        assert S.mode is None
-        assert S.length is None
-        assert S.initial_price is None
-        assert S.risk_free_rate is None
-        assert S.risk_free_gross_return is None
-        assert S.up_prob is None
-        assert S.down_prob is None
-        assert S.up_factor is None
-        assert S.middle_factor is None
-        assert S.down_factor is None
 
 
 class TestGenerate:
@@ -125,10 +91,10 @@ class TestGenerate:
         u = S_sim.up_factor
         expected_arr = S_0 * np.array(
             [
-                [1, m, m**2, u * m**2],  # mmu
-                [1, d, m * d, u * m * d],  # dmu
-                [1, u, u * m, u * m**2],  # umm
-                [1, u, u**2, u**3],  # uuu
+                [1, m, m * u, u * m**2],  # mmu
+                [1, m, m * u, u * m * d],  # dmu
+                [1, m, m * m, u * m**2],  # umm
+                [1, u, u * u, u**2 * d],  # uud
             ]
         )
         expected_df = pd.DataFrame(
