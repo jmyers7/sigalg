@@ -341,15 +341,6 @@ class IIDProcess(StochasticProcess):
     def _simulation_subclass_hook(self) -> pd.DataFrame:
         """Generate simulated data for the IID process.
 
-        Parameters
-        ----------
-        n_trajectories : int
-            The number of trajectories to simulate.
-        index : Index
-            The index of the stochastic process.
-        random_state : np.random.Generator
-            Random number generator for simulation.
-
         Returns
         -------
         trajectories : pd.DataFrame
