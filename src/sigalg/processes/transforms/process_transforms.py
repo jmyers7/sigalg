@@ -264,27 +264,45 @@ class ProcessTransforms:
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, Time
-        >>> from sigalg.processes import ProcessTransforms, StochasticProcess
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> U = ProbabilityMeasure.uniform(Omega)
-        >>> T = Time.discrete(length=3)
-        >>> X = StochasticProcess.from_time(domain=Omega, measure=U, index=T)
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X':
-        t       0  1  2  3
+        >>> from sigalg.finance import BinomialPricingModel
+        >>> from sigalg.processes import ProcessTransforms
+        >>> S = BinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     up_prob=0.7,
+        ...     up_factor=1.1,
+        ...     down_factor=0.9,
+        ...     risk_free_rate=0.05,
+        ...     mode="enum",
+        ...     length=3,
+        ... )
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0      1      2      3
         omega
-        0       0  1  2  3
-        1       0  1  2  3
-        2       0  1  2  3
-        >>> X_discount = ProcessTransforms.discount(process=X, rate=0.1)
-        >>> print(X_discount)  # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X_discount':
-        t         0         1         2         3
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  108.9
+        2      100.0  110.0   99.0  108.9
+        3      100.0  110.0   99.0   89.1
+        4      100.0   90.0   99.0  108.9
+        5      100.0   90.0   99.0   89.1
+        6      100.0   90.0   81.0   89.1
+        7      100.0   90.0   81.0   72.9
+        >>> S_discount = ProcessTransforms.discount(process=S, rate=0.05)
+        >>> print(S_discount)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'S_discount':
+        t          0           1           2           3
         omega
-        0       0.0  0.909091  1.652893  2.253944
-        1       0.0  0.909091  1.652893  2.253944
-        2       0.0  0.909091  1.652893  2.253944
+        0      100.0  104.761905  109.750567  114.976784
+        1      100.0  104.761905  109.750567   94.071914
+        2      100.0  104.761905   89.795918   94.071914
+        3      100.0  104.761905   89.795918   76.967930
+        4      100.0   85.714286   89.795918   94.071914
+        5      100.0   85.714286   89.795918   76.967930
+        6      100.0   85.714286   73.469388   76.967930
+        7      100.0   85.714286   73.469388   62.973761
+        >>> Q = S.emm()
+        >>> S_discount.is_martingale(prob_measure=Q)
+        True
 
         Notes
         -----
@@ -578,8 +596,6 @@ class ProcessTransforms:
     ) -> StochasticProcess:
         """Compute the Itô integral of a stochastic process with respect to another stochastic process.
 
-        See the Notes section below for the mathematical details.
-
         Parameters
         ----------
         integrand : StochasticProcess
@@ -597,35 +613,26 @@ class ProcessTransforms:
         Examples
         --------
         >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk, StochasticProcess
+        >>> from sigalg.processes import ProcessTransforms, RandomWalk
         >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=T)
+        >>> X = RandomWalk.generate(mode="enum", p=0.6, initial_state=1, index=T)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         t       0  1  2
         omega
-        0       0 -1 -2
-        1       0 -1  0
-        2       0  1  0
-        3       0  1  2
-        >>> time = StochasticProcess.from_time(*X.prob_space, index=T, name="time")
-        >>> print(time)  # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'time':
-        t       0  1  2
+        0      1  0 -1
+        1      1  0  1
+        2      1  2  1
+        3      1  2  3
+        >>> integral = ProcessTransforms.ito_integral(integrator=X)
+        >>> print(1 + integral)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process '(1 + int dX)':
+        t      0    1    2
         omega
-        0       0  1  2
-        1       0  1  2
-        2       0  1  2
-        3       0  1  2
-        >>> integral = X.increments().ito_integral(time)
-        >>> print(integral)  # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'int X_increments dtime':
-        t       0  1  2
-        omega
-        0       0 -1 -2
-        1       0 -1  0
-        2       0  1  0
-        3       0  1  2
+        0      1  0.0 -1.0
+        1      1  0.0  1.0
+        2      1  2.0  1.0
+        3      1  2.0  3.0
         """
         from ..base.stochastic_process import StochasticProcess
 
@@ -1075,27 +1082,44 @@ class ProcessTransformMethods:
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, Time
-        >>> from sigalg.processes import StochasticProcess
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> U = ProbabilityMeasure.uniform(Omega)
-        >>> T = Time.discrete(length=3)
-        >>> X = StochasticProcess.from_time(domain=Omega, measure=U, index=T)
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X':
-        t       0  1  2  3
+        >>> from sigalg.finance import BinomialPricingModel
+        >>> S = BinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     up_prob=0.7,
+        ...     up_factor=1.1,
+        ...     down_factor=0.9,
+        ...     risk_free_rate=0.05,
+        ...     mode="enum",
+        ...     length=3,
+        ... )
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0      1      2      3
         omega
-        0       0  1  2  3
-        1       0  1  2  3
-        2       0  1  2  3
-        >>> X_discount = X.discount(rate=0.1)
-        >>> print(X_discount)  # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X_discount':
-        t         0         1         2         3
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  108.9
+        2      100.0  110.0   99.0  108.9
+        3      100.0  110.0   99.0   89.1
+        4      100.0   90.0   99.0  108.9
+        5      100.0   90.0   99.0   89.1
+        6      100.0   90.0   81.0   89.1
+        7      100.0   90.0   81.0   72.9
+        >>> S_discount = S.discount(rate=0.05)
+        >>> print(S_discount)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'S_discount':
+        t          0           1           2           3
         omega
-        0       0.0  0.909091  1.652893  2.253944
-        1       0.0  0.909091  1.652893  2.253944
-        2       0.0  0.909091  1.652893  2.253944
+        0      100.0  104.761905  109.750567  114.976784
+        1      100.0  104.761905  109.750567   94.071914
+        2      100.0  104.761905   89.795918   94.071914
+        3      100.0  104.761905   89.795918   76.967930
+        4      100.0   85.714286   89.795918   94.071914
+        5      100.0   85.714286   89.795918   76.967930
+        6      100.0   85.714286   73.469388   76.967930
+        7      100.0   85.714286   73.469388   62.973761
+        >>> Q = S.emm()
+        >>> S_discount.is_martingale(prob_measure=Q)
+        True
 
         Notes
         -----
@@ -1284,8 +1308,6 @@ class ProcessTransformMethods:
 
         Internally calls the `ProcessTransforms.ito_integral` method.
 
-        See the Notes section below for the mathematical details.
-
         Parameters
         ----------
         integrator : StochasticProcess
@@ -1297,39 +1319,6 @@ class ProcessTransformMethods:
         -------
         ito_integral_process : StochasticProcess
             A new stochastic process representing the Itô integral of the input process with respect to the integrator.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk, StochasticProcess
-        >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=T)
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        t       0  1  2
-        omega
-        0       0 -1 -2
-        1       0 -1  0
-        2       0  1  0
-        3       0  1  2
-        >>> time = StochasticProcess.from_time(*X.prob_space, index=T, name="time")
-        >>> print(time)  # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'time':
-        t       0  1  2
-        omega
-        0       0  1  2
-        1       0  1  2
-        2       0  1  2
-        3       0  1  2
-        >>> integral = X.increments().ito_integral(time)
-        >>> print(integral)  # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'int X_increments dtime':
-        t       0  1  2
-        omega
-        0       0 -1 -2
-        1       0 -1  0
-        2       0  1  0
-        3       0  1  2
         """
         return ProcessTransforms.ito_integral(self, integrator=integrator, name=name)
 
