@@ -896,9 +896,9 @@ class BinomialPricingModel(DiscretePricingModel):
 
         from ...core.measures.probability_measure import ProbabilityMeasure
 
-        if self.mode == "sim":
+        if self.enum_mode == "sim":
             raise NotImplementedError(
-                "The 'emm' method is not implemented for binomial models in 'sim' mode."
+                "The 'emm' method is not yet implemented in 'sim' mode."
             )
 
         num_steps = len(self._index) - 1
@@ -925,7 +925,94 @@ class BinomialPricingModel(DiscretePricingModel):
             )
 
     def price(self, claim: Claim, **kwargs) -> Real:
-        """Pass."""
+        """Get the risk-neutral price of a claim.
+
+        Parameters
+        ----------
+        claim : Claim
+            The contingent claim to price.
+
+        Returns
+        -------
+        price : Real
+            The risk-neutral price of the claim.
+
+        Examples
+        --------
+        >>> from sigalg.finance import BinomialPricingModel, Claim
+
+        Define a binomial pricing model.
+
+        >>> S = BinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     up_factor=1.1,
+        ...     down_factor=0.9,
+        ...     up_prob=0.7,
+        ...     risk_free_rate=0.05,
+        ...     mode="enum",
+        ...     length=3,
+        ... )
+        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0      1      2      3
+        omega
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  108.9
+        2      100.0  110.0   99.0  108.9
+        3      100.0  110.0   99.0   89.1
+        4      100.0   90.0   99.0  108.9
+        5      100.0   90.0   99.0   89.1
+        6      100.0   90.0   81.0   89.1
+        7      100.0   90.0   81.0   72.9
+
+        Define a European call option with strike `K=100`.
+
+        >>> K = 100
+        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
+        European option 'euro_call':
+        t        0    1    2     3
+        omega
+        0      0.0  0.0  0.0  33.1
+        1      0.0  0.0  0.0   8.9
+        2      0.0  0.0  0.0   8.9
+        3      0.0  0.0  0.0   0.0
+        4      0.0  0.0  0.0   8.9
+        5      0.0  0.0  0.0   0.0
+        6      0.0  0.0  0.0   0.0
+        7      0.0  0.0  0.0   0.0
+
+        Get the risk-neutral price of the call option.
+
+        >>> euro_call.price()
+        15.306122448979611
+
+        Define an American put option with the same strike.
+
+        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
+        American option 'american_put':
+        t        0     1     2     3
+        omega
+        0      0.0   0.0   0.0   0.0
+        1      0.0   0.0   0.0   0.0
+        2      0.0   0.0   1.0   0.0
+        3      0.0   0.0   1.0  10.9
+        4      0.0  10.0   1.0   0.0
+        5      0.0  10.0   1.0  10.9
+        6      0.0  10.0  19.0  10.9
+        7      0.0  10.0  19.0  27.1
+
+        Get the risk-neutral price of the put option.
+
+        >>> american_put.price()
+        2.822319403952058
+        """
+        if self.enum_mode == "sim":
+            raise NotImplementedError(
+                "The 'price' method is not yet implemented in 'sim' mode."
+            )
+
         if not claim.is_early_exercise:
             T = self.time[-1]
             R = self.risk_free_gross_return
@@ -934,27 +1021,567 @@ class BinomialPricingModel(DiscretePricingModel):
             return (Phi_T.expectation(measure=Q).item() / R**T).astype(Real)
         else:
             self._compute_pricing_data(claim=claim)
-            return claim.pricing_data.price
+            return claim._pricing_data.price
 
     def price_process(self, claim: Claim, **kwargs) -> StochasticProcess:
-        """Pass."""
+        """Get the risk-neutral price process of a claim.
+
+        Parameters
+        ----------
+        claim : Claim
+            The contingent claim whose price process is to be computed.
+
+        Returns
+        -------
+        price_process : StochasticProcess
+            The risk-neutral price process of the claim.
+
+        Examples
+        --------
+        >>> from sigalg.finance import BinomialPricingModel, Claim
+
+        Define a binomial pricing model.
+
+        >>> S = BinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     up_factor=1.1,
+        ...     down_factor=0.9,
+        ...     up_prob=0.7,
+        ...     risk_free_rate=0.05,
+        ...     mode="enum",
+        ...     length=3,
+        ... )
+        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0      1      2      3
+        omega
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  108.9
+        2      100.0  110.0   99.0  108.9
+        3      100.0  110.0   99.0   89.1
+        4      100.0   90.0   99.0  108.9
+        5      100.0   90.0   99.0   89.1
+        6      100.0   90.0   81.0   89.1
+        7      100.0   90.0   81.0   72.9
+
+        Define a European call option with strike `K=100`.
+
+        >>> K = 100
+        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
+        European option 'euro_call':
+        t        0    1    2     3
+        omega
+        0      0.0  0.0  0.0  33.1
+        1      0.0  0.0  0.0   8.9
+        2      0.0  0.0  0.0   8.9
+        3      0.0  0.0  0.0   0.0
+        4      0.0  0.0  0.0   8.9
+        5      0.0  0.0  0.0   0.0
+        6      0.0  0.0  0.0   0.0
+        7      0.0  0.0  0.0   0.0
+
+        Get the risk-neutral price process of the call option.
+
+        >>> print(euro_call.price_process())  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        t              0          1          2     3
+        omega
+        0      15.306122  19.914966  25.761905  33.1
+        1      15.306122  19.914966  25.761905   8.9
+        2      15.306122  19.914966   6.357143   8.9
+        3      15.306122  19.914966   6.357143   0.0
+        4      15.306122   4.540816   6.357143   8.9
+        5      15.306122   4.540816   6.357143   0.0
+        6      15.306122   4.540816   0.000000   0.0
+        7      15.306122   4.540816   0.000000   0.0
+
+        Define an American put option with the same strike.
+
+        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
+        American option 'american_put':
+        t        0     1     2     3
+        omega
+        0      0.0   0.0   0.0   0.0
+        1      0.0   0.0   0.0   0.0
+        2      0.0   0.0   1.0   0.0
+        3      0.0   0.0   1.0  10.9
+        4      0.0  10.0   1.0   0.0
+        5      0.0  10.0   1.0  10.9
+        6      0.0  10.0  19.0  10.9
+        7      0.0  10.0  19.0  27.1
+
+        Get the risk-neutral price process of the put option.
+
+        >>> print(american_put.price_process())  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        t             0          1          2     3
+        omega
+        0      2.822319   0.617914   0.000000   0.0
+        1      2.822319   0.617914   0.000000   0.0
+        2      2.822319   0.617914   2.595238   0.0
+        3      2.822319   0.617914   2.595238  10.9
+        4      2.822319  10.000000   2.595238   0.0
+        5      2.822319  10.000000   2.595238  10.9
+        6      2.822319  10.000000  19.000000  10.9
+        7      2.822319  10.000000  19.000000  27.1
+        """
+        if self.enum_mode == "sim":
+            raise NotImplementedError(
+                "The 'price_process' method is not yet implemented in 'sim' mode."
+            )
+
         self._compute_pricing_data(claim=claim)
-        return claim.pricing_data.price_process
+        return claim._pricing_data.price_process
 
     def continuation_process(self, claim: Claim, **kwargs) -> StochasticProcess:
-        """Pass."""
+        """Get the continuation/value process of the replicating portfolio of a claim.
+
+        Parameters
+        ----------
+        claim : Claim
+            The contingent claim whose continuation/price process is to be computed.
+
+        Returns
+        -------
+        continuation_process : StochasticProcess
+            The continuation/value process of the replicating portfolio of the claim.
+
+        Examples
+        --------
+        >>> from sigalg.finance import BinomialPricingModel, Claim
+
+        Define a binomial pricing model.
+
+        >>> S = BinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     up_factor=1.1,
+        ...     down_factor=0.9,
+        ...     up_prob=0.7,
+        ...     risk_free_rate=0.05,
+        ...     mode="enum",
+        ...     length=3,
+        ... )
+        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0      1      2      3
+        omega
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  108.9
+        2      100.0  110.0   99.0  108.9
+        3      100.0  110.0   99.0   89.1
+        4      100.0   90.0   99.0  108.9
+        5      100.0   90.0   99.0   89.1
+        6      100.0   90.0   81.0   89.1
+        7      100.0   90.0   81.0   72.9
+
+        Define a European call option with strike `K=100`.
+
+        >>> K = 100
+        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
+        European option 'euro_call':
+        t        0    1    2     3
+        omega
+        0      0.0  0.0  0.0  33.1
+        1      0.0  0.0  0.0   8.9
+        2      0.0  0.0  0.0   8.9
+        3      0.0  0.0  0.0   0.0
+        4      0.0  0.0  0.0   8.9
+        5      0.0  0.0  0.0   0.0
+        6      0.0  0.0  0.0   0.0
+        7      0.0  0.0  0.0   0.0
+
+        Get the risk-neutral continuation process of the call option.
+
+        >>> print(euro_call.continuation_process())  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'V':
+        t              0          1          2     3
+        omega
+        0      15.306122  19.914966  25.761905  33.1
+        1      15.306122  19.914966  25.761905   8.9
+        2      15.306122  19.914966   6.357143   8.9
+        3      15.306122  19.914966   6.357143   0.0
+        4      15.306122   4.540816   6.357143   8.9
+        5      15.306122   4.540816   6.357143   0.0
+        6      15.306122   4.540816   0.000000   0.0
+        7      15.306122   4.540816   0.000000   0.0
+
+        Define an American put option with the same strike.
+
+        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
+        American option 'american_put':
+        t        0     1     2     3
+        omega
+        0      0.0   0.0   0.0   0.0
+        1      0.0   0.0   0.0   0.0
+        2      0.0   0.0   1.0   0.0
+        3      0.0   0.0   1.0  10.9
+        4      0.0  10.0   1.0   0.0
+        5      0.0  10.0   1.0  10.9
+        6      0.0  10.0  19.0  10.9
+        7      0.0  10.0  19.0  27.1
+
+        Get the risk-neutral continuation process of the put option.
+
+        >>> print(american_put.continuation_process())  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'V':
+        t             0         1          2     3
+        omega
+        0      2.822319  0.617914   0.000000   0.0
+        1      2.822319  0.617914   0.000000   0.0
+        2      2.822319  0.617914   2.595238   0.0
+        3      2.822319  0.617914   2.595238  10.9
+        4      2.822319  6.377551   2.595238   0.0
+        5      2.822319  6.377551   2.595238  10.9
+        6      2.822319  6.377551  14.238095  10.9
+        7      2.822319  6.377551  14.238095  27.1
+        """
+        if self.enum_mode == "sim":
+            raise NotImplementedError(
+                "The 'continuation_process' method is not yet implemented in 'sim' mode."
+            )
+
         self._compute_pricing_data(claim=claim)
-        return claim.pricing_data.continuation_process
+        return claim._pricing_data.continuation_process
 
     def exercise_time(self, claim: Claim, **kwargs) -> StoppingTime:
-        """Pass."""
+        """Get the exercise time of a claim.
+
+        Parameters
+        ----------
+        claim : Claim
+            The contingent claim whose exercise times are to be compute.
+
+        Returns
+        -------
+        exercise_time : StoppingTime
+            The exercise time of the claim.
+
+        Examples
+        --------
+        >>> from sigalg.finance import BinomialPricingModel, Claim
+
+        Define a binomial pricing model.
+
+        >>> S = BinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     up_factor=1.1,
+        ...     down_factor=0.9,
+        ...     up_prob=0.7,
+        ...     risk_free_rate=0.05,
+        ...     mode="enum",
+        ...     length=3,
+        ... )
+        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0      1      2      3
+        omega
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  108.9
+        2      100.0  110.0   99.0  108.9
+        3      100.0  110.0   99.0   89.1
+        4      100.0   90.0   99.0  108.9
+        5      100.0   90.0   99.0   89.1
+        6      100.0   90.0   81.0   89.1
+        7      100.0   90.0   81.0   72.9
+
+        Define a European call option with strike `K=100`.
+
+        >>> K = 100
+        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
+        European option 'euro_call':
+        t        0    1    2     3
+        omega
+        0      0.0  0.0  0.0  33.1
+        1      0.0  0.0  0.0   8.9
+        2      0.0  0.0  0.0   8.9
+        3      0.0  0.0  0.0   0.0
+        4      0.0  0.0  0.0   8.9
+        5      0.0  0.0  0.0   0.0
+        6      0.0  0.0  0.0   0.0
+        7      0.0  0.0  0.0   0.0
+
+        Get the exercise time of the call option.
+
+        >>> print(euro_call.exercise_time())  # doctest: +NORMALIZE_WHITESPACE
+        Stopping time 'tau':
+                tau
+        omega
+        0      3.0
+        1      3.0
+        2      3.0
+        3      inf
+        4      3.0
+        5      inf
+        6      inf
+        7      inf
+
+        Define an American put option with the same strike.
+
+        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
+        American option 'american_put':
+        t        0     1     2     3
+        omega
+        0      0.0   0.0   0.0   0.0
+        1      0.0   0.0   0.0   0.0
+        2      0.0   0.0   1.0   0.0
+        3      0.0   0.0   1.0  10.9
+        4      0.0  10.0   1.0   0.0
+        5      0.0  10.0   1.0  10.9
+        6      0.0  10.0  19.0  10.9
+        7      0.0  10.0  19.0  27.1
+
+        Get the exercise time of the put option.
+
+        >>> print(american_put.exercise_time())  # doctest: +NORMALIZE_WHITESPACE
+        Stopping time 'tau':
+                tau
+        omega
+        0      inf
+        1      inf
+        2      inf
+        3      3.0
+        4      1.0
+        5      1.0
+        6      1.0
+        7      1.0
+        """
+        if self.enum_mode == "sim":
+            raise NotImplementedError(
+                "The 'exercise_time' method is not yet implemented in 'sim' mode."
+            )
+
         self._compute_pricing_data(claim=claim)
-        return claim.pricing_data.exercise_time
+        return claim._pricing_data.exercise_time
 
     def delta(self, claim: Claim, **kwargs) -> StochasticProcess:
-        """Pass."""
+        """Get the delta process of the replicating portfolio of a claim.
+
+        Parameters
+        ----------
+        claim : Claim
+            The claim whose delta process is to be computed.
+
+        Returns
+        -------
+        delta : StochasticProcess
+            The delta process of the claim.
+
+        Examples
+        --------
+        >>> from sigalg.finance import BinomialPricingModel, Claim
+
+        Define a binomial pricing model.
+
+        >>> S = BinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     up_factor=1.1,
+        ...     down_factor=0.9,
+        ...     up_prob=0.7,
+        ...     risk_free_rate=0.05,
+        ...     mode="enum",
+        ...     length=3,
+        ... )
+        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0      1      2      3
+        omega
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  108.9
+        2      100.0  110.0   99.0  108.9
+        3      100.0  110.0   99.0   89.1
+        4      100.0   90.0   99.0  108.9
+        5      100.0   90.0   99.0   89.1
+        6      100.0   90.0   81.0   89.1
+        7      100.0   90.0   81.0   72.9
+
+        Define a European call option with strike `K=100`.
+
+        >>> K = 100
+        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
+        European option 'euro_call':
+        t        0    1    2     3
+        omega
+        0      0.0  0.0  0.0  33.1
+        1      0.0  0.0  0.0   8.9
+        2      0.0  0.0  0.0   8.9
+        3      0.0  0.0  0.0   0.0
+        4      0.0  0.0  0.0   8.9
+        5      0.0  0.0  0.0   0.0
+        6      0.0  0.0  0.0   0.0
+        7      0.0  0.0  0.0   0.0
+
+        Get the exercise time of the call option.
+
+        >>> print(euro_call.delta())  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'Delta':
+        t             0         1         2
+        omega
+        0      0.768707  0.882035  1.000000
+        1      0.768707  0.882035  1.000000
+        2      0.768707  0.882035  0.449495
+        3      0.768707  0.882035  0.449495
+        4      0.768707  0.353175  0.449495
+        5      0.768707  0.353175  0.449495
+        6      0.768707  0.353175 -0.000000
+        7      0.768707  0.353175 -0.000000
+
+        Define an American put option with the same strike.
+
+        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
+        American option 'american_put':
+        t        0     1     2     3
+        omega
+        0      0.0   0.0   0.0   0.0
+        1      0.0   0.0   0.0   0.0
+        2      0.0   0.0   1.0   0.0
+        3      0.0   0.0   1.0  10.9
+        4      0.0  10.0   1.0   0.0
+        5      0.0  10.0   1.0  10.9
+        6      0.0  10.0  19.0  10.9
+        7      0.0  10.0  19.0  27.1
+
+        Get the exercise time of the put option.
+
+        >>> print(american_put.delta())  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'Delta':
+        t             0         1         2
+        omega
+        0     -0.469104 -0.117965 -0.000000
+        1     -0.469104 -0.117965 -0.000000
+        2     -0.469104 -0.117965 -0.550505
+        3     -0.469104 -0.117965 -0.550505
+        4     -0.469104 -0.911376 -0.550505
+        5     -0.469104 -0.911376 -0.550505
+        6     -0.469104 -0.911376 -1.000000
+        7     -0.469104 -0.911376 -1.000000
+        """
+        if self.enum_mode == "sim":
+            raise NotImplementedError(
+                "The 'delta' method is not yet implemented in 'sim' mode."
+            )
+
         self._compute_pricing_data(claim=claim)
-        return claim.pricing_data.Delta
+        return claim._pricing_data.Delta
+
+    def B(self, claim: Claim, **kwargs) -> StochasticProcess:
+        """Get the price process of the non-risky asset in the replicating portfolio of a claim.
+
+        Parameters
+        ----------
+        claim : Claim
+            The contingent claim whose price process of the non-risky claim is to be computed.
+
+        Returns
+        -------
+        B : StochasticProcess
+            The price process of the non-risky asset of the claim.
+
+        Examples
+        --------
+        >>> from sigalg.finance import BinomialPricingModel, Claim
+
+        Define a binomial pricing model.
+
+        >>> S = BinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     up_factor=1.1,
+        ...     down_factor=0.9,
+        ...     up_prob=0.7,
+        ...     risk_free_rate=0.05,
+        ...     mode="enum",
+        ...     length=3,
+        ... )
+        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0      1      2      3
+        omega
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  108.9
+        2      100.0  110.0   99.0  108.9
+        3      100.0  110.0   99.0   89.1
+        4      100.0   90.0   99.0  108.9
+        5      100.0   90.0   99.0   89.1
+        6      100.0   90.0   81.0   89.1
+        7      100.0   90.0   81.0   72.9
+
+        Define a European call option with strike `K=100`.
+
+        >>> K = 100
+        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
+        European option 'euro_call':
+        t        0    1    2     3
+        omega
+        0      0.0  0.0  0.0  33.1
+        1      0.0  0.0  0.0   8.9
+        2      0.0  0.0  0.0   8.9
+        3      0.0  0.0  0.0   0.0
+        4      0.0  0.0  0.0   8.9
+        5      0.0  0.0  0.0   0.0
+        6      0.0  0.0  0.0   0.0
+        7      0.0  0.0  0.0   0.0
+
+        Get the exercise time of the call option.
+
+        >>> print(euro_call.B())  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'B':
+        t              0          1          2
+        omega
+        0     -61.564626 -77.108844 -95.238095
+        1     -61.564626 -77.108844 -95.238095
+        2     -61.564626 -77.108844 -38.142857
+        3     -61.564626 -77.108844 -38.142857
+        4     -61.564626 -27.244898 -38.142857
+        5     -61.564626 -27.244898 -38.142857
+        6     -61.564626 -27.244898   0.000000
+        7     -61.564626 -27.244898   0.000000
+
+        Define an American put option with the same strike.
+
+        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
+        American option 'american_put':
+        t        0     1     2     3
+        omega
+        0      0.0   0.0   0.0   0.0
+        1      0.0   0.0   0.0   0.0
+        2      0.0   0.0   1.0   0.0
+        3      0.0   0.0   1.0  10.9
+        4      0.0  10.0   1.0   0.0
+        5      0.0  10.0   1.0  10.9
+        6      0.0  10.0  19.0  10.9
+        7      0.0  10.0  19.0  27.1
+
+        Get the exercise time of the put option.
+
+        >>> print(american_put.B())  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'B':
+        t             0          1          2
+        omega
+        0      49.73275  13.594104   0.000000
+        1      49.73275  13.594104   0.000000
+        2      49.73275  13.594104  57.095238
+        3      49.73275  13.594104  57.095238
+        4      49.73275  88.401361  57.095238
+        5      49.73275  88.401361  57.095238
+        6      49.73275  88.401361  95.238095
+        7      49.73275  88.401361  95.238095
+        """
+        if self.enum_mode == "sim":
+            raise NotImplementedError(
+                "The 'B' method is not yet implemented in 'sim' mode."
+            )
+
+        self._compute_pricing_data(claim=claim)
+        return claim._pricing_data.B
 
     def replicating_portfolio(
         self, claim, **kwargs
@@ -1119,11 +1746,16 @@ class BinomialPricingModel(DiscretePricingModel):
         6      1.23603  5.110544  10.464286   9.975
         7      1.23603  5.110544  10.464286  14.025
         """
+        if self.enum_mode == "sim":
+            raise NotImplementedError(
+                "The 'replicating_portfolio' method is not yet implemented in 'sim' mode."
+            )
+
         self._compute_pricing_data(claim=claim)
         return (
-            claim.pricing_data.Delta,
-            claim.pricing_data.B,
-            claim.pricing_data.continuation_process,
+            claim._pricing_data.Delta,
+            claim._pricing_data.B,
+            claim._pricing_data.continuation_process,
         )
 
     def _compute_pricing_data(self, claim: Claim, **kwargs) -> None:
@@ -1161,7 +1793,6 @@ class BinomialPricingModel(DiscretePricingModel):
             X_curr, Delta_curr, B_curr, V_curr, tau_curr = self._backward_induction(
                 enum_mode=self.enum_mode,
                 X_forward=X_forward,
-                V_forward=V_forward,
                 S_forward=S_forward,
                 S_curr=S_curr,
                 Phi_curr=Phi_curr,
@@ -1252,7 +1883,6 @@ class BinomialPricingModel(DiscretePricingModel):
         self,
         enum_mode: str,
         X_forward: np.ndarray,
-        V_forward: np.ndarray,
         S_forward: np.ndarray,
         S_curr: np.ndarray,
         Phi_curr: np.ndarray,
@@ -1273,10 +1903,10 @@ class BinomialPricingModel(DiscretePricingModel):
             return X_curr, Delta_curr, B_curr, V_curr, tau_curr
 
         elif enum_mode == "sparse":
-            V_curr = (q_u * V_forward[:-1] + q_d * V_forward[1:]) / R
+            V_curr = (q_u * X_forward[:-1] + q_d * X_forward[1:]) / R
             X_curr = np.maximum(Phi_curr, V_curr)
             tau_curr = Phi_curr > V_curr
-            Delta_curr = (V_forward[:-1] - V_forward[1:]) / (
+            Delta_curr = (X_forward[:-1] - X_forward[1:]) / (
                 S_forward[:-1] - S_forward[1:]
             )
             B_curr = V_curr - S_curr * Delta_curr
@@ -1307,7 +1937,7 @@ class BinomialPricingModel(DiscretePricingModel):
             B = np.concatenate((B_curr, np.repeat(B_curr[-1], T - t)))
             Delta = np.concatenate((Delta_curr, np.repeat(Delta_curr[-1], T - t)))
             V = np.concatenate((V_curr, np.repeat(V_curr[-1], T - t)))
-            X = np.concatenate((X_curr, np.repeat(V_curr[-1], T - t)))
+            X = np.concatenate((X_curr, np.repeat(X_curr[-1], T - t)))
             tau = np.concatenate((tau_curr, np.repeat(tau_curr[-1], T - t)))
 
         return X, Delta, B, V, tau

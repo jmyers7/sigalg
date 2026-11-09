@@ -22,13 +22,3 @@ class DiscretePricingModel(StochasticProcess, ABC):
     def price_process(self, claim: Claim, **kwargs) -> StochasticProcess:
         """Pass."""
         ...
-
-    @abstractmethod
-    def delta(self, claim: Claim, **kwargs) -> StochasticProcess:
-        """Pass."""
-        ...
-
-    @abstractmethod
-    def replicating_portfolio(self, claim: Claim, **kwargs):
-        """Pass."""
-        ...
