@@ -263,222 +263,34 @@ class TrinomialPricingModel(DiscretePricingModel):
     def initial_price(self) -> Real | None:
         """Get the initial price of the asset.
 
-        This attribute is settable. See the Examples below.
-
         Returns
         -------
         initial_price : Real
             The initial price of the asset.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 2
-
-        Exhaustively generate all price trajectories and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   99.0
-        2      100.0   90.0   99.0
-        3      100.0   90.0   81.0
-
-        Reset the initial price and regenerate new price trajectories.
-
-        >>> S.initial_price = 120
-        >>> S.regenerate()
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      120.0  132.0  145.2
-        1      120.0  132.0  118.8
-        2      120.0  108.0  118.8
-        3      120.0  108.0   97.2
         """
         return self._initial_price
-
-    @initial_price.setter
-    def initial_price(self, value: Real) -> None:
-        """Set the initial price of the asset."""
-        if not isinstance(value, Real) or value <= 0:
-            raise TypeError("initial_price must be a positive real number.")
-
-        self._initial_price = value
 
     @property
     def risk_free_rate(self) -> Real | None:
         """Get the per-period risk-free rate.
 
-        This attribute is settable. See the Examples below.
-
         Returns
         -------
         risk_free_rate : Real
             The risk-free rate.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel, Claim
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 2
-
-        Exhaustively generate all price trajectories and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   99.0
-        2      100.0   90.0   99.0
-        3      100.0   90.0   81.0
-
-        Define a European call option.
-
-        >>> Phi = Claim.european_option(strike=100, model=S)
-        >>> print(Phi)  # doctest: +NORMALIZE_WHITESPACE
-        European option 'Phi':
-        t        0    1     2
-        omega
-        0      0.0  0.0  21.0
-        1      0.0  0.0   0.0
-        2      0.0  0.0   0.0
-        3      0.0  0.0   0.0
-
-        Compute the risk-neutral price of the option with respect to the risk-free rate given above.
-
-        >>> print(Phi.price())
-        10.714285714285719
-
-        Reset the risk-free rate, regenerate trajectories, and compute the new risk-neutral price.
-
-        >>> S.risk_free_rate = 0.025
-        >>> S.regenerate()
-        >>> print(Phi.price())
-        7.807852468768577
         """
         return self._risk_free_rate
-
-    @risk_free_rate.setter
-    def risk_free_rate(self, value: Real) -> None:
-        """Set the per-period risk-free rate."""
-        if not isinstance(value, Real) or value <= 0:
-            raise TypeError("risk_free_rate must be a positive real number.")
-        self._risk_free_rate = value
 
     @property
     def up_prob(self) -> Real | None:
         """Get the probability of an upward price movement.
 
-        This attribute is settable. See the Examples below.
-
         Returns
         -------
         up_prob : Real
             The probability of an upward price movement.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 2
-
-        Exhaustively generate all price trajectories and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   99.0
-        2      100.0   90.0   99.0
-        3      100.0   90.0   81.0
-
-        Print the real-world probability measure of the model.
-
-        >>> print(S.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
-                    P
-        omega
-        0      0.3025
-        1      0.2475
-        2      0.2475
-        3      0.2025
-
-        Reset the up-probability, regenerate new price trajectories, and print the new real-world measure.
-
-        >>> S.up_prob = 0.65
-        >>> S.regenerate()
-        >>> print(S.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
-                    P
-        omega
-        0      0.4225
-        1      0.2275
-        2      0.2275
-        3      0.1225
         """
         return self._up_prob
-
-    @up_prob.setter
-    def up_prob(self, value: Real) -> None:
-        """Set the probability of an upward price movement."""
-        if not isinstance(value, Real) or not (0 < value < 1):
-            raise TypeError("up_prob must be a probability in the interval (0, 1).")
-        self._up_prob = value
 
     @property
     def middle_prob(self) -> Real | None:
@@ -506,293 +318,50 @@ class TrinomialPricingModel(DiscretePricingModel):
     def up_factor(self) -> Real | None:
         """Get the up-factor of the model.
 
-        This attribute is settable. See the Examples below.
-
         Returns
         -------
         up_factor : Real
             The up-factor of the model.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 2
-
-        Exhaustively generate all price trajectories and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   99.0
-        2      100.0   90.0   99.0
-        3      100.0   90.0   81.0
-
-        Reset the up-factor and regenerate new price trajectories.
-
-        >>> S.up_factor = 1.2
-        >>> S.regenerate()
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  120.0  144.0
-        1      100.0  120.0  108.0
-        2      100.0   90.0  108.0
-        3      100.0   90.0   81.0
         """
         return self._up_factor
 
-    @up_factor.setter
-    def up_factor(self, value: Real) -> None:
-        """Set the up-factor of the model."""
-        if not isinstance(value, Real) or value <= 1:
-            raise TypeError("up_factor must be a real number greater than 1.")
-        self._up_factor = value
-
     @property
     def middle_factor(self) -> Real | None:
-        """Pass."""
+        """Get the middle-factor of the model.
+
+        Returns
+        -------
+        middle_factor : Real
+            The middle-factor of the model.
+        """
         return self._middle_factor
 
     @property
     def down_factor(self) -> Real | None:
         """Get the down-factor of the model.
 
-        This attribute is settable. See the Examples below.
-
         Returns
         -------
         down_factor : Real
             The down-factor of the model.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 2
-
-        Exhaustively generate all price trajectories and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   99.0
-        2      100.0   90.0   99.0
-        3      100.0   90.0   81.0
-
-        Reset the down-factor and regenerate new price trajectories.
-
-        >>> S.down_factor = 0.7
-        >>> S.regenerate()
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   77.0
-        2      100.0   70.0   77.0
-        3      100.0   70.0   49.0
         """
         return self._down_factor
-
-    @down_factor.setter
-    def down_factor(self, value: Real) -> None:
-        """Set the down-factor of the model."""
-        if not isinstance(value, Real) or not (0 < value < 1):
-            raise TypeError("down_factor must be a real number between 0 and 1.")
-        self._down_factor = value
-
-    @property
-    def enum_mode(self) -> Literal["dense", "sparse"] | None:
-        """Get the enumeration mode of the model.
-
-        This attribute is settable. See the Examples below.
-
-        Returns
-        -------
-        enum_mode : Literal["dense", "sparse"]
-            The enumeration mode of the model.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 3
-
-        Exhaustively generate all price trajectories in `dense` enumeration mode and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     enum_mode="dense",
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2      3
-        omega
-        0      100.0  110.0  121.0  133.1
-        1      100.0  110.0  121.0  108.9
-        2      100.0  110.0   99.0  108.9
-        3      100.0  110.0   99.0   89.1
-        4      100.0   90.0   99.0  108.9
-        5      100.0   90.0   99.0   89.1
-        6      100.0   90.0   81.0   89.1
-        7      100.0   90.0   81.0   72.9
-
-        Reset the enumeration mode, regenerate the trajectories, and print them.
-
-        >>> S.enum_mode = "sparse"
-        >>> S.regenerate()
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2      3
-        omega
-        0      100.0  110.0  121.0  133.1
-        1      100.0   90.0   99.0  108.9
-        2      100.0   90.0   81.0   89.1
-        3      100.0   90.0   81.0   72.9
-        """
-        return self._enum_mode
-
-    @enum_mode.setter
-    def enum_mode(self, value: Literal["dense", "sparse"]) -> None:
-        """Set the enumeration mode of the model."""
-        if value not in ["dense", "sparse"]:
-            raise ValueError("The enumeration mode must be either 'dense' or 'sparse'.")
-        self._enum_mode = value
 
     @property
     def risk_free_gross_return(self) -> Real | None:
         """Get the per-period risk-free gross return of the model.
 
-        This attribute is settable. See the Examples below.
-
         Returns
         -------
         risk_free_gross_return : Real
             The per-period risk-free gross return.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel, Claim
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 2
-
-        Exhaustively generate all price trajectories and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   99.0
-        2      100.0   90.0   99.0
-        3      100.0   90.0   81.0
-
-        Define a European call option.
-
-        >>> Phi = Claim.european_option(strike=100, model=S)
-        >>> print(Phi)  # doctest: +NORMALIZE_WHITESPACE
-        European option 'Phi':
-        t        0    1     2
-        omega
-        0      0.0  0.0  21.0
-        1      0.0  0.0   0.0
-        2      0.0  0.0   0.0
-        3      0.0  0.0   0.0
-
-        Compute the risk-neutral price of the option with respect to the risk-free rate given above.
-
-        >>> print(Phi.price())
-        10.714285714285719
-
-        Reset the risk-free gross return, regenerate trajectories, and compute the new risk-neutral price.
-
-        >>> S.risk_free_gross_return = 1.025
-        >>> S.regenerate()
-        >>> print(Phi.price())
-        7.807852468768577
         """
         return 1 + self.risk_free_rate
-
-    @risk_free_gross_return.setter
-    def risk_free_gross_return(self, value: Real) -> None:
-        """Set the per-period risk-free gross return of the model."""
-        if not isinstance(value, Real) or value <= 1:
-            raise ValueError(
-                "The risk-free gross return must be a real number greater than 1."
-            )
-        self._risk_free_rate = value - 1
 
     # --------------------- finance methods --------------------- #
 
     def risk_neutral_probs(self, theta: Real, **kwargs) -> tuple[Real, Real, Real]:
-        """Get the risk-neutral probabilities of the model.
+        """Get the risk-neutral probabilities of the model given a parameter.
 
         Parameters
         ----------
@@ -851,10 +420,10 @@ class TrinomialPricingModel(DiscretePricingModel):
         >>> S.risk_neutral_probs(theta=0.42)
         (0.15400000000000003, 0.31899999999999973, 0.5270000000000001)
         """
-        if not isinstance(theta, Real):
-            raise TypeError("The parameter theta must be a real number.")
-        if theta <= 0 or theta >= 1:
-            raise ValueError("The parameter theta must be in the open interval (0, 1).")
+        if not isinstance(theta, Real) or (theta <= 0 or theta >= 1):
+            raise TypeError(
+                "The parameter theta must be a real number in the open interval (0, 1)."
+            )
 
         R = self.risk_free_gross_return
         u = self.up_factor
@@ -881,7 +450,7 @@ class TrinomialPricingModel(DiscretePricingModel):
     def emm(
         self, theta: Real | None = None, **kwargs
     ) -> ProbabilityMeasure | ParametrizedProbabilityMeasure:
-        """Return the equivalent martingale measures of the model.
+        """Get the equivalent martingale measures of the model.
 
         Parameters
         ----------
@@ -1022,8 +591,156 @@ class TrinomialPricingModel(DiscretePricingModel):
             )
 
     def price(self, claim: Claim, theta: Real, **kwargs) -> Real:
-        """Pass."""
+        """Get the risk-neutral price of a claim given an equivalent martingale measure.
+
+        Parameters
+        ----------
+        claim : Claim
+            The contingent claim to price.
+        theta : Real
+            A parameter in the open interval (0, 1) yielding a collection of risk-neutral probabilities of the model.
+
+        Returns
+        -------
+        price : Real
+            The risk-neutral price of the claim.
+
+        Examples
+        --------
+        >>> from sigalg.finance import TrinomialPricingModel, Claim
+
+        Define a trinomial pricing model.
+
+        >>> S = TrinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     up_factor=1.1,
+        ...     middle_factor=1.0,
+        ...     down_factor=0.9,
+        ...     up_prob=0.7,
+        ...     down_prob=0.2,
+        ...     risk_free_rate=0.05,
+        ...     mode="enum",
+        ...     length=3,
+        ... )
+        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+        Trinomial price process 'S':
+        t          0      1      2      3
+        omega
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  121.0
+        2      100.0  110.0  121.0  108.9
+        3      100.0  110.0  110.0  121.0
+        4      100.0  110.0  110.0  110.0
+        5      100.0  110.0  110.0   99.0
+        6      100.0  110.0   99.0  108.9
+        7      100.0  110.0   99.0   99.0
+        8      100.0  110.0   99.0   89.1
+        9      100.0  100.0  110.0  121.0
+        10     100.0  100.0  110.0  110.0
+        11     100.0  100.0  110.0   99.0
+        12     100.0  100.0  100.0  110.0
+        13     100.0  100.0  100.0  100.0
+        14     100.0  100.0  100.0   90.0
+        15     100.0  100.0   90.0   99.0
+        16     100.0  100.0   90.0   90.0
+        17     100.0  100.0   90.0   81.0
+        18     100.0   90.0   99.0  108.9
+        19     100.0   90.0   99.0   99.0
+        20     100.0   90.0   99.0   89.1
+        21     100.0   90.0   90.0   99.0
+        22     100.0   90.0   90.0   90.0
+        23     100.0   90.0   90.0   81.0
+        24     100.0   90.0   81.0   89.1
+        25     100.0   90.0   81.0   81.0
+        26     100.0   90.0   81.0   72.9
+
+        Define a European call option with strike `K=100`.
+
+        >>> K = 100
+        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
+        European option 'euro_call':
+        t        0    1    2     3
+        omega
+        0      0.0  0.0  0.0  33.1
+        1      0.0  0.0  0.0  21.0
+        2      0.0  0.0  0.0   8.9
+        3      0.0  0.0  0.0  21.0
+        4      0.0  0.0  0.0  10.0
+        5      0.0  0.0  0.0   0.0
+        6      0.0  0.0  0.0   8.9
+        7      0.0  0.0  0.0   0.0
+        8      0.0  0.0  0.0   0.0
+        9      0.0  0.0  0.0  21.0
+        10     0.0  0.0  0.0  10.0
+        11     0.0  0.0  0.0   0.0
+        12     0.0  0.0  0.0  10.0
+        13     0.0  0.0  0.0   0.0
+        14     0.0  0.0  0.0   0.0
+        15     0.0  0.0  0.0   0.0
+        16     0.0  0.0  0.0   0.0
+        17     0.0  0.0  0.0   0.0
+        18     0.0  0.0  0.0   8.9
+        19     0.0  0.0  0.0   0.0
+        20     0.0  0.0  0.0   0.0
+        21     0.0  0.0  0.0   0.0
+        22     0.0  0.0  0.0   0.0
+        23     0.0  0.0  0.0   0.0
+        24     0.0  0.0  0.0   0.0
+        25     0.0  0.0  0.0   0.0
+        26     0.0  0.0  0.0   0.0
+
+        Get the risk-neutral price of the call option for a specified parameter corresponding to risk-neutral probabilities.
+
+        >>> S.price(claim=euro_call, theta=0.2)
+        13.971579743008329
+
+        Define an American put option with the same strike.
+
+        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
+        American option 'american_put':
+        t        0     1     2     3
+        omega
+        0      0.0   0.0   0.0   0.0
+        1      0.0   0.0   0.0   0.0
+        2      0.0   0.0   0.0   0.0
+        3      0.0   0.0   0.0   0.0
+        4      0.0   0.0   0.0   0.0
+        5      0.0   0.0   0.0   1.0
+        6      0.0   0.0   1.0   0.0
+        7      0.0   0.0   1.0   1.0
+        8      0.0   0.0   1.0  10.9
+        9      0.0   0.0   0.0   0.0
+        10     0.0   0.0   0.0   0.0
+        11     0.0   0.0   0.0   1.0
+        12     0.0   0.0   0.0   0.0
+        13     0.0   0.0   0.0   0.0
+        14     0.0   0.0   0.0  10.0
+        15     0.0   0.0  10.0   1.0
+        16     0.0   0.0  10.0  10.0
+        17     0.0   0.0  10.0  19.0
+        18     0.0  10.0   1.0   0.0
+        19     0.0  10.0   1.0   1.0
+        20     0.0  10.0   1.0  10.9
+        21     0.0  10.0  10.0   1.0
+        22     0.0  10.0  10.0  10.0
+        23     0.0  10.0  10.0  19.0
+        24     0.0  10.0  19.0  10.9
+        25     0.0  10.0  19.0  19.0
+        26     0.0  10.0  19.0  27.1
+
+        Get the risk-neutral price of the put option.
+
+        >>> S.price(claim=american_put, theta=0.2)
+        0.7706511175898927
+        """
         from ...core.measures.probability_measure import ProbabilityMeasure
+
+        if self.mode == "sim":
+            raise NotImplementedError(
+                "The 'price' method is not yet implemented in 'sim' mode."
+            )
 
         if not claim.is_early_exercise:
             num_steps = len(self._index) - 1
@@ -1047,24 +764,660 @@ class TrinomialPricingModel(DiscretePricingModel):
             return (Phi_T.expectation(measure=Q).item() / R**T).astype(Real)
         else:
             self._compute_pricing_data(claim=claim, theta=theta)
-            return claim.pricing_data[theta].price
+            return claim._pricing_data[theta].price
 
     def price_process(self, claim: Claim, theta: Real, **kwargs) -> StochasticProcess:
-        """Pass."""
+        """Get the risk-neutral price process of a claim given an equivalent martingale measure.
+
+        Parameters
+        ----------
+        claim : Claim
+            The contingent claim whose price process is to be computed.
+        theta : Real
+            A parameter in the open interval (0, 1) yielding a collection of risk-neutral probabilities of the model.
+
+        Returns
+        -------
+        price_process : StochasticProcess
+            The risk-neutral price process of the claim.
+
+        Examples
+        --------
+        >>> from sigalg.finance import TrinomialPricingModel, Claim
+
+        Define a trinomial pricing model.
+
+        >>> S = TrinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     up_factor=1.1,
+        ...     middle_factor=1.0,
+        ...     down_factor=0.9,
+        ...     up_prob=0.7,
+        ...     down_prob=0.2,
+        ...     risk_free_rate=0.05,
+        ...     mode="enum",
+        ...     length=3,
+        ... )
+        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+        Trinomial price process 'S':
+        t          0      1      2      3
+        omega
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  121.0
+        2      100.0  110.0  121.0  108.9
+        3      100.0  110.0  110.0  121.0
+        4      100.0  110.0  110.0  110.0
+        5      100.0  110.0  110.0   99.0
+        6      100.0  110.0   99.0  108.9
+        7      100.0  110.0   99.0   99.0
+        8      100.0  110.0   99.0   89.1
+        9      100.0  100.0  110.0  121.0
+        10     100.0  100.0  110.0  110.0
+        11     100.0  100.0  110.0   99.0
+        12     100.0  100.0  100.0  110.0
+        13     100.0  100.0  100.0  100.0
+        14     100.0  100.0  100.0   90.0
+        15     100.0  100.0   90.0   99.0
+        16     100.0  100.0   90.0   90.0
+        17     100.0  100.0   90.0   81.0
+        18     100.0   90.0   99.0  108.9
+        19     100.0   90.0   99.0   99.0
+        20     100.0   90.0   99.0   89.1
+        21     100.0   90.0   90.0   99.0
+        22     100.0   90.0   90.0   90.0
+        23     100.0   90.0   90.0   81.0
+        24     100.0   90.0   81.0   89.1
+        25     100.0   90.0   81.0   81.0
+        26     100.0   90.0   81.0   72.9
+
+        Define a European call option with strike `K=100`.
+
+        >>> K = 100
+        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
+        European option 'euro_call':
+        t        0    1    2     3
+        omega
+        0      0.0  0.0  0.0  33.1
+        1      0.0  0.0  0.0  21.0
+        2      0.0  0.0  0.0   8.9
+        3      0.0  0.0  0.0  21.0
+        4      0.0  0.0  0.0  10.0
+        5      0.0  0.0  0.0   0.0
+        6      0.0  0.0  0.0   8.9
+        7      0.0  0.0  0.0   0.0
+        8      0.0  0.0  0.0   0.0
+        9      0.0  0.0  0.0  21.0
+        10     0.0  0.0  0.0  10.0
+        11     0.0  0.0  0.0   0.0
+        12     0.0  0.0  0.0  10.0
+        13     0.0  0.0  0.0   0.0
+        14     0.0  0.0  0.0   0.0
+        15     0.0  0.0  0.0   0.0
+        16     0.0  0.0  0.0   0.0
+        17     0.0  0.0  0.0   0.0
+        18     0.0  0.0  0.0   8.9
+        19     0.0  0.0  0.0   0.0
+        20     0.0  0.0  0.0   0.0
+        21     0.0  0.0  0.0   0.0
+        22     0.0  0.0  0.0   0.0
+        23     0.0  0.0  0.0   0.0
+        24     0.0  0.0  0.0   0.0
+        25     0.0  0.0  0.0   0.0
+        26     0.0  0.0  0.0   0.0
+
+        Get the risk-neutral price process of the call option for a specified parameter corresponding to risk-neutral probabilities.
+
+        >>> print(S.price_process(claim=euro_call, theta=0.2))  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        t             0          1          2     3
+        omega
+        0      13.97158  19.358050  25.761905  33.1
+        1      13.97158  19.358050  25.761905  21.0
+        2      13.97158  19.358050  25.761905   8.9
+        3      13.97158  19.358050  14.809524  21.0
+        4      13.97158  19.358050  14.809524  10.0
+        5      13.97158  19.358050  14.809524   0.0
+        6      13.97158  19.358050   4.661905   8.9
+        7      13.97158  19.358050   4.661905   0.0
+        8      13.97158  19.358050   4.661905   0.0
+        9      13.97158   9.752834  14.809524  21.0
+        10     13.97158   9.752834  14.809524  10.0
+        11     13.97158   9.752834  14.809524   0.0
+        12     13.97158   9.752834   5.238095  10.0
+        13     13.97158   9.752834   5.238095   0.0
+        14     13.97158   9.752834   5.238095   0.0
+        15     13.97158   9.752834   0.000000   0.0
+        16     13.97158   9.752834   0.000000   0.0
+        17     13.97158   9.752834   0.000000   0.0
+        18     13.97158   2.441950   4.661905   8.9
+        19     13.97158   2.441950   4.661905   0.0
+        20     13.97158   2.441950   4.661905   0.0
+        21     13.97158   2.441950   0.000000   0.0
+        22     13.97158   2.441950   0.000000   0.0
+        23     13.97158   2.441950   0.000000   0.0
+        24     13.97158   2.441950   0.000000   0.0
+        25     13.97158   2.441950   0.000000   0.0
+        26     13.97158   2.441950   0.000000   0.0
+
+        Define an American put option with the same strike.
+
+        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
+        American option 'american_put':
+        t        0     1     2     3
+        omega
+        0      0.0   0.0   0.0   0.0
+        1      0.0   0.0   0.0   0.0
+        2      0.0   0.0   0.0   0.0
+        3      0.0   0.0   0.0   0.0
+        4      0.0   0.0   0.0   0.0
+        5      0.0   0.0   0.0   1.0
+        6      0.0   0.0   1.0   0.0
+        7      0.0   0.0   1.0   1.0
+        8      0.0   0.0   1.0  10.9
+        9      0.0   0.0   0.0   0.0
+        10     0.0   0.0   0.0   0.0
+        11     0.0   0.0   0.0   1.0
+        12     0.0   0.0   0.0   0.0
+        13     0.0   0.0   0.0   0.0
+        14     0.0   0.0   0.0  10.0
+        15     0.0   0.0  10.0   1.0
+        16     0.0   0.0  10.0  10.0
+        17     0.0   0.0  10.0  19.0
+        18     0.0  10.0   1.0   0.0
+        19     0.0  10.0   1.0   1.0
+        20     0.0  10.0   1.0  10.9
+        21     0.0  10.0  10.0   1.0
+        22     0.0  10.0  10.0  10.0
+        23     0.0  10.0  10.0  19.0
+        24     0.0  10.0  19.0  10.9
+        25     0.0  10.0  19.0  19.0
+        26     0.0  10.0  19.0  27.1
+
+        Get the risk-neutral price process of the put option.
+
+        >>> print(S.price_process(claim=american_put, theta=0.2))  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        t             0         1          2     3
+        omega
+        0      0.770651   0.06576   0.000000   0.0
+        1      0.770651   0.06576   0.000000   0.0
+        2      0.770651   0.06576   0.000000   0.0
+        3      0.770651   0.06576   0.047619   0.0
+        4      0.770651   0.06576   0.047619   0.0
+        5      0.770651   0.06576   0.047619   1.0
+        6      0.770651   0.06576   1.000000   0.0
+        7      0.770651   0.06576   1.000000   1.0
+        8      0.770651   0.06576   1.000000  10.9
+        9      0.770651   0.68254   0.047619   0.0
+        10     0.770651   0.68254   0.047619   0.0
+        11     0.770651   0.68254   0.047619   1.0
+        12     0.770651   0.68254   0.476190   0.0
+        13     0.770651   0.68254   0.476190   0.0
+        14     0.770651   0.68254   0.476190  10.0
+        15     0.770651   0.68254  10.000000   1.0
+        16     0.770651   0.68254  10.000000  10.0
+        17     0.770651   0.68254  10.000000  19.0
+        18     0.770651  10.00000   1.000000   0.0
+        19     0.770651  10.00000   1.000000   1.0
+        20     0.770651  10.00000   1.000000  10.9
+        21     0.770651  10.00000  10.000000   1.0
+        22     0.770651  10.00000  10.000000  10.0
+        23     0.770651  10.00000  10.000000  19.0
+        24     0.770651  10.00000  19.000000  10.9
+        25     0.770651  10.00000  19.000000  19.0
+        26     0.770651  10.00000  19.000000  27.1
+        """
+        if self.mode == "sim":
+            raise NotImplementedError(
+                "The 'price_process' method is not yet implemented in 'sim' mode."
+            )
+
         self._compute_pricing_data(claim=claim, theta=theta)
-        return claim.pricing_data[theta].price_process
+        return claim._pricing_data[theta].price_process
 
     def continuation_process(
         self, claim: Claim, theta: Real, **kwargs
     ) -> StochasticProcess:
-        """Pass."""
+        """Get the continuation/value process of the replicating portfolio of a claim given an equivalent martingale measure.
+
+        Parameters
+        ----------
+        claim : Claim
+            The contingent claim whose continuation/price process is to be computed.
+        theta : Real
+            A parameter in the open interval (0, 1) yielding a collection of risk-neutral probabilities of the model.
+
+        Returns
+        -------
+        continuation_process : StochasticProcess
+            The continuation/value process of the replicating portfolio of the claim.
+
+        Examples
+        --------
+        >>> from sigalg.finance import TrinomialPricingModel, Claim
+
+        Define a trinomial pricing model.
+
+        >>> S = TrinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     up_factor=1.1,
+        ...     middle_factor=1.0,
+        ...     down_factor=0.9,
+        ...     up_prob=0.7,
+        ...     down_prob=0.2,
+        ...     risk_free_rate=0.05,
+        ...     mode="enum",
+        ...     length=3,
+        ... )
+        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+        Trinomial price process 'S':
+        t          0      1      2      3
+        omega
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  121.0
+        2      100.0  110.0  121.0  108.9
+        3      100.0  110.0  110.0  121.0
+        4      100.0  110.0  110.0  110.0
+        5      100.0  110.0  110.0   99.0
+        6      100.0  110.0   99.0  108.9
+        7      100.0  110.0   99.0   99.0
+        8      100.0  110.0   99.0   89.1
+        9      100.0  100.0  110.0  121.0
+        10     100.0  100.0  110.0  110.0
+        11     100.0  100.0  110.0   99.0
+        12     100.0  100.0  100.0  110.0
+        13     100.0  100.0  100.0  100.0
+        14     100.0  100.0  100.0   90.0
+        15     100.0  100.0   90.0   99.0
+        16     100.0  100.0   90.0   90.0
+        17     100.0  100.0   90.0   81.0
+        18     100.0   90.0   99.0  108.9
+        19     100.0   90.0   99.0   99.0
+        20     100.0   90.0   99.0   89.1
+        21     100.0   90.0   90.0   99.0
+        22     100.0   90.0   90.0   90.0
+        23     100.0   90.0   90.0   81.0
+        24     100.0   90.0   81.0   89.1
+        25     100.0   90.0   81.0   81.0
+        26     100.0   90.0   81.0   72.9
+
+        Define a European call option with strike `K=100`.
+
+        >>> K = 100
+        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
+        European option 'euro_call':
+        t        0    1    2     3
+        omega
+        0      0.0  0.0  0.0  33.1
+        1      0.0  0.0  0.0  21.0
+        2      0.0  0.0  0.0   8.9
+        3      0.0  0.0  0.0  21.0
+        4      0.0  0.0  0.0  10.0
+        5      0.0  0.0  0.0   0.0
+        6      0.0  0.0  0.0   8.9
+        7      0.0  0.0  0.0   0.0
+        8      0.0  0.0  0.0   0.0
+        9      0.0  0.0  0.0  21.0
+        10     0.0  0.0  0.0  10.0
+        11     0.0  0.0  0.0   0.0
+        12     0.0  0.0  0.0  10.0
+        13     0.0  0.0  0.0   0.0
+        14     0.0  0.0  0.0   0.0
+        15     0.0  0.0  0.0   0.0
+        16     0.0  0.0  0.0   0.0
+        17     0.0  0.0  0.0   0.0
+        18     0.0  0.0  0.0   8.9
+        19     0.0  0.0  0.0   0.0
+        20     0.0  0.0  0.0   0.0
+        21     0.0  0.0  0.0   0.0
+        22     0.0  0.0  0.0   0.0
+        23     0.0  0.0  0.0   0.0
+        24     0.0  0.0  0.0   0.0
+        25     0.0  0.0  0.0   0.0
+        26     0.0  0.0  0.0   0.0
+
+        Get the risk-neutral continuation process of the call option for a specified parameter corresponding to risk-neutral probabilities.
+
+        >>> print(S.continuation_process(claim=euro_call, theta=0.2))  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'V':
+        t             0          1          2     3
+        omega
+        0      13.97158  19.358050  25.761905  33.1
+        1      13.97158  19.358050  25.761905  21.0
+        2      13.97158  19.358050  25.761905   8.9
+        3      13.97158  19.358050  14.809524  21.0
+        4      13.97158  19.358050  14.809524  10.0
+        5      13.97158  19.358050  14.809524   0.0
+        6      13.97158  19.358050   4.661905   8.9
+        7      13.97158  19.358050   4.661905   0.0
+        8      13.97158  19.358050   4.661905   0.0
+        9      13.97158   9.752834  14.809524  21.0
+        10     13.97158   9.752834  14.809524  10.0
+        11     13.97158   9.752834  14.809524   0.0
+        12     13.97158   9.752834   5.238095  10.0
+        13     13.97158   9.752834   5.238095   0.0
+        14     13.97158   9.752834   5.238095   0.0
+        15     13.97158   9.752834   0.000000   0.0
+        16     13.97158   9.752834   0.000000   0.0
+        17     13.97158   9.752834   0.000000   0.0
+        18     13.97158   2.441950   4.661905   8.9
+        19     13.97158   2.441950   4.661905   0.0
+        20     13.97158   2.441950   4.661905   0.0
+        21     13.97158   2.441950   0.000000   0.0
+        22     13.97158   2.441950   0.000000   0.0
+        23     13.97158   2.441950   0.000000   0.0
+        24     13.97158   2.441950   0.000000   0.0
+        25     13.97158   2.441950   0.000000   0.0
+        26     13.97158   2.441950   0.000000   0.0
+
+        Define an American put option with the same strike.
+
+        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
+        American option 'american_put':
+        t        0     1     2     3
+        omega
+        0      0.0   0.0   0.0   0.0
+        1      0.0   0.0   0.0   0.0
+        2      0.0   0.0   0.0   0.0
+        3      0.0   0.0   0.0   0.0
+        4      0.0   0.0   0.0   0.0
+        5      0.0   0.0   0.0   1.0
+        6      0.0   0.0   1.0   0.0
+        7      0.0   0.0   1.0   1.0
+        8      0.0   0.0   1.0  10.9
+        9      0.0   0.0   0.0   0.0
+        10     0.0   0.0   0.0   0.0
+        11     0.0   0.0   0.0   1.0
+        12     0.0   0.0   0.0   0.0
+        13     0.0   0.0   0.0   0.0
+        14     0.0   0.0   0.0  10.0
+        15     0.0   0.0  10.0   1.0
+        16     0.0   0.0  10.0  10.0
+        17     0.0   0.0  10.0  19.0
+        18     0.0  10.0   1.0   0.0
+        19     0.0  10.0   1.0   1.0
+        20     0.0  10.0   1.0  10.9
+        21     0.0  10.0  10.0   1.0
+        22     0.0  10.0  10.0  10.0
+        23     0.0  10.0  10.0  19.0
+        24     0.0  10.0  19.0  10.9
+        25     0.0  10.0  19.0  19.0
+        26     0.0  10.0  19.0  27.1
+
+        Get the risk-neutral continuation process of the put option.
+
+        >>> print(S.continuation_process(claim=american_put, theta=0.2))  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'V':
+        t             0         1          2     3
+        omega
+        0      0.770651  0.065760   0.000000   0.0
+        1      0.770651  0.065760   0.000000   0.0
+        2      0.770651  0.065760   0.000000   0.0
+        3      0.770651  0.065760   0.047619   0.0
+        4      0.770651  0.065760   0.047619   0.0
+        5      0.770651  0.065760   0.047619   1.0
+        6      0.770651  0.065760   0.900000   0.0
+        7      0.770651  0.065760   0.900000   1.0
+        8      0.770651  0.065760   0.900000  10.9
+        9      0.770651  0.682540   0.047619   0.0
+        10     0.770651  0.682540   0.047619   0.0
+        11     0.770651  0.682540   0.047619   1.0
+        12     0.770651  0.682540   0.476190   0.0
+        13     0.770651  0.682540   0.476190   0.0
+        14     0.770651  0.682540   0.476190  10.0
+        15     0.770651  0.682540   5.238095   1.0
+        16     0.770651  0.682540   5.238095  10.0
+        17     0.770651  0.682540   5.238095  19.0
+        18     0.770651  5.238095   0.900000   0.0
+        19     0.770651  5.238095   0.900000   1.0
+        20     0.770651  5.238095   0.900000  10.9
+        21     0.770651  5.238095   5.238095   1.0
+        22     0.770651  5.238095   5.238095  10.0
+        23     0.770651  5.238095   5.238095  19.0
+        24     0.770651  5.238095  14.238095  10.9
+        25     0.770651  5.238095  14.238095  19.0
+        26     0.770651  5.238095  14.238095  27.1
+        """
+        if self.mode == "sim":
+            raise NotImplementedError(
+                "The 'continuation_process' method is not yet implemented in 'sim' mode."
+            )
+
         self._compute_pricing_data(claim=claim, theta=theta)
-        return claim.pricing_data[theta].continuation_process
+        return claim._pricing_data[theta].continuation_process
 
     def exercise_time(self, claim: Claim, theta: Real, **kwargs) -> StoppingTime:
-        """Pass."""
+        """Get the exercise time of a claim given an equivalent martingale measure.
+
+        Parameters
+        ----------
+        claim : Claim
+            The contingent claim whose exercise times are to be compute.
+        theta : Real
+            A parameter in the open interval (0, 1) yielding a collection of risk-neutral probabilities of the model.
+
+        Returns
+        -------
+        exercise_time : StoppingTime
+            The exercise time of the claim.
+
+        Examples
+        --------
+        >>> from sigalg.finance import TrinomialPricingModel, Claim
+
+        Define a trinomial pricing model.
+
+        >>> S = TrinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     up_factor=1.1,
+        ...     middle_factor=1.0,
+        ...     down_factor=0.9,
+        ...     up_prob=0.7,
+        ...     down_prob=0.2,
+        ...     risk_free_rate=0.05,
+        ...     mode="enum",
+        ...     length=3,
+        ... )
+        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+        Trinomial price process 'S':
+        t          0      1      2      3
+        omega
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  121.0
+        2      100.0  110.0  121.0  108.9
+        3      100.0  110.0  110.0  121.0
+        4      100.0  110.0  110.0  110.0
+        5      100.0  110.0  110.0   99.0
+        6      100.0  110.0   99.0  108.9
+        7      100.0  110.0   99.0   99.0
+        8      100.0  110.0   99.0   89.1
+        9      100.0  100.0  110.0  121.0
+        10     100.0  100.0  110.0  110.0
+        11     100.0  100.0  110.0   99.0
+        12     100.0  100.0  100.0  110.0
+        13     100.0  100.0  100.0  100.0
+        14     100.0  100.0  100.0   90.0
+        15     100.0  100.0   90.0   99.0
+        16     100.0  100.0   90.0   90.0
+        17     100.0  100.0   90.0   81.0
+        18     100.0   90.0   99.0  108.9
+        19     100.0   90.0   99.0   99.0
+        20     100.0   90.0   99.0   89.1
+        21     100.0   90.0   90.0   99.0
+        22     100.0   90.0   90.0   90.0
+        23     100.0   90.0   90.0   81.0
+        24     100.0   90.0   81.0   89.1
+        25     100.0   90.0   81.0   81.0
+        26     100.0   90.0   81.0   72.9
+
+        Define a European call option with strike `K=100`.
+
+        >>> K = 100
+        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
+        European option 'euro_call':
+        t        0    1    2     3
+        omega
+        0      0.0  0.0  0.0  33.1
+        1      0.0  0.0  0.0  21.0
+        2      0.0  0.0  0.0   8.9
+        3      0.0  0.0  0.0  21.0
+        4      0.0  0.0  0.0  10.0
+        5      0.0  0.0  0.0   0.0
+        6      0.0  0.0  0.0   8.9
+        7      0.0  0.0  0.0   0.0
+        8      0.0  0.0  0.0   0.0
+        9      0.0  0.0  0.0  21.0
+        10     0.0  0.0  0.0  10.0
+        11     0.0  0.0  0.0   0.0
+        12     0.0  0.0  0.0  10.0
+        13     0.0  0.0  0.0   0.0
+        14     0.0  0.0  0.0   0.0
+        15     0.0  0.0  0.0   0.0
+        16     0.0  0.0  0.0   0.0
+        17     0.0  0.0  0.0   0.0
+        18     0.0  0.0  0.0   8.9
+        19     0.0  0.0  0.0   0.0
+        20     0.0  0.0  0.0   0.0
+        21     0.0  0.0  0.0   0.0
+        22     0.0  0.0  0.0   0.0
+        23     0.0  0.0  0.0   0.0
+        24     0.0  0.0  0.0   0.0
+        25     0.0  0.0  0.0   0.0
+        26     0.0  0.0  0.0   0.0
+
+        Get the exercise time of the call option for a specified parameter corresponding to risk-neutral probabilities.
+
+        >>> print(S.exercise_time(claim=euro_call, theta=0.2))  # doctest: +NORMALIZE_WHITESPACE
+        Stopping time 'tau':
+               tau
+        omega
+        0      3.0
+        1      3.0
+        2      3.0
+        3      3.0
+        4      3.0
+        5      inf
+        6      3.0
+        7      inf
+        8      inf
+        9      3.0
+        10     3.0
+        11     inf
+        12     3.0
+        13     inf
+        14     inf
+        15     inf
+        16     inf
+        17     inf
+        18     3.0
+        19     inf
+        20     inf
+        21     inf
+        22     inf
+        23     inf
+        24     inf
+        25     inf
+        26     inf
+
+        Define an American put option with the same strike.
+
+        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
+        American option 'american_put':
+        t        0     1     2     3
+        omega
+        0      0.0   0.0   0.0   0.0
+        1      0.0   0.0   0.0   0.0
+        2      0.0   0.0   0.0   0.0
+        3      0.0   0.0   0.0   0.0
+        4      0.0   0.0   0.0   0.0
+        5      0.0   0.0   0.0   1.0
+        6      0.0   0.0   1.0   0.0
+        7      0.0   0.0   1.0   1.0
+        8      0.0   0.0   1.0  10.9
+        9      0.0   0.0   0.0   0.0
+        10     0.0   0.0   0.0   0.0
+        11     0.0   0.0   0.0   1.0
+        12     0.0   0.0   0.0   0.0
+        13     0.0   0.0   0.0   0.0
+        14     0.0   0.0   0.0  10.0
+        15     0.0   0.0  10.0   1.0
+        16     0.0   0.0  10.0  10.0
+        17     0.0   0.0  10.0  19.0
+        18     0.0  10.0   1.0   0.0
+        19     0.0  10.0   1.0   1.0
+        20     0.0  10.0   1.0  10.9
+        21     0.0  10.0  10.0   1.0
+        22     0.0  10.0  10.0  10.0
+        23     0.0  10.0  10.0  19.0
+        24     0.0  10.0  19.0  10.9
+        25     0.0  10.0  19.0  19.0
+        26     0.0  10.0  19.0  27.1
+
+        Get the exercise time of the put option.
+
+        >>> print(S.exercise_time(claim=american_put, theta=0.2))  # doctest: +NORMALIZE_WHITESPACE
+        Stopping time 'tau':
+               tau
+        omega
+        0      inf
+        1      inf
+        2      inf
+        3      inf
+        4      inf
+        5      3.0
+        6      2.0
+        7      2.0
+        8      2.0
+        9      inf
+        10     inf
+        11     3.0
+        12     inf
+        13     inf
+        14     3.0
+        15     2.0
+        16     2.0
+        17     2.0
+        18     1.0
+        19     1.0
+        20     1.0
+        21     1.0
+        22     1.0
+        23     1.0
+        24     1.0
+        25     1.0
+        26     1.0
+        """
+        if self.mode == "sim":
+            raise NotImplementedError(
+                "The 'exercise_time' method is not yet implemented in 'sim' mode."
+            )
+
         self._compute_pricing_data(claim=claim, theta=theta)
-        return claim.pricing_data[theta].exercise_time
+        return claim._pricing_data[theta].exercise_time
+
+    def delta(self, *args, **kwargs) -> None:
+        """Pass."""
+        raise NotImplementedError(
+            "Trinomial models are not complete. Delta processes do not exist."
+        )
+
+    def B(self, *args, **kwargs) -> None:
+        """Pass."""
+        raise NotImplementedError(
+            "Trinomial models are not complete. 'B' processes do not exist."
+        )
+
+    def replicating_portfolio(self, *args, **kwargs) -> None:
+        """Pass."""
+        raise NotImplementedError(
+            "Trinomial models are not complete. Replicating portfolios do not exist."
+        )
 
     def _compute_pricing_data(self, claim: Claim, theta: Real, **kwargs) -> None:
         from ..claims.claim import Claim
@@ -1210,18 +1563,6 @@ class TrinomialPricingModel(DiscretePricingModel):
         tau = StoppingTime.from_filtration(process=self, mapping=tau_arr, name="tau")
 
         return X, V, tau
-
-    def delta(self, *args, **kwargs) -> None:
-        """Pass."""
-        raise NotImplementedError(
-            "Trinomial models are not complete. Delta processes do not exist."
-        )
-
-    def replicating_portfolio(self, *args, **kwargs) -> None:
-        """Pass."""
-        raise NotImplementedError(
-            "Trinomial models are not complete. Replicating portfolios do not exist."
-        )
 
     # --------------------- enumeration methods --------------------- #
 

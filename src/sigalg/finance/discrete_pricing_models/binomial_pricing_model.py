@@ -57,8 +57,15 @@ class BinomialPricingModel(DiscretePricingModel):
 
     Enumerate all length-3 price trajectories in `sparse` enumeration mode.
 
-    >>> S.enum_mode = "sparse"
-    >>> S.regenerate()
+    >>> S = BinomialPricingModel.generate(
+    ...     initial_price=100,
+    ...     risk_free_rate=0.01,
+    ...     up_factor=1.1,
+    ...     up_prob=0.7,
+    ...     length=3,
+    ...     enum_mode="sparse",
+    ...     mode="enum",
+    ... )
     >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
     Binomial price process 'S':
     t          0           1           2           3
@@ -70,10 +77,16 @@ class BinomialPricingModel(DiscretePricingModel):
 
     Simulate ten length-3 trajectories in `sim` mode.
 
-    >>> S.n_trajectories = 10
-    >>> S.random_state = 42
-    >>> S.mode = "sim"
-    >>> S.regenerate()
+    >>> S = BinomialPricingModel.generate(
+    ...     initial_price=100,
+    ...     risk_free_rate=0.01,
+    ...     up_factor=1.1,
+    ...     up_prob=0.7,
+    ...     length=3,
+    ...     mode="sim",
+    ...     n_trajectories=10,
+    ...     random_state=42,
+    ... )
     >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
     Binomial price process 'S':
     t          0           1           2           3
@@ -179,8 +192,15 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Enumerate all length-3 price trajectories in `sparse` enumeration mode.
 
-        >>> S.enum_mode = "sparse"
-        >>> S.regenerate()
+        >>> S = BinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     risk_free_rate=0.01,
+        ...     up_factor=1.1,
+        ...     up_prob=0.7,
+        ...     length=3,
+        ...     enum_mode="sparse",
+        ...     mode="enum",
+        ... )
         >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
         Binomial price process 'S':
         t          0           1           2           3
@@ -192,10 +212,16 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Simulate ten length-3 trajectories in `sim` mode.
 
-        >>> S.n_trajectories = 10
-        >>> S.random_state = 42
-        >>> S.mode = "sim"
-        >>> S.regenerate()
+        >>> S = BinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     risk_free_rate=0.01,
+        ...     up_factor=1.1,
+        ...     up_prob=0.7,
+        ...     length=3,
+        ...     mode="sim",
+        ...     n_trajectories=10,
+        ...     random_state=42,
+        ... )
         >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
         Binomial price process 'S':
         t          0           1           2           3
@@ -210,7 +236,6 @@ class BinomialPricingModel(DiscretePricingModel):
         7      100.0  110.000000  100.000000   90.909091
         8      100.0   90.909091  100.000000  110.000000
         9      100.0  110.000000  121.000000  133.100000
-
         """
         if not isinstance(initial_price, Real) or initial_price <= 0:
             raise TypeError("initial_price must be a positive real number.")
@@ -260,222 +285,34 @@ class BinomialPricingModel(DiscretePricingModel):
     def initial_price(self) -> Real | None:
         """Get the initial price of the asset.
 
-        This attribute is settable. See the Examples below.
-
         Returns
         -------
         initial_price : Real
             The initial price of the asset.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 2
-
-        Exhaustively generate all price trajectories and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   99.0
-        2      100.0   90.0   99.0
-        3      100.0   90.0   81.0
-
-        Reset the initial price and regenerate new price trajectories.
-
-        >>> S.initial_price = 120
-        >>> S.regenerate()
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      120.0  132.0  145.2
-        1      120.0  132.0  118.8
-        2      120.0  108.0  118.8
-        3      120.0  108.0   97.2
         """
         return self._initial_price
-
-    @initial_price.setter
-    def initial_price(self, value: Real) -> None:
-        """Set the initial price of the asset."""
-        if not isinstance(value, Real) or value <= 0:
-            raise TypeError("initial_price must be a positive real number.")
-
-        self._initial_price = value
 
     @property
     def risk_free_rate(self) -> Real | None:
         """Get the per-period risk-free rate.
 
-        This attribute is settable. See the Examples below.
-
         Returns
         -------
         risk_free_rate : Real
             The risk-free rate.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel, Claim
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 2
-
-        Exhaustively generate all price trajectories and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   99.0
-        2      100.0   90.0   99.0
-        3      100.0   90.0   81.0
-
-        Define a European call option.
-
-        >>> Phi = Claim.european_option(strike=100, model=S)
-        >>> print(Phi)  # doctest: +NORMALIZE_WHITESPACE
-        European option 'Phi':
-        t        0    1     2
-        omega
-        0      0.0  0.0  21.0
-        1      0.0  0.0   0.0
-        2      0.0  0.0   0.0
-        3      0.0  0.0   0.0
-
-        Compute the risk-neutral price of the option with respect to the risk-free rate given above.
-
-        >>> print(Phi.price())
-        10.714285714285719
-
-        Reset the risk-free rate, regenerate trajectories, and compute the new risk-neutral price.
-
-        >>> S.risk_free_rate = 0.025
-        >>> S.regenerate()
-        >>> print(Phi.price())
-        7.807852468768577
         """
         return self._risk_free_rate
-
-    @risk_free_rate.setter
-    def risk_free_rate(self, value: Real) -> None:
-        """Set the per-period risk-free rate."""
-        if not isinstance(value, Real) or value <= 0:
-            raise TypeError("risk_free_rate must be a positive real number.")
-        self._risk_free_rate = value
 
     @property
     def up_prob(self) -> Real | None:
         """Get the probability of an upward price movement.
 
-        This attribute is settable. See the Examples below.
-
         Returns
         -------
         up_prob : Real
             The probability of an upward price movement.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 2
-
-        Exhaustively generate all price trajectories and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   99.0
-        2      100.0   90.0   99.0
-        3      100.0   90.0   81.0
-
-        Print the real-world probability measure of the model.
-
-        >>> print(S.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
-                    P
-        omega
-        0      0.3025
-        1      0.2475
-        2      0.2475
-        3      0.2025
-
-        Reset the up-probability, regenerate new price trajectories, and print the new real-world measure.
-
-        >>> S.up_prob = 0.65
-        >>> S.regenerate()
-        >>> print(S.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
-                    P
-        omega
-        0      0.4225
-        1      0.2275
-        2      0.2275
-        3      0.1225
         """
         return self._up_prob
-
-    @up_prob.setter
-    def up_prob(self, value: Real) -> None:
-        """Set the probability of an upward price movement."""
-        if not isinstance(value, Real) or not (0 < value < 1):
-            raise TypeError("up_prob must be a probability in the interval (0, 1).")
-        self._up_prob = value
 
     @property
     def down_prob(self) -> Real | None:
@@ -492,283 +329,45 @@ class BinomialPricingModel(DiscretePricingModel):
     def up_factor(self) -> Real | None:
         """Get the up-factor of the model.
 
-        This attribute is settable. See the Examples below.
-
         Returns
         -------
         up_factor : Real
             The up-factor of the model.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 2
-
-        Exhaustively generate all price trajectories and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   99.0
-        2      100.0   90.0   99.0
-        3      100.0   90.0   81.0
-
-        Reset the up-factor and regenerate new price trajectories.
-
-        >>> S.up_factor = 1.2
-        >>> S.regenerate()
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  120.0  144.0
-        1      100.0  120.0  108.0
-        2      100.0   90.0  108.0
-        3      100.0   90.0   81.0
         """
         return self._up_factor
-
-    @up_factor.setter
-    def up_factor(self, value: Real) -> None:
-        """Set the up-factor of the model."""
-        if not isinstance(value, Real) or value <= 1:
-            raise TypeError("up_factor must be a real number greater than 1.")
-        self._up_factor = value
 
     @property
     def down_factor(self) -> Real | None:
         """Get the down-factor of the model.
 
-        This attribute is settable. See the Examples below.
-
         Returns
         -------
         down_factor : Real
             The down-factor of the model.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 2
-
-        Exhaustively generate all price trajectories and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   99.0
-        2      100.0   90.0   99.0
-        3      100.0   90.0   81.0
-
-        Reset the down-factor and regenerate new price trajectories.
-
-        >>> S.down_factor = 0.7
-        >>> S.regenerate()
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   77.0
-        2      100.0   70.0   77.0
-        3      100.0   70.0   49.0
         """
         return self._down_factor
-
-    @down_factor.setter
-    def down_factor(self, value: Real) -> None:
-        """Set the down-factor of the model."""
-        if not isinstance(value, Real) or not (0 < value < 1):
-            raise TypeError("down_factor must be a real number between 0 and 1.")
-        self._down_factor = value
 
     @property
     def enum_mode(self) -> Literal["dense", "sparse"] | None:
         """Get the enumeration mode of the model.
 
-        This attribute is settable. See the Examples below.
-
         Returns
         -------
         enum_mode : Literal["dense", "sparse"]
             The enumeration mode of the model.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 3
-
-        Exhaustively generate all price trajectories in `dense` enumeration mode and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     enum_mode="dense",
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2      3
-        omega
-        0      100.0  110.0  121.0  133.1
-        1      100.0  110.0  121.0  108.9
-        2      100.0  110.0   99.0  108.9
-        3      100.0  110.0   99.0   89.1
-        4      100.0   90.0   99.0  108.9
-        5      100.0   90.0   99.0   89.1
-        6      100.0   90.0   81.0   89.1
-        7      100.0   90.0   81.0   72.9
-
-        Reset the enumeration mode, regenerate the trajectories, and print them.
-
-        >>> S.enum_mode = "sparse"
-        >>> S.regenerate()
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2      3
-        omega
-        0      100.0  110.0  121.0  133.1
-        1      100.0   90.0   99.0  108.9
-        2      100.0   90.0   81.0   89.1
-        3      100.0   90.0   81.0   72.9
         """
         return self._enum_mode
-
-    @enum_mode.setter
-    def enum_mode(self, value: Literal["dense", "sparse"]) -> None:
-        """Set the enumeration mode of the model."""
-        if value not in ["dense", "sparse"]:
-            raise ValueError("The enumeration mode must be either 'dense' or 'sparse'.")
-        self._enum_mode = value
 
     @property
     def risk_free_gross_return(self) -> Real | None:
         """Get the per-period risk-free gross return of the model.
 
-        This attribute is settable. See the Examples below.
-
         Returns
         -------
         risk_free_gross_return : Real
             The per-period risk-free gross return.
-
-        Examples
-        --------
-        >>> from sigalg.finance import BinomialPricingModel, Claim
-
-        Define the parameters of a binomial pricing model.
-
-        >>> S_0 = 100
-        >>> r = 0.05
-        >>> p = 0.55
-        >>> u = 1.1
-        >>> d = 0.9
-        >>> T = 2
-
-        Exhaustively generate all price trajectories and print them.
-
-        >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     up_prob=p,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     mode="enum",
-        ...     length=T,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        t          0      1      2
-        omega
-        0      100.0  110.0  121.0
-        1      100.0  110.0   99.0
-        2      100.0   90.0   99.0
-        3      100.0   90.0   81.0
-
-        Define a European call option.
-
-        >>> Phi = Claim.european_option(strike=100, model=S)
-        >>> print(Phi)  # doctest: +NORMALIZE_WHITESPACE
-        European option 'Phi':
-        t        0    1     2
-        omega
-        0      0.0  0.0  21.0
-        1      0.0  0.0   0.0
-        2      0.0  0.0   0.0
-        3      0.0  0.0   0.0
-
-        Compute the risk-neutral price of the option with respect to the risk-free rate given above.
-
-        >>> print(Phi.price())
-        10.714285714285719
-
-        Reset the risk-free gross return, regenerate trajectories, and compute the new risk-neutral price.
-
-        >>> S.risk_free_gross_return = 1.025
-        >>> S.regenerate()
-        >>> print(Phi.price())
-        7.807852468768577
         """
         return 1 + self.risk_free_rate
-
-    @risk_free_gross_return.setter
-    def risk_free_gross_return(self, value: Real) -> None:
-        """Set the per-period risk-free gross return of the model."""
-        if not isinstance(value, Real) or value <= 1:
-            raise ValueError(
-                "The risk-free gross return must be a real number greater than 1."
-            )
-        self._risk_free_rate = value - 1
 
     # --------------------- finance methods --------------------- #
 
@@ -984,7 +583,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Get the risk-neutral price of the call option.
 
-        >>> euro_call.price()
+        >>> S.price(claim=euro_call)
         15.306122448979611
 
         Define an American put option with the same strike.
@@ -1005,10 +604,10 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Get the risk-neutral price of the put option.
 
-        >>> american_put.price()
+        >>> S.price(claim=american_put)
         2.822319403952058
         """
-        if self.enum_mode == "sim":
+        if self.mode == "sim":
             raise NotImplementedError(
                 "The 'price' method is not yet implemented in 'sim' mode."
             )
@@ -1083,7 +682,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Get the risk-neutral price process of the call option.
 
-        >>> print(euro_call.price_process())  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(S.price_process(claim=euro_call))  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X':
         t              0          1          2     3
         omega
@@ -1114,7 +713,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Get the risk-neutral price process of the put option.
 
-        >>> print(american_put.price_process())  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(S.price_process(claim=american_put))  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X':
         t             0          1          2     3
         omega
@@ -1127,7 +726,7 @@ class BinomialPricingModel(DiscretePricingModel):
         6      2.822319  10.000000  19.000000  10.9
         7      2.822319  10.000000  19.000000  27.1
         """
-        if self.enum_mode == "sim":
+        if self.mode == "sim":
             raise NotImplementedError(
                 "The 'price_process' method is not yet implemented in 'sim' mode."
             )
@@ -1195,7 +794,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Get the risk-neutral continuation process of the call option.
 
-        >>> print(euro_call.continuation_process())  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(S.continuation_process(claim=euro_call))  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'V':
         t              0          1          2     3
         omega
@@ -1239,7 +838,7 @@ class BinomialPricingModel(DiscretePricingModel):
         6      2.822319  6.377551  14.238095  10.9
         7      2.822319  6.377551  14.238095  27.1
         """
-        if self.enum_mode == "sim":
+        if self.mode == "sim":
             raise NotImplementedError(
                 "The 'continuation_process' method is not yet implemented in 'sim' mode."
             )
@@ -1307,9 +906,9 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Get the exercise time of the call option.
 
-        >>> print(euro_call.exercise_time())  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(S.exercise_time(claim=euro_call))  # doctest: +NORMALIZE_WHITESPACE
         Stopping time 'tau':
-                tau
+               tau
         omega
         0      3.0
         1      3.0
@@ -1338,9 +937,9 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Get the exercise time of the put option.
 
-        >>> print(american_put.exercise_time())  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(S.exercise_time(claim=american_put))  # doctest: +NORMALIZE_WHITESPACE
         Stopping time 'tau':
-                tau
+               tau
         omega
         0      inf
         1      inf
@@ -1351,7 +950,7 @@ class BinomialPricingModel(DiscretePricingModel):
         6      1.0
         7      1.0
         """
-        if self.enum_mode == "sim":
+        if self.mode == "sim":
             raise NotImplementedError(
                 "The 'exercise_time' method is not yet implemented in 'sim' mode."
             )
@@ -1419,7 +1018,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Get the exercise time of the call option.
 
-        >>> print(euro_call.delta())  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(S.delta(claim=euro_call))  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'Delta':
         t             0         1         2
         omega
@@ -1450,7 +1049,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Get the exercise time of the put option.
 
-        >>> print(american_put.delta())  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(S.delta(claim=american_put))  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'Delta':
         t             0         1         2
         omega
@@ -1463,7 +1062,7 @@ class BinomialPricingModel(DiscretePricingModel):
         6     -0.469104 -0.911376 -1.000000
         7     -0.469104 -0.911376 -1.000000
         """
-        if self.enum_mode == "sim":
+        if self.mode == "sim":
             raise NotImplementedError(
                 "The 'delta' method is not yet implemented in 'sim' mode."
             )
@@ -1531,7 +1130,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Get the exercise time of the call option.
 
-        >>> print(euro_call.B())  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(S.B(claim=euro_call))  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'B':
         t              0          1          2
         omega
@@ -1562,7 +1161,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Get the exercise time of the put option.
 
-        >>> print(american_put.B())  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(S.B(claim=american_put))  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'B':
         t             0          1          2
         omega
@@ -1575,7 +1174,7 @@ class BinomialPricingModel(DiscretePricingModel):
         6      49.73275  88.401361  95.238095
         7      49.73275  88.401361  95.238095
         """
-        if self.enum_mode == "sim":
+        if self.mode == "sim":
             raise NotImplementedError(
                 "The 'B' method is not yet implemented in 'sim' mode."
             )
@@ -1649,7 +1248,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Generate the replicating portfolio for the European call.
 
-        >>> Delta, B, V = euro_call.replicating_portfolio()
+        >>> Delta, B, V = S.replicating_portfolio(claim=euro_call)
 
         Print the `Delta` and `B` price processes of the hedging portfolio, along with its value process `V`.
 
@@ -1708,7 +1307,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Compute and print the replicating portfolio.
 
-        >>> Delta, B, V = asian_put.replicating_portfolio()
+        >>> Delta, B, V = S.replicating_portfolio(claim=asian_put)
         >>> print(Delta)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'Delta':
         t             0         1        2
@@ -1746,7 +1345,7 @@ class BinomialPricingModel(DiscretePricingModel):
         6      1.23603  5.110544  10.464286   9.975
         7      1.23603  5.110544  10.464286  14.025
         """
-        if self.enum_mode == "sim":
+        if self.mode == "sim":
             raise NotImplementedError(
                 "The 'replicating_portfolio' method is not yet implemented in 'sim' mode."
             )
