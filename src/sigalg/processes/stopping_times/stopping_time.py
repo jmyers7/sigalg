@@ -29,7 +29,7 @@ class StoppingTime(RandomVariable):
     >>> from sigalg.core import Time
     >>> from sigalg.processes import RandomWalk, StoppingTime
 
-    A gambler begins with 10 units of currency in the bank and plays a game with unit stakes. The house has probability of 0.6 of winning, in which case the gambler loses one unit, and so the gambler has probability 0.4 of winning one unit. We suppose that the money in the gambler's bank is modeled by a random walk stochastic process, and that the gambler plays ten games.
+    A gambler begins with 10 units of currency in the bank and plays a game with unit stakes. The gambler has probability 0.4 of winning one unit, and probability 0.6 of losing one unit. We suppose that the money in the gambler's bank is modeled by a random walk, and that the gambler plays ten games.
 
     In SigAlg, we set up this random walk as follows, and generate eight random trajectories:
 
