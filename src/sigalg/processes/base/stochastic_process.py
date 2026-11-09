@@ -95,6 +95,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     _repr_name = "StochasticProcess"
     _str_name = "Stochastic process"
+    _default_y_axis_label = "state"
     _default_name = "X"
 
     # --------------------- constructors --------------------- #
@@ -796,7 +797,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         3       1  1  0
         4       1  1  0
         """
-        if hasattr(self, "_n_trajectories"):
+        if hasattr(self, "_n_trajectories") and self._n_trajectories is not None:
             return self._n_trajectories
         elif self.data is not None:
             return self.data.shape[0]
@@ -1328,7 +1329,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         colors: list = None,
         plot_kwargs: dict = None,
         x_label: str = "time",
-        y_label: str = "state",
+        y_label: str | None = None,
         title: str = None,
     ):
         """Plot the trajectories of the stochastic process.
@@ -1345,8 +1346,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             Additional keyword arguments to pass to the plotting function.
         x_label : str, default="time"
             Label for the x-axis.
-        y_label : str, default="state"
-            Label for the y-axis.
+        y_label : str | None, default=None
+            Label for the y-axis. If `None`, a class-specific default will be used.
         title : str, default=None
             Title of the plot. If `None`, a default title will be generated.
 
@@ -1360,6 +1361,9 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         columns = self.time.data
         n_trajectories = self.n_trajectories
+
+        if y_label is None:
+            y_label = self._default_y_axis_label
 
         if ax is None:
             _, ax = plt.subplots()

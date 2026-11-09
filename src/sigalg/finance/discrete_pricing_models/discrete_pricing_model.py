@@ -12,6 +12,7 @@ class DiscretePricingModel(StochasticProcess, ABC):
 
     _repr_name = "DiscretePricingModel"
     _str_name = "Discrete pricing model"
+    _default_y_axis_label = "price"
 
     @abstractmethod
     def price(self, claim: Claim, **kwargs) -> Real:
