@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sigalg"
-version = "0.1.11"
+version = "0.1.12"
 description = "Measure-Theoretic Probability in Python"
 readme = "README.md"
 authors = [{ name = "John Myers", email = "john@johnmyers-phd.com" }]
@@ -75,10 +75,10 @@ addopts = [
     "--doctest-modules",
     "--nbmake",
     "--tb=short",
-    # "--cov=sigalg",
-    # "--cov-report=xml",
-    # "--cov-report=lcov",
-    # "--cov-report=term-missing",
+    "--cov=sigalg",
+    "--cov-report=xml",
+    "--cov-report=lcov",
+    "--cov-report=term-missing",
 ]
 markers = [
     "unit: marks tests as unit tests",
