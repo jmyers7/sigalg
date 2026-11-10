@@ -42,5 +42,6 @@ from .processes import (
 )
 
 blue = "#3399FF"
+orange = "#FF8000"
 
 __all__ = core.__all__ + finance.__all__ + processes.__all__
