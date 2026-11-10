@@ -385,8 +385,6 @@ class MeasureSpace(SigmaAlgebraMethods):
             The name of the sigma-algebra.
         measure_distribution : Literal["uniform", "poisson", "dirichlet], default="uniform"
             The distribution from which to draw the values of the measure. If `uniform`, the values are drawn from the set of integers in `[measure_min_value, measure_max_value)`; if `poisson`, the values are drawn from a Poisson distribution with rate equal to `measure_rate`; if `dirichlet`, the values are drawn from a Dirichlet distribution with concentration parameters equal to `1`, producing a probability measure.
-        measure_min_value : int, default=1
-            The minimum value for `uniform` measure distribution.
         measure_max_value : int, default=10
             The maximum value for the `uniform` measure distribution.
         measure_rate : float, default=5.0

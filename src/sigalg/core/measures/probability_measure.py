@@ -826,8 +826,6 @@ class ProbabilityMeasure(Measure):
             The first random vector.
         second : MeasurableVector
             The second random vector.
-        tol : float, default=1e-8
-            The tolerance below which a probability is considered to be zero for the purposes of this comparison.
         rtol : float, default=1e-5
             The relative tolerance for `np.isclose` when comparing the random vectors.
         atol : float, default=1e-8

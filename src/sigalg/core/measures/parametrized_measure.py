@@ -296,7 +296,7 @@ class ParametrizedMeasure(Function):
             The number of atoms in the sigma-algebra that should be assigned a measure of 0.
         kind : Literal["param_measure", "param_probability"], default="param_measure"
             The kind of measure to generate. If `'param_probability'`, generates a probability measure using a Dirichlet distribution.
-        distdistribution : Literal["uniform", "poisson", "dirichlet"], default="uniform"
+        distribution : Literal["uniform", "poisson", "dirichlet"], default="uniform"
             The type of distribution from which to sample the values of the measure.
         max_value : int, default=10
             The maximum value for uniform integer sampling when `distribution='uniform'`. Integers are sampled from the interval `[1, max_value)`.
