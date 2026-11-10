@@ -3,43 +3,43 @@
    ============================================================================= */
 
 [data-md-color-scheme="slate"] {
-  --md-primary-fg-color:              #C45A5A;
-  --md-primary-fg-color--light:       #D07070;
-  --md-primary-fg-color--dark:        #A84848;
+    --md-primary-fg-color: #FF3D9A;
+    --md-primary-fg-color--light: #FF6AB3;
+    --md-primary-fg-color--dark: #E02580;
 
-  --md-accent-fg-color:               #C45A5A;
-  --md-accent-fg-color--transparent:  #C45A5A33;
+    --md-accent-fg-color: #FF3D9A;
+    --md-accent-fg-color--transparent: #FF3D9A33;
 
-  --md-default-bg-color:              #221C18;
-  --md-default-bg-color--light:       #2A2118;
-  --md-default-bg-color--lighter:     #332820;
+    --md-default-bg-color: #0B1020;
+    --md-default-bg-color--light: #121933;
+    --md-default-bg-color--lighter: #1A2344;
 
-  --md-default-fg-color:              #EDE8E0;
-  --md-default-fg-color--light:       #B5ADA5;
-  --md-default-fg-color--lighter:     #8A837C;
+    --md-default-fg-color: #E8ECF8;
+    --md-default-fg-color--light: #AAB3CF;
+    --md-default-fg-color--lighter: #747EA0;
 
-  --md-code-bg-color:                 #1C1714;
-  --md-typeset-a-color:               #C45A5A;
+    --md-code-bg-color: #080C18;
+    --md-typeset-a-color: #FF5DAA;
 }
 
 [data-md-color-scheme="default"] {
-  --md-primary-fg-color:              #EDE8E0;
-  --md-primary-fg-color--light:       #FAF7F2;
-  --md-primary-fg-color--dark:        #EDE8E0;
+    --md-primary-fg-color: #F4F5FA;
+    --md-primary-fg-color--light: #FFFFFF;
+    --md-primary-fg-color--dark: #F4F5FA;
 
-  --md-accent-fg-color:               #C45A5A;
-  --md-accent-fg-color--transparent:  #C45A5A33;
+    --md-accent-fg-color: #FF1F8E;
+    --md-accent-fg-color--transparent: #FF1F8E33;
 
-  --md-default-bg-color:              #FAF7F2;
-  --md-default-bg-color--light:       #FDFBF8;
-  --md-default-bg-color--lighter:     #FEFEFE;
+    --md-default-bg-color: #FCFCFE;
+    --md-default-bg-color--light: #FFFFFF;
+    --md-default-bg-color--lighter: #FFFFFF;
 
-  --md-default-fg-color:              #2F2A26;
-  --md-default-fg-color--light:       #5C544C;
-  --md-default-fg-color--lighter:     #8A7E74;
+    --md-default-fg-color: #14172B;
+    --md-default-fg-color--light: #454A66;
+    --md-default-fg-color--lighter: #7D82A0;
 
-  --md-code-bg-color:                 #F2EDE6;
-  --md-typeset-a-color:               #8C3A3A;
+    --md-code-bg-color: #F3F4FA;
+    --md-typeset-a-color: #E0006F;
 }
 
 /* =============================================================================
@@ -47,16 +47,16 @@
    ============================================================================= */
 
 [data-md-color-scheme="default"] .md-header {
-  background-color: rgba(237, 232, 224, 0.9) !important;
-  color: #2F2A26;
+    background-color: rgba(252, 252, 254, 0.9) !important;
+    color: #14172B;
 }
 
 [data-md-color-scheme="slate"] .md-header {
-  background-color: rgba(51, 40, 32, 0.9) !important;
+    background-color: rgba(18, 25, 51, 0.9) !important;
 }
 
 .md-header__title {
-  visibility: hidden;
+    visibility: hidden;
 }
 
 /* =============================================================================
@@ -64,15 +64,19 @@
    ============================================================================= */
 
 .md-tabs {
-  background-color: transparent !important;
+    background-color: transparent !important;
 }
 
 [data-md-color-scheme="default"] .md-tabs__link {
-  color: #5C544C;
+    color: #454A66;
 }
 
 [data-md-color-scheme="default"] .md-tabs__link--active {
-  color: #2F2A26;
+    color: #E0006F;
+}
+
+[data-md-color-scheme="slate"] .md-tabs__link--active {
+    color: #FF5DAA;
 }
 
 /* =============================================================================
@@ -81,12 +85,12 @@
 
 [data-md-color-scheme="default"] .md-header__button.md-logo img,
 [data-md-color-scheme="default"] .md-nav__button.md-logo img {
-  content: url('../assets/sigalg-light-no-logo.svg');
+    content: url('../assets/sigalg-light-no-logo.svg');
 }
 
 [data-md-color-scheme="slate"] .md-header__button.md-logo img,
 [data-md-color-scheme="slate"] .md-nav__button.md-logo img {
-  content: url('../assets/sigalg-dark-no-logo.svg');
+    content: url('../assets/sigalg-dark-no-logo.svg');
 }
 
 /* =============================================================================
@@ -94,14 +98,14 @@
    ============================================================================= */
 
 .centered-table {
-  text-align: center;
+    text-align: center;
 }
 
 .centered-table table {
-  margin-left: auto;
-  margin-right: auto;
-  font-size: 0.75rem !important;
-  width: 100% !important;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 0.75rem !important;
+    width: 100% !important;
 }
 
 /* =============================================================================
@@ -111,39 +115,44 @@
 .md-typeset .twemoji,
 .md-typeset .emojione,
 .md-typeset .gemoji {
-    --md-icon-size: 2.0em;
+    --md-icon-size: 1.5em;
+    vertical-align: middle;
 }
 
 /* =============================================================================
    LANDING PAGE
    ============================================================================= */
 
-.md-content__inner > h1:first-child {
-  display: none !important;
+.md-content__inner>h1:first-child {
+    display: none !important;
 }
 
 .md-content__inner {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
 }
 
 .hero-header {
-  margin-bottom: 1rem;
+    margin-bottom: 1rem;
 }
 
 .hero-logo {
-  width: 15rem;
-  height: auto;
-  display: block;
-  margin: 0 auto;
+    width: 15rem;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+.md-typeset .grid.cards {
+  grid-gap: 2rem;
 }
 
 [data-md-color-scheme="default"] .hero-logo--dark {
-  display: none;
+    display: none;
 }
 
 [data-md-color-scheme="slate"] .hero-logo--light {
-  display: none;
+    display: none;
 }
 
 /* =============================================================================
@@ -151,24 +160,73 @@
    ============================================================================= */
 
 [data-md-color-scheme="slate"] {
-  .highlight .c, .highlight .c1, .highlight .cm,
-  .highlight .cp, .highlight .cs {
-    color: #9A8880; font-style: italic; font-weight: 500; /* comments */
-  }
-  .highlight .k, .highlight .kd, .highlight .kn,
-  .highlight .kr, .highlight .kv {
-    color: #D4A56A; font-weight: 500;                     /* keywords */
-  }
-  .highlight .s, .highlight .s1, .highlight .s2,
-  .highlight .sb, .highlight .sc {
-    color: #C4906A;                                        /* strings */
-  }
-  .highlight .nf, .highlight .fm { color: #C45A5A; }      /* functions */
-  .highlight .n,  .highlight .na, .highlight .nb { color: #EDE8E0; } /* variables */
-  .highlight .m,  .highlight .mi, .highlight .mf { color: #9A7BC4; } /* numbers */
-  .highlight .o,  .highlight .ow { color: #7ABAC4; }      /* operators */
-  .highlight .nc  { color: #7AA4D4; }                     /* classes */
-  .highlight .nd  { color: #C45A5A; }                     /* decorators */
+
+    .highlight .c,
+    .highlight .c1,
+    .highlight .cm,
+    .highlight .cp,
+    .highlight .cs {
+        color: #7480A8;
+        font-style: italic;
+        font-weight: 500;
+        /* comments */
+    }
+
+    .highlight .k,
+    .highlight .kd,
+    .highlight .kn,
+    .highlight .kr,
+    .highlight .kv {
+        color: #FF5DAA;
+        font-weight: 500;
+        /* keywords */
+    }
+
+    .highlight .s,
+    .highlight .s1,
+    .highlight .s2,
+    .highlight .sb,
+    .highlight .sc {
+        color: #7EE0C3;
+        /* strings */
+    }
+
+    .highlight .nf,
+    .highlight .fm {
+        color: #6CB6FF;
+    }
+
+    /* functions */
+    .highlight .n,
+    .highlight .na,
+    .highlight .nb {
+        color: #E8ECF8;
+    }
+
+    /* variables */
+    .highlight .m,
+    .highlight .mi,
+    .highlight .mf {
+        color: #FFC66D;
+    }
+
+    /* numbers */
+    .highlight .o,
+    .highlight .ow {
+        color: #B79CFF;
+    }
+
+    /* operators */
+    .highlight .nc {
+        color: #8FD3FF;
+    }
+
+    /* classes */
+    .highlight .nd {
+        color: #FF5DAA;
+    }
+
+    /* decorators */
 }
 
 /* =============================================================================
@@ -176,22 +234,70 @@
    ============================================================================= */
 
 [data-md-color-scheme="default"] {
-  .highlight .c, .highlight .c1, .highlight .cm,
-  .highlight .cp, .highlight .cs {
-    color: #8A7A6E; font-style: italic;                   /* comments */
-  }
-  .highlight .k, .highlight .kd, .highlight .kn,
-  .highlight .kr, .highlight .kv {
-    color: #4A3A8C; font-weight: 500;                     /* keywords */
-  }
-  .highlight .s, .highlight .s1, .highlight .s2,
-  .highlight .sb, .highlight .sc {
-    color: #8C5A2A;                                        /* strings */
-  }
-  .highlight .nf, .highlight .fm { color: #8C3A3A; }      /* functions */
-  .highlight .n,  .highlight .na, .highlight .nb { color: #2F2A26; } /* variables */
-  .highlight .m,  .highlight .mi, .highlight .mf { color: #6A3A9A; } /* numbers */
-  .highlight .o,  .highlight .ow { color: #2A5A9A; }      /* operators */
-  .highlight .nc  { color: #2A5A9A; }                     /* classes */
-  .highlight .nd  { color: #8C3A3A; }                     /* decorators */
+
+    .highlight .c,
+    .highlight .c1,
+    .highlight .cm,
+    .highlight .cp,
+    .highlight .cs {
+        color: #7D82A0;
+        font-style: italic;
+        /* comments */
+    }
+
+    .highlight .k,
+    .highlight .kd,
+    .highlight .kn,
+    .highlight .kr,
+    .highlight .kv {
+        color: #E0006F;
+        font-weight: 500;
+        /* keywords */
+    }
+
+    .highlight .s,
+    .highlight .s1,
+    .highlight .s2,
+    .highlight .sb,
+    .highlight .sc {
+        color: #0F7A5C;
+        /* strings */
+    }
+
+    .highlight .nf,
+    .highlight .fm {
+        color: #1F5FD1;
+    }
+
+    /* functions */
+    .highlight .n,
+    .highlight .na,
+    .highlight .nb {
+        color: #14172B;
+    }
+
+    /* variables */
+    .highlight .m,
+    .highlight .mi,
+    .highlight .mf {
+        color: #B35A00;
+    }
+
+    /* numbers */
+    .highlight .o,
+    .highlight .ow {
+        color: #6A3FD0;
+    }
+
+    /* operators */
+    .highlight .nc {
+        color: #1F5FD1;
+    }
+
+    /* classes */
+    .highlight .nd {
+        color: #E0006F;
+    }
+
+    /* decorators */
 }

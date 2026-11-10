@@ -1,3 +1,0 @@
-Is X in H? True
-
-Is Y in H? False

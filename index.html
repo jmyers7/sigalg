@@ -14,7 +14,7 @@
       
       
       
-        <link rel="next" href="getting_started/">
+        <link rel="next" href="api/">
       
       
         
@@ -91,6 +91,11 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
+      
+        
+        <a href="#installation" class="md-skip">
+          Skip to content
+        </a>
       
     </div>
     <div data-md-component="announce">
@@ -262,44 +267,6 @@
   
   
   
-    <li class="md-tabs__item">
-      <a href="getting_started/" class="md-tabs__link">
-        
-  
-  
-    
-  
-  Getting Started
-
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="code_snippets/" class="md-tabs__link">
-        
-  
-  
-    
-  
-  Code Snippets
-
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
-  
     
     
       <li class="md-tabs__item">
@@ -377,6 +344,24 @@
       
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="." class="md-nav__link md-nav__link--active">
         
   
@@ -394,60 +379,45 @@
 
       </a>
       
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="getting_started/" class="md-nav__link">
         
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Getting Started
-  
 
-    
-  </span>
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
-
-      </a>
-    </li>
   
-
-    
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
       
+        Installation
+      
+    </span>
+  </a>
   
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting started
+      
+    </span>
+  </a>
   
+</li>
+      
+    </ul>
   
-  
-    <li class="md-nav__item">
-      <a href="code_snippets/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Code Snippets
-  
-
-    
-  </span>
-  
-  
-
-      </a>
+</nav>
+      
     </li>
   
 
@@ -472,10 +442,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
             
   
   
@@ -493,8 +463,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -539,14 +509,14 @@
   
   
     <li class="md-nav__item">
-      <a href="api/core/" class="md-nav__link">
+      <a href="api/modules/core/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Core
+    Core objects
   
 
     
@@ -567,14 +537,14 @@
   
   
     <li class="md-nav__item">
-      <a href="api/l2/" class="md-nav__link">
+      <a href="api/modules/processes/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    L^2 Spaces
+    Stochastic processes
   
 
     
@@ -595,35 +565,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/processes/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Stochastic Processes
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="api/finance/" class="md-nav__link">
+      <a href="api/modules/finance/" class="md-nav__link">
         
   
   
@@ -692,87 +634,30 @@
   <img src="assets/sigalg-light-no-logo.svg" class="hero-logo hero-logo--light" alt="SigAlg">
   <img src="assets/sigalg-dark-no-logo.svg" class="hero-logo hero-logo--dark" alt="SigAlg">
 </header>
-<p>SigAlg is a Python library for measure-theoretic probability: build probability spaces from sample spaces, <span class="arithmatex">\(\sigma\)</span>-algebras, and probability measures, define random variables and stochastic processes, and compute derived objects (e.g., conditional expectations, checks for martingales).</p>
-<p>Unlike most probabilistic computing libraries that treat probabilities primarily as arrays of numbers, SigAlg exposes the richer structures of measure-theoretic probability as manipulable, inspectable objects. The goal is to reduce friction when translating from mathematics to working code.</p>
-<p><strong>Key Features:</strong></p>
-<ul>
-<li><strong>Core probabilistic objects</strong> — Sample spaces, <span class="arithmatex">\(\sigma\)</span>-algebras, and probability measures modeled close to their definitions.</li>
-<li><strong>Filtrations of <span class="arithmatex">\(\sigma\)</span>-algebras</strong> — Support for time-evolving information structures used in stochastic processes.</li>
-<li><strong>Random variables and vectors</strong> — Algebraic operations and transformations, including conditional expectation and variance.</li>
-<li><strong><span class="arithmatex">\(L^2\)</span> spaces of random variables</strong> — Inner products, norms, orthogonal projections, Fourier expansions, measure-theoretic regression.</li>
-<li><strong>Stochastic processes</strong> — Adapted and predictable processes, stopping times and stopped processes, discrete Itô integrals, and a growing library of built-in processes.</li>
-<li><strong>Exact and Monte Carlo</strong> — Support for Monte Carlo simulation, discrete approximations to continuous-time objects, and exhaustive exact enumeration.</li>
-<li><strong>Integration with scientific Python</strong> — NumPy/Pandas interoperability; visualization via Matplotlib/Plotly; probability distributions via SciPy.</li>
-</ul>
-<p>All the above is implemented according to SigAlg's core design philosophy of a focus on mathematical fidelity and accuracy, not just black-box simulation and speed. SigAlg is meant to be a different kind of library—an interface between abstract mathematics and concrete code that complements the rest of the Python ecosystem.</p>
-<p><a href="getting_started/">Get Started →</a></p>
+<p>Named after a <em><span class="arithmatex">\(\sigma\)</span>-algebra</em>, a foundational type of object in modern probability theory, SigAlg is a Python library designed as a tool for theoreticians and practioners that work in the intersection of rigorous probability theory and computation. It was first conceived as a tool for experiments in quantitative finance, but its scope has since grown to include abstractions of core probabilistic objects ranging from probability spaces and random variables, to Radon-Nikodym derivatives and conditional KL divergences.</p>
+<p>The core design philosophy of SigAlg centers on mathematical fidelity and accuracy, not just black-box simulation and speed. The user manipulates random variables and other objects in SigAlg code as easily as they would with pen and paper, facilitating experimentation and reducing the friction between abstract mathematical concepts and concrete executable code.</p>
 </div>
 <div>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">random_walk.py</label><label for="__tabbed_1_2">Output</label></div>
+<h2 id="installation">Installation</h2>
+<p>Open a virtual environment running Python 3.11 or later and install SigAlg using either <code>uv</code> or <code>pip</code>:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">uv</label><label for="__tabbed_1_2">pip</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Demo SigAlg API by creating a random walk from scratch.&quot;&quot;&quot;</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">bernoulli</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Time</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.processes</span><span class="w"> </span><span class="kn">import</span> <span class="n">IIDProcess</span>
-
-<span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">discrete</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># (1)!</span>
-<span class="n">B</span> <span class="o">=</span> <span class="n">IIDProcess</span><span class="p">(</span>
-    <span class="n">distribution</span><span class="o">=</span><span class="n">bernoulli</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mf">0.7</span><span class="p">),</span>
-    <span class="n">support</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-    <span class="n">time</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
-<span class="p">)</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">()</span>  <span class="c1"># (2)!</span>
-
-<span class="n">Y</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">B</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># (3)!</span>
-<span class="n">X</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">)</span>  <span class="c1"># (4)!</span>
-<span class="n">X</span><span class="o">.</span><span class="n">insert_rv</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">in_place</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># (5)!</span>
-
-<span class="n">F</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">natural_filtration</span>  <span class="c1"># (6)!</span>
-<span class="n">expectation</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="n">sigma_algebra</span><span class="o">=</span><span class="n">F</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>  <span class="c1"># (7)!</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">X</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">expectation</span><span class="o">.</span><span class="n">data</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># (8)!</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Is X a submartingale?&quot;</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">is_submartingale</span><span class="p">())</span>  <span class="c1"># (9)!</span>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>add<span class="w"> </span>sigalg
 </code></pre></div>
-<ol>
-<li>Create a time index <span class="arithmatex">\(T = \{1,2,3,4\}\)</span>.</li>
-<li>Create a discrete-time IID Bernoulli process <span class="arithmatex">\(B = \{B_t\}_{t=1}^4\)</span>, and enumerate all <span class="arithmatex">\(2^4 = 16\)</span> possible trajectories. A value of <span class="arithmatex">\(B_t=1\)</span> means step right, and <span class="arithmatex">\(B_t=0\)</span> means step left.</li>
-<li>Create the process <span class="arithmatex">\(Y=2B-1\)</span>, which will serve as the increments of our random walk. A value of <span class="arithmatex">\(Y_t=1\)</span> means step right, and <span class="arithmatex">\(Y_t=-1\)</span> means step left.</li>
-<li>Create the random walk process <span class="arithmatex">\(X\)</span> by taking the cumulative sum of the increment process <span class="arithmatex">\(Y\)</span>, so that <span class="arithmatex">\(X_t = \sum_{s=1}^t Y_s\)</span>.</li>
-<li>Add the initial state <span class="arithmatex">\(X_0=0\)</span> to the process <span class="arithmatex">\(X\)</span>.</li>
-<li>Get the natural filtration <span class="arithmatex">\(\mathcal{F}\)</span> of <span class="arithmatex">\(X\)</span>, where <span class="arithmatex">\(\mathcal{F}_t = \sigma(X_1,X_2,\ldots,X_t)\)</span>.</li>
-<li>Compute the conditional expectation <span class="arithmatex">\(E(X_4 \mid \mathcal{F}_3)\)</span>.</li>
-<li>Print the trajectories of <span class="arithmatex">\(X\)</span>, along with the computed conditional expectation.</li>
-<li>Our random walk has positive drift, so it should be a submartingale.</li>
-</ol>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code>            0  1  2  3  4  E(X_4|3)
-trajectory                         
-0           0 -1 -2 -3 -4      -2.6
-1           0 -1 -2 -3 -2      -2.6
-2           0 -1 -2 -1 -2      -0.6
-3           0 -1 -2 -1  0      -0.6
-4           0 -1  0 -1 -2      -0.6
-5           0 -1  0 -1  0      -0.6
-6           0 -1  0  1  0       1.4
-7           0 -1  0  1  2       1.4
-8           0  1  0 -1 -2      -0.6
-9           0  1  0 -1  0      -0.6
-10          0  1  0  1  0       1.4
-11          0  1  0  1  2       1.4
-12          0  1  2  1  0       1.4
-13          0  1  2  1  2       1.4
-14          0  1  2  3  2       3.4
-15          0  1  2  3  4       3.4
-
-Is X a submartingale? True
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>sigalg
 </code></pre></div>
 </div>
 </div>
 </div>
+<h2 id="getting-started">Getting started</h2>
+<p>SigAlg is in active development and recently underwent a complete rewrite of its core (moving from <code>v0.1.11</code> to <code>v0.1.12</code>). This made several older tutorials and code examples outdated, which are in the process of being rewritten. However, a new tutorial written after the core refactoring focuses on SigAlg's financial roots and is available here:</p>
+<ul>
+<li>Risk-neutral valuation in SigAlg with binomial trees <a href="https://github.com/jmyers7/sigalg/blob/dev/docs/notebooks/binomial-pricing-model.ipynb" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33s1.71.11 2.5.33c1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2"/></svg></span></a> <a href="https://colab.research.google.com/github/jmyers7/sigalg/blob/dev/docs/notebooks/binomial-pricing-model.ipynb" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.941 4.976a7.03 7.03 0 0 0-4.93 2.064 7.033 7.033 0 0 0-.124 9.807l2.395-2.395a3.646 3.646 0 0 1 5.15-5.148l2.397-2.399a7.03 7.03 0 0 0-4.888-1.93m-9.871.01a7.03 7.03 0 0 0-4.888 1.931l2.391 2.391a3.643 3.643 0 0 1 5.023.127l1.734-2.973-.1-.08a7.03 7.03 0 0 0-4.16-1.396m15.01 2.172-2.39 2.39a3.646 3.646 0 0 1-5.15 5.15l-2.406 2.407a7.036 7.036 0 0 0 9.945-9.947m-20.148.01a7.033 7.033 0 0 0-.002 9.681l2.397-2.397a3.643 3.643 0 0 1-.004-4.892zm7.664 7.423a3.635 3.635 0 0 1-5.017.113L2.182 17.1a7.03 7.03 0 0 0 9.007.546l.137-.112z"/></svg></span></a></li>
+</ul>
+<p>Check back for more tutorials. In the meantime, there are many (many!) code examples in the API reference.</p>
 </div>
 </div>
 

@@ -1,3 +1,0 @@
-Is the event A measurable? False
-
-Is the event B measurable? True
