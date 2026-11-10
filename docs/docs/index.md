@@ -25,39 +25,34 @@ hide:
   <img src="assets/sigalg-dark-no-logo.svg" class="hero-logo hero-logo--dark" alt="SigAlg">
 </header>
 
-SigAlg is a Python library for measure-theoretic probability theory, designed as a general-purpose tool for researchers, instructors and students that work in the intersection of rigorous mathematics and computation. The central design philosophy of SigAlg is a high fidelity between mathematics and code, resulting in an API that closely mirrors the equations, formulas and expressions that a researcher would write on a sheet of paper or whiteboard. Many of the abstractions in mathematical probability theory — from primitive objects like sample spaces and probability measures, to richer structures like martingales and Radon-Nikodym derivatives — appear in SigAlg as first-class objects. *SigAlg is probability theory made computable.*
+Named after a *$\sigma$-algebra*, a foundational type of object in modern probability theory, SigAlg is a Python library designed as a tool for theoreticians and practioners that work in the intersection of rigorous probability theory and computation. It was first conceived as a tool for experiments in quantitative finance, but its scope has since grown to include abstractions of core probabilistic objects ranging from probability spaces and random variables, to Radon-Nikodym derivatives and conditional KL divergences.
 
-Named after a *$\sigma$-algebra*, a type of foundational object in modern probability theory, SigAlg naturally complements and builds on the existing Python scientific computing stack while filling its own niche. It sits in the research/prototyping layer of a workflow, where a user is first beginning to translate an abstract mathematical model to something computable in a machine. SigAlg does not blackbox or hide the underlying mathematics; it is all completely exposed, open to manipulation and fine-tuning, allowing a researcher to experiment with novel probabilistic architectures before translating to a production-grade system.
-
-SigAlg was first conceived as a tool for experiments in quantitative finance, but its scope has since grown, and its core is now general enough for use in any field that intersects rigorous probability theory. Current development is focused along the following axes:
-
-- Blah.
-
-[Get Started →](getting_started/index.md)
+The core design philosophy of SigAlg centers on mathematical fidelity and accuracy, not just black-box simulation and speed. The user manipulates random variables and other objects in SigAlg code as easily as they would with pen and paper, facilitating experimentation and reducing the friction between abstract mathematical concepts and concrete executable code.
 
 </div>
 
 <div markdown>
 
-=== "random_walk.py"
-    ```python
-    --8<-- "random_walk.py"
+## Installation
+
+Open a virtual environment running Python 3.11 or later and install SigAlg using either `uv` or `pip`:
+
+=== "uv"
+    ```bash
+    uv add sigalg
+    ```
+=== "pip"
+    ```bash
+    pip install sigalg
     ```
 
-    1. Create a time index $T = \{1,2,3,4\}$.
-    2. Create a discrete-time IID Bernoulli process $B = \{B_t\}_{t=1}^4$, and enumerate all $2^4 = 16$ possible trajectories. A value of $B_t=1$ means step right, and $B_t=0$ means step left.
-    3. Create the process $Y=2B-1$, which will serve as the increments of our random walk. A value of $Y_t=1$ means step right, and $Y_t=-1$ means step left.
-    4. Create the random walk process $X$ by taking the cumulative sum of the increment process $Y$, so that $X_t = \sum_{s=1}^t Y_s$.
-    5. Add the initial state $X_0=0$ to the process $X$.
-    6. Get the natural filtration $\mathcal{F}$ of $X$, where $\mathcal{F}_t = \sigma(X_1,X_2,\ldots,X_t)$.
-    7. Compute the conditional expectation $E(X_4 \mid \mathcal{F}_3)$.
-    8. Print the trajectories of $X$, along with the computed conditional expectation.
-    9. Our random walk has positive drift, so it should be a submartingale.
+## Getting started
 
-=== "Output"
-    ```
-    --8<-- "random_walk_output.txt"
-    ```
+SigAlg is in active development and recently underwent a complete rewrite of its core (moving from `v0.1.11` to `v0.1.12`). This made several older tutorials and code examples outdated, which are in the process of being rewritten. However, a new tutorial written after the core refactoring focuses on SigAlg's financial roots and is available here:
+
+- Risk-neutral valuation in SigAlg with binomial trees [:material-github:](https://github.com/jmyers7/sigalg/blob/dev/docs/notebooks/binomial-pricing-model.ipynb){target="_blank"} [:simple-googlecolab:](https://colab.research.google.com/github/jmyers7/sigalg/blob/dev/docs/notebooks/binomial-pricing-model.ipynb){target="_blank"}
+
+Check back for more tutorials. In the meantime, there are many (many!) code examples in the API reference.
 
 </div>
 

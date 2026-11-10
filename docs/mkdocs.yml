@@ -38,7 +38,7 @@ theme:
 
 nav:
   - Home: index.md
-  - Getting Started: getting_started/index.md
+  # - Getting Started: getting_started/index.md
   # - Dictionary & Tutorials: dictionary-tutorials/index.md
   - API Reference:
     - Overview: api/index.md
