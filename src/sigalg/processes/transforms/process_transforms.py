@@ -586,6 +586,52 @@ class ProcessTransforms:
             name=name,
         )
 
+    @classmethod
+    def at(
+        cls,
+        process: StochasticProcess,
+        stopping_time: StoppingTime,
+        name: Hashable | None = None,
+    ) -> RandomVariable:
+        """Pass."""
+        from ..base.stochastic_process import StochasticProcess
+        from ..stopping_times.stopping_time import StoppingTime
+
+        if not isinstance(process, StochasticProcess):
+            raise TypeError("process must be an instance of StochasticProcess.")
+        if not isinstance(stopping_time, StoppingTime):
+            raise TypeError("stopping_time must be an instance of StoppingTime.")
+        if process.time != stopping_time.time:
+            raise ValueError(
+                "The time indices of the process and stopping time must match."
+            )
+
+        def _fill_value(s: pd.Series) -> pd.Series:
+            idx = s.searchsorted(value=np.nan)
+            s.iloc[idx:] = s.iloc[idx - 1]
+            return s
+
+        mask = pd.DataFrame(
+            process.data.columns.values.reshape(1, -1)
+            >= stopping_time.data.values.reshape(-1, 1),
+            index=process.sample_space.data,
+            columns=process.index.data,
+        )
+
+        data = process.data[mask].bfill(axis=1).iloc[:, 0].fillna(0)
+
+        if name is None:
+            name = f"{process.name}_{stopping_time.name}"
+
+        return StochasticProcess._from_validated(
+            data=data,
+            sig_alg=process.sig_alg,
+            measure=process.measure,
+            index_kind="Time",
+            index_name=process.time.name,
+            name=name,
+        )
+
     # TODO: update docstrings
     @classmethod
     def ito_integral(
@@ -1295,6 +1341,16 @@ class ProcessTransformMethods:
         $$
         """
         return ProcessTransforms.stopped(
+            process=self, stopping_time=stopping_time, name=name
+        )
+
+    def at(
+        self,
+        stopping_time: StoppingTime,
+        name: Hashable | None = None,
+    ) -> RandomVariable:
+        """Pass."""
+        return ProcessTransforms.at(
             process=self, stopping_time=stopping_time, name=name
         )
 
