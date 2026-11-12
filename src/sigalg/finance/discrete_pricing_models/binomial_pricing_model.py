@@ -112,9 +112,9 @@ class BinomialPricingModel(DiscretePricingModel):
     def generate(
         cls,
         initial_price: Real,
-        up_prob: Real,
         up_factor: Real,
         down_factor: Real | None = None,
+        up_prob: Real = 0.5,
         risk_free_rate: Real | None = None,
         risk_free_gross_return: Real | None = None,
         enum_mode: Literal["dense", "sparse"] = "dense",
@@ -132,12 +132,12 @@ class BinomialPricingModel(DiscretePricingModel):
         ----------
         initial_price : Real
             The initial price of the asset.
-        up_prob : Real
-            The probability of an upward move in the price.
         up_factor : Real
             The up-factor of the model.
         down_factor : Real | None, default=None
             The down-factor of the model. If `None`, then it will be set to the reciprocal of the up-factor.
+        up_prob : Real
+            The probability of an upward move in the price.
         risk_free_rate : Real | None, default=None
             The per-period risk-free rate. If `None`, the risk-free gross return must be given.
         risk_free_gross_return : Real | None, default=None
@@ -613,11 +613,13 @@ class BinomialPricingModel(DiscretePricingModel):
             )
 
         if not claim.is_early_exercise:
-            T = self.time[-1]
+            # T = self.time[-1]
+            T = len(self.time) - 1
             R = self.risk_free_gross_return
             Phi_T = claim.last_rv
             Q = self.emm()
-            return (Phi_T.expectation(measure=Q).item() / R**T).astype(Real)
+            # return (Phi_T.expectation(measure=Q).item() / R**T).astype(Real)
+            return Phi_T.expectation(measure=Q).item() / R**T
         else:
             self._compute_pricing_data(claim=claim)
             return claim._pricing_data.price
@@ -1371,7 +1373,8 @@ class BinomialPricingModel(DiscretePricingModel):
         if hasattr(claim, "_pricing_data"):
             return claim._pricing_data
 
-        T = self.time[-1]
+        # T = self.time[-1]
+        T = len(self.time) - 1
         X_arr, Delta_arr, B_arr, V_arr, tau_arr = self._initialize_replicating_arrays()
 
         X_arr[:, -1] = claim.last_rv
@@ -1411,7 +1414,7 @@ class BinomialPricingModel(DiscretePricingModel):
         tau_arr = np.where(
             tau_arr.max(axis=1) == 0,
             np.inf,
-            np.argmax(tau_arr, axis=1),
+            self.index.data[np.argmax(tau_arr, axis=1)],
         )
 
         X, Delta, B, V, tau = self._convert_replicating_arrays_to_processes(
@@ -1434,7 +1437,8 @@ class BinomialPricingModel(DiscretePricingModel):
     def _initialize_replicating_arrays(
         self,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        T = self.time[-1]
+        # T = self.time[-1]
+        T = len(self.time) - 1
 
         if self.enum_mode == "dense":
             X_arr = np.zeros(shape=(2**T, T + 1))
@@ -1459,7 +1463,8 @@ class BinomialPricingModel(DiscretePricingModel):
         V_arr: np.ndarray,
         Phi_arr: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        T = self.time[-1]
+        # T = self.time[-1]
+        T = len(self.time) - 1
         S_arr = self.data.values
 
         if self.enum_mode == "dense":
@@ -1521,7 +1526,8 @@ class BinomialPricingModel(DiscretePricingModel):
         V_curr: np.ndarray,
         tau_curr: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        T = self.time[-1]
+        # T = self.time[-1]
+        T = len(self.time) - 1
 
         if self.enum_mode == "dense":
             # all have shape (2^T,)

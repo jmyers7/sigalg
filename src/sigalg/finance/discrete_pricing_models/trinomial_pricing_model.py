@@ -99,11 +99,11 @@ class TrinomialPricingModel(DiscretePricingModel):
     def generate(
         cls,
         initial_price: Real,
-        up_prob: Real,
-        down_prob: Real,
         up_factor: Real,
         middle_factor: Real,
         down_factor: Real,
+        up_prob: Real = 1 / 3,
+        down_prob: Real = 1 / 3,
         risk_free_rate: Real | None = None,
         risk_free_gross_return: Real | None = None,
         mode: Literal["enum", "sim"] = "sim",
@@ -122,16 +122,16 @@ class TrinomialPricingModel(DiscretePricingModel):
         ----------
         initial_price : Real
             The initial price of the asset.
-        up_prob : Real
-            The probability of an upward move in the price.
-        down_prob : Real
-            The probability of an upward move in the price.
         up_factor : Real
             The up-factor of the model.
         middle_factor : Real
             The middle-factor of the model.
         down_factor : Real
             The down-factor of the model.
+        up_prob : Real, default=1 / 3
+            The probability of an upward move in the price.
+        down_prob : Real, default=1 / 3
+            The probability of an upward move in the price.
         risk_free_rate : Real | None, default=None
             The per-period risk-free rate. If `None`, the risk-free gross return must be given.
         risk_free_gross_return : Real | None, default=None
@@ -758,10 +758,12 @@ class TrinomialPricingModel(DiscretePricingModel):
                 name="Q",
             )
 
-            T = self.time[-1]
+            # T = self.time[-1]
+            T = len(self.time) - 1
             R = self.risk_free_gross_return
             Phi_T = claim.last_rv
-            return (Phi_T.expectation(measure=Q).item() / R**T).astype(Real)
+            # return (Phi_T.expectation(measure=Q).item() / R**T).astype(Real)
+            return Phi_T.expectation(measure=Q).item() / R**T
         else:
             self._compute_pricing_data(claim=claim, theta=theta)
             return claim._pricing_data[theta].price
@@ -1430,7 +1432,8 @@ class TrinomialPricingModel(DiscretePricingModel):
                 "The claim must be adapated to the natural filtration of the binomial model."
             )
 
-        T = self.time[-1]
+        # T = self.time[-1]
+        T = len(self.time) - 1
         X_arr, V_arr, tau_arr = self._initialize_pricing_arrays()
         risk_neutral_probs = self.risk_neutral_probs(theta=theta)
 
@@ -1457,7 +1460,7 @@ class TrinomialPricingModel(DiscretePricingModel):
         tau_arr = np.where(
             tau_arr.max(axis=1) == 0,
             np.inf,
-            np.argmax(tau_arr, axis=1),
+            self.index.data[np.argmax(tau_arr, axis=1)],
         )
 
         X, V, tau = self._convert_pricing_arrays_to_processes(
@@ -1479,7 +1482,8 @@ class TrinomialPricingModel(DiscretePricingModel):
     def _initialize_pricing_arrays(
         self,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        T = self.time[-1]
+        # T = self.time[-1]
+        T = len(self.time) - 1
         X_arr = np.zeros(shape=(3**T, T + 1))
         V_arr = np.zeros(shape=(3**T, T + 1))
         tau_arr = np.zeros(shape=(3**T, T + 1))
@@ -1492,7 +1496,8 @@ class TrinomialPricingModel(DiscretePricingModel):
         X_arr: np.ndarray,
         Phi_arr: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
-        T = self.time[-1]
+        # T = self.time[-1]
+        T = len(self.time) - 1
         X_forward = X_arr[:: (3 ** (T - t - 1)), t + 1]  # shape (3^(t+1),)
         Phi_curr = Phi_arr[:: (3 ** (T - t)), t]  # shape (3^t,)
 
@@ -1518,7 +1523,8 @@ class TrinomialPricingModel(DiscretePricingModel):
         V_curr: np.ndarray,
         tau_curr: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        T = self.time[-1]
+        # T = self.time[-1]
+        T = len(self.time) - 1
 
         # all have shape (3^T,)
         X = np.repeat(X_curr, repeats=3 ** (T - t))
