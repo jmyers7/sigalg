@@ -15,21 +15,8 @@ coverage.xml
 coverage.lcov
 .pytest_cache/
 .coverage*
-tests/test_blog_posts.py
 
 # Development
 .vscode/
 .DS_Store
 docs/site
-
-# LaTeX
-*.aux
-*.bbl
-*.blg
-*.log
-*.out
-*.gz
-*.toc
-*.fdb_latexmk
-*.fls
-papers/
