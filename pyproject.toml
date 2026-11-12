@@ -19,7 +19,6 @@ keywords = [
     "quantitative-finance",
     "sigma-algebra",
     "random-variables",
-    "conditional-expectation",
     "brownian-motion",
     "stochastic-calculus",
     "ito-integral",
@@ -40,8 +39,6 @@ dependencies = [
     "pandas>=2.3.0",
     "scipy>=1.16.0",
     "matplotlib",
-    "scikit-learn",
-    "plotly",
     "pydantic",
     "xarray",
     "mkdocs-material[imaging]>=9.7.1",
@@ -97,6 +94,7 @@ omit = [
     "*/__init__.py",
     "*/tests/*",
     "*/test_*.py",
+    "*/_docs_utils/*",
 ]
 parallel = true
 
