@@ -159,46 +159,46 @@ class ProcessTransforms:
         Random walk 'X':
         t           1  2  3
         omega
-        0           0 -1 -2
-        1           0 -1  0
-        2           0  1  0
-        3           0  1  2
+        0      0  1  2
+        1      0  1  0
+        2      0 -1  0
+        3      0 -1 -2
         >>> X_remove = ProcessTransforms.remove_rv(process=X, time=2)
         >>> print(X_remove) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_remove':
         t           1  3
         omega
-        0           0 -2
-        1           0  0
-        2           0  0
-        3           0  2
+        0      0  2
+        1      0  0
+        2      0  0
+        3      0 -2
         >>> S = Time.continuous(start=0, stop=0.3, dt=0.101)
         >>> Y = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=S, name="Y")
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'Y':
         t           0.0  0.1  0.2  0.3
         omega
-        0             0   -1   -2   -3
-        1             0   -1   -2   -1
-        2             0   -1    0   -1
-        3             0   -1    0    1
-        4             0    1    0   -1
-        5             0    1    0    1
-        6             0    1    2    1
-        7             0    1    2    3
+        0        0    1    2    3
+        1        0    1    2    1
+        2        0    1    0    1
+        3        0    1    0   -1
+        4        0   -1    0    1
+        5        0   -1    0   -1
+        6        0   -1   -2   -1
+        7        0   -1   -2   -3
         >>> Y_remove = ProcessTransforms.remove_rv(process=Y, pos=2)
         >>> print(Y_remove) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'Y_remove':
         t           0.0  0.1  0.3
         omega
-        0             0   -1   -3
-        1             0   -1   -1
-        2             0   -1   -1
-        3             0   -1    1
-        4             0    1   -1
-        5             0    1    1
-        6             0    1    1
-        7             0    1    3
+        0        0    1    3
+        1        0    1    1
+        2        0    1    1
+        3        0    1   -1
+        4        0   -1    1
+        5        0   -1   -1
+        6        0   -1   -1
+        7        0   -1   -3
         """
         from ..base.stochastic_process import StochasticProcess
 
@@ -233,6 +233,82 @@ class ProcessTransforms:
             index_name=f"remove({process.time.name})",
             name=name,
         )
+
+    @classmethod
+    def drop_last(
+        cls,
+        process: StochasticProcess,
+        name: Hashable | None = None,
+    ) -> StochasticProcess | None:
+        """Remove the last random variable from a stochastic process.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The stochastic process from which to remove the random variable.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, a default name will be generated.
+
+        Returns
+        -------
+        removed_process : StochasticProcess | None
+            A new stochastic process with the last random variable removed.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import ProcessTransforms, RandomWalk
+        >>> T = Time.discrete(start=1, length=2)
+        >>> X = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=T)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        t      1  2  3
+        omega
+        0      0  1  2
+        1      0  1  0
+        2      0 -1  0
+        3      0 -1 -2
+        >>> X_drop = ProcessTransforms.drop_last(process=X)
+        >>> print(X_drop) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_drop':
+        t      1  2
+        omega
+        0      0  1
+        1      0  1
+        2      0 -1
+        3      0 -1
+        >>> S = Time.continuous(start=0, stop=0.3, dt=0.101)
+        >>> Y = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=S, name="Y")
+        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'Y':
+        t      0.0  0.1  0.2  0.3
+        omega
+        0        0    1    2    3
+        1        0    1    2    1
+        2        0    1    0    1
+        3        0    1    0   -1
+        4        0   -1    0    1
+        5        0   -1    0   -1
+        6        0   -1   -2   -1
+        7        0   -1   -2   -3
+        >>> Y_drop = ProcessTransforms.drop_last(process=Y)
+        >>> print(Y_drop) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'Y_drop':
+        t      0.0  0.1  0.2
+        omega
+        0        0    1    2
+        1        0    1    2
+        2        0    1    0
+        3        0    1    0
+        4        0   -1    0
+        5        0   -1    0
+        6        0   -1   -2
+        7        0   -1   -2
+        """
+        if name is None:
+            name = f"{process.name}_drop"
+
+        return cls.remove_rv(process=process, time=process.time[-1], name=name)
 
     @classmethod
     def discount(
@@ -380,28 +456,28 @@ class ProcessTransforms:
         Random walk 'X':
         t           0  1  2
         omega
-        0           3  2  1
-        1           3  2  3
-        2           3  4  3
-        3           3  4  5
+        0      3  4  5
+        1      3  4  3
+        2      3  2  3
+        3      3  2  1
         >>> X_increments = X.increments(forward=True)
         >>> print(X_increments) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_increments':
         t           0  1
         omega
-        0          -1 -1
-        1          -1  1
-        2           1 -1
-        3           1  1
+        0      1  1
+        1      1 -1
+        2     -1  1
+        3     -1 -1
         >>> X_increments = X.increments(forward=False)
         >>> print(X_increments) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_increments':
         t           1  2
         omega
-        0          -1 -1
-        1          -1  1
-        2           1 -1
-        3           1  1
+        0      1  1
+        1      1 -1
+        2     -1  1
+        3     -1 -1
 
         Notes
         -----
@@ -666,19 +742,19 @@ class ProcessTransforms:
         Random walk 'X':
         t       0  1  2
         omega
-        0      1  0 -1
-        1      1  0  1
-        2      1  2  1
-        3      1  2  3
+        0      1  2  3
+        1      1  2  1
+        2      1  0  1
+        3      1  0 -1
         >>> integral = ProcessTransforms.ito_integral(integrator=X)
         >>> print(1 + integral)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process '(1 + int dX)':
         t      0    1    2
         omega
-        0      1  0.0 -1.0
-        1      1  0.0  1.0
-        2      1  2.0  1.0
-        3      1  2.0  3.0
+        0      1  2.0  3.0
+        1      1  2.0  1.0
+        2      1  0.0  1.0
+        3      1  0.0 -1.0
         """
         from ..base.stochastic_process import StochasticProcess
 
@@ -1057,48 +1133,116 @@ class ProcessTransformMethods:
         Random walk 'X':
         t           1  2  3
         omega
-        0           0 -1 -2
-        1           0 -1  0
-        2           0  1  0
-        3           0  1  2
+        0      0  1  2
+        1      0  1  0
+        2      0 -1  0
+        3      0 -1 -2
         >>> X_remove = X.remove_rv(time=2)
         >>> print(X_remove) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_remove':
         t           1  3
         omega
-        0           0 -2
-        1           0  0
-        2           0  0
-        3           0  2
+        0      0  2
+        1      0  0
+        2      0  0
+        3      0 -2
         >>> S = Time.continuous(start=0, stop=0.3, dt=0.101)
         >>> Y = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=S, name="Y")
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'Y':
         t           0.0  0.1  0.2  0.3
         omega
-        0             0   -1   -2   -3
-        1             0   -1   -2   -1
-        2             0   -1    0   -1
-        3             0   -1    0    1
-        4             0    1    0   -1
-        5             0    1    0    1
-        6             0    1    2    1
-        7             0    1    2    3
+        0        0    1    2    3
+        1        0    1    2    1
+        2        0    1    0    1
+        3        0    1    0   -1
+        4        0   -1    0    1
+        5        0   -1    0   -1
+        6        0   -1   -2   -1
+        7        0   -1   -2   -3
         >>> Y_remove = Y.remove_rv(pos=2)
         >>> print(Y_remove) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'Y_remove':
         t           0.0  0.1  0.3
         omega
-        0             0   -1   -3
-        1             0   -1   -1
-        2             0   -1   -1
-        3             0   -1    1
-        4             0    1   -1
-        5             0    1    1
-        6             0    1    1
-        7             0    1    3
+        0        0    1    3
+        1        0    1    1
+        2        0    1    1
+        3        0    1   -1
+        4        0   -1    1
+        5        0   -1   -1
+        6        0   -1   -1
+        7        0   -1   -3
         """
         return ProcessTransforms.remove_rv(self, time=time, pos=pos, name=name)
+
+    def drop_last(self, name: Hashable | None = None) -> StochasticProcess | None:
+        """Remove the last random variable from a stochastic process.
+
+        Internally calls `ProcessTransforms.drop_last`.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The stochastic process from which to remove the random variable.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, a default name will be generated.
+
+        Returns
+        -------
+        removed_process : StochasticProcess | None
+            A new stochastic process with the last random variable removed.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(start=1, length=2)
+        >>> X = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=T)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        t      1  2  3
+        omega
+        0      0  1  2
+        1      0  1  0
+        2      0 -1  0
+        3      0 -1 -2
+        >>> print(X.drop_last()) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_drop':
+        t      1  2
+        omega
+        0      0  1
+        1      0  1
+        2      0 -1
+        3      0 -1
+        >>> S = Time.continuous(start=0, stop=0.3, dt=0.101)
+        >>> Y = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=S, name="Y")
+        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'Y':
+        t      0.0  0.1  0.2  0.3
+        omega
+        0        0    1    2    3
+        1        0    1    2    1
+        2        0    1    0    1
+        3        0    1    0   -1
+        4        0   -1    0    1
+        5        0   -1    0   -1
+        6        0   -1   -2   -1
+        7        0   -1   -2   -3
+        >>> print(Y.drop_last()) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'Y_drop':
+        t      0.0  0.1  0.2
+        omega
+        0        0    1    2
+        1        0    1    2
+        2        0    1    0
+        3        0    1    0
+        4        0   -1    0
+        5        0   -1    0
+        6        0   -1   -2
+        7        0   -1   -2
+        """
+        return ProcessTransforms.drop_last(process=self, name=name)
 
     def discount(
         self,
@@ -1213,28 +1357,28 @@ class ProcessTransformMethods:
         Random walk 'X':
         t           0  1  2
         omega
-        0           3  2  1
-        1           3  2  3
-        2           3  4  3
-        3           3  4  5
+        0      3  4  5
+        1      3  4  3
+        2      3  2  3
+        3      3  2  1
         >>> X_increments = X.increments(forward=True)
         >>> print(X_increments) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_increments':
         t           0  1
         omega
-        0          -1 -1
-        1          -1  1
-        2           1 -1
-        3           1  1
+        0      1  1
+        1      1 -1
+        2     -1  1
+        3     -1 -1
         >>> X_increments = X.increments(forward=False)
         >>> print(X_increments) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_increments':
         t           1  2
         omega
-        0          -1 -1
-        1          -1  1
-        2           1 -1
-        3           1  1
+        0      1  1
+        1      1 -1
+        2     -1  1
+        3     -1 -1
 
         Notes
         -----

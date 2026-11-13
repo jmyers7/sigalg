@@ -398,10 +398,10 @@ class Operators:
         Random walk 'X':
         t       0  1  2
         omega
-        0       3  2  1
-        1       3  2  3
-        2       3  4  3
-        3       3  4  5
+        0      3  4  5
+        1      3  4  3
+        2      3  2  3
+        3      3  2  1
         >>> def f(x):
         ...     return x + 1
         >>> X_mapped = Operators.pointwise_map(vec=X, function=f)
@@ -409,10 +409,10 @@ class Operators:
         Stochastic process 'X_mapped':
         t       0  1  2
         omega
-        0       4  3  2
-        1       4  3  4
-        2       4  5  4
-        3       4  5  6
+        0      4  5  6
+        1      4  5  4
+        2      4  3  4
+        3      4  3  2
         """
         from .measurable_vector import MeasurableVector
 
@@ -543,27 +543,27 @@ class Operators:
         Random walk 'X':
         t           0  1  2  3
         omega
-        0           3  2  1  0
-        1           3  2  1  2
-        2           3  2  3  2
-        3           3  2  3  4
-        4           3  4  3  2
-        5           3  4  3  4
-        6           3  4  5  4
-        7           3  4  5  6
+        0      3  4  5  6
+        1      3  4  5  4
+        2      3  4  3  4
+        3      3  4  3  2
+        4      3  2  3  4
+        5      3  2  3  2
+        6      3  2  1  2
+        7      3  2  1  0
         >>> X_cumprod = Operators.cumprod(X)
         >>> print(X_cumprod) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_cumprod':
         t           0   1   2    3
         omega
-        0           3   6   6    0
-        1           3   6   6   12
-        2           3   6  18   36
-        3           3   6  18   72
-        4           3  12  36   72
-        5           3  12  36  144
-        6           3  12  60  240
-        7           3  12  60  360
+        0      3  12  60  360
+        1      3  12  60  240
+        2      3  12  36  144
+        3      3  12  36   72
+        4      3   6  18   72
+        5      3   6  18   36
+        6      3   6   6   12
+        7      3   6   6    0
         """
         from .measurable_vector import MeasurableVector
 
@@ -616,27 +616,27 @@ class Operators:
         Random walk 'X':
         t           0  1  2  3
         omega
-        0           3  2  1  0
-        1           3  2  1  2
-        2           3  2  3  2
-        3           3  2  3  4
-        4           3  4  3  2
-        5           3  4  3  4
-        6           3  4  5  4
-        7           3  4  5  6
+        0      3  4  5  6
+        1      3  4  5  4
+        2      3  4  3  4
+        3      3  4  3  2
+        4      3  2  3  4
+        5      3  2  3  2
+        6      3  2  1  2
+        7      3  2  1  0
         >>> X_cumavg = Operators.cumavg(X)
         >>> print(X_cumavg) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_cumavg':
         t        0    1         2    3
         omega
-        0      3.0  2.5  2.000000  1.5
-        1      3.0  2.5  2.000000  2.0
-        2      3.0  2.5  2.666667  2.5
-        3      3.0  2.5  2.666667  3.0
-        4      3.0  3.5  3.333333  3.0
-        5      3.0  3.5  3.333333  3.5
-        6      3.0  3.5  4.000000  4.0
-        7      3.0  3.5  4.000000  4.5
+        0      3.0  3.5  4.000000  4.5
+        1      3.0  3.5  4.000000  4.0
+        2      3.0  3.5  3.333333  3.5
+        3      3.0  3.5  3.333333  3.0
+        4      3.0  2.5  2.666667  3.0
+        5      3.0  2.5  2.666667  2.5
+        6      3.0  2.5  2.000000  2.0
+        7      3.0  2.5  2.000000  1.5
         """
         from .measurable_vector import MeasurableVector
 
@@ -683,10 +683,10 @@ class Operators:
         Random walk 'X':
         t           0  1  2
         omega
-        0           3  2  1
-        1           3  2  3
-        2           3  4  3
-        3           3  4  5
+        0      3  4  5
+        1      3  4  3
+        2      3  2  3
+        3      3  2  1
         >>> max_value = Operators.max_value(X)
         >>> print(max_value)
         5
@@ -722,10 +722,10 @@ class Operators:
         Random walk 'X':
         t           0  1  2
         omega
-        0           3  2  1
-        1           3  2  3
-        2           3  4  3
-        3           3  4  5
+        0      3  4  5
+        1      3  4  3
+        2      3  2  3
+        3      3  2  1
         >>> min_value = Operators.min_value(X)
         >>> print(min_value)
         1
@@ -2901,10 +2901,10 @@ class OperatorsMethods:
         Random walk 'X':
         t       0  1  2
         omega
-        0       3  2  1
-        1       3  2  3
-        2       3  4  3
-        3       3  4  5
+        0      3  4  5
+        1      3  4  3
+        2      3  2  3
+        3      3  2  1
         >>> def f(x):
         ...     return x + 1
         >>> X_mapped = X.pointwise_map(function=f)
@@ -2912,10 +2912,10 @@ class OperatorsMethods:
         Stochastic process 'X_mapped':
         t       0  1  2
         omega
-        0       4  3  2
-        1       4  3  4
-        2       4  5  4
-        3       4  5  6
+        0      4  5  6
+        1      4  5  4
+        2      4  3  4
+        3      4  3  2
         """
         return Operators.pointwise_map(vec=self, function=function, name=name)
 
@@ -2999,27 +2999,27 @@ class OperatorsMethods:
         Random walk 'X':
         t           0  1  2  3
         omega
-        0           3  2  1  0
-        1           3  2  1  2
-        2           3  2  3  2
-        3           3  2  3  4
-        4           3  4  3  2
-        5           3  4  3  4
-        6           3  4  5  4
-        7           3  4  5  6
+        0      3  4  5  6
+        1      3  4  5  4
+        2      3  4  3  4
+        3      3  4  3  2
+        4      3  2  3  4
+        5      3  2  3  2
+        6      3  2  1  2
+        7      3  2  1  0
         >>> X_cumprod = X.cumprod()
         >>> print(X_cumprod) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_cumprod':
         t           0   1   2    3
         omega
-        0           3   6   6    0
-        1           3   6   6   12
-        2           3   6  18   36
-        3           3   6  18   72
-        4           3  12  36   72
-        5           3  12  36  144
-        6           3  12  60  240
-        7           3  12  60  360
+        0      3  12  60  360
+        1      3  12  60  240
+        2      3  12  36  144
+        3      3  12  36   72
+        4      3   6  18   72
+        5      3   6  18   36
+        6      3   6   6   12
+        7      3   6   6    0
         """
         return Operators.cumprod(vec=self, name=name)
 
@@ -3050,26 +3050,26 @@ class OperatorsMethods:
         Random walk 'X':
         t           0  1  2  3
         omega
-        0           3  2  1  0
-        1           3  2  1  2
-        2           3  2  3  2
-        3           3  2  3  4
-        4           3  4  3  2
-        5           3  4  3  4
-        6           3  4  5  4
-        7           3  4  5  6
+        0      3  4  5  6
+        1      3  4  5  4
+        2      3  4  3  4
+        3      3  4  3  2
+        4      3  2  3  4
+        5      3  2  3  2
+        6      3  2  1  2
+        7      3  2  1  0
         >>> print(X.cumavg()) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_cumavg':
         t        0    1         2    3
         omega
-        0      3.0  2.5  2.000000  1.5
-        1      3.0  2.5  2.000000  2.0
-        2      3.0  2.5  2.666667  2.5
-        3      3.0  2.5  2.666667  3.0
-        4      3.0  3.5  3.333333  3.0
-        5      3.0  3.5  3.333333  3.5
-        6      3.0  3.5  4.000000  4.0
-        7      3.0  3.5  4.000000  4.5
+        0      3.0  3.5  4.000000  4.5
+        1      3.0  3.5  4.000000  4.0
+        2      3.0  3.5  3.333333  3.5
+        3      3.0  3.5  3.333333  3.0
+        4      3.0  2.5  2.666667  3.0
+        5      3.0  2.5  2.666667  2.5
+        6      3.0  2.5  2.000000  2.0
+        7      3.0  2.5  2.000000  1.5
         """
         return Operators.cumavg(vec=self, name=name)
 
@@ -3093,10 +3093,10 @@ class OperatorsMethods:
         Random walk 'X':
         t           0  1  2
         omega
-        0           3  2  1
-        1           3  2  3
-        2           3  4  3
-        3           3  4  5
+        0      3  4  5
+        1      3  4  3
+        2      3  2  3
+        3      3  2  1
         >>> max_value = X.max_value()
         >>> print(max_value)
         5
@@ -3123,10 +3123,10 @@ class OperatorsMethods:
         Random walk 'X':
         t           0  1  2
         omega
-        0           3  2  1
-        1           3  2  3
-        2           3  4  3
-        3           3  4  5
+        0      3  4  5
+        1      3  4  3
+        2      3  2  3
+        3      3  2  1
         >>> min_value = X.min_value()
         >>> print(min_value)
         1

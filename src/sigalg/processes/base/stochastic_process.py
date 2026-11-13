@@ -231,10 +231,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         Random walk 'X':
         t       1  2  3
         omega
-        0       0 -1 -2
-        1       0 -1  0
-        2       0  1  0
-        3       0  1  2
+        0      0  1  2
+        1      0  1  0
+        2      0 -1  0
+        3      0 -1 -2
         >>> print(X.measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                    P
@@ -252,10 +252,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         Probability measure 'P':
                    P
         omega
-        0       0.09
-        1       0.21
-        2       0.21
-        3       0.49
+        0      0.49
+        1      0.21
+        2      0.21
+        3      0.09
         """
         self_dict = {
             key[1:] if key.startswith("_") else key: value
@@ -532,10 +532,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         Random walk 'Y':
         t       0  1  2
         omega
-        0       0 -1 -2
-        1       0 -1  0
-        2       0  1  0
-        3       0  1  2
+        0      0  1  2
+        1      0  1  0
+        2      0 -1  0
+        3      0 -1 -2
         """
         return self._mode
 
@@ -1141,14 +1141,14 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         Random walk 'X':
         t       1  2  3
         omega
-        0       0 -1 -2
-        1       0 -1  0
-        2       0  1  0
-        3       0  1  2
+        0      0  1  2
+        1      0  1  0
+        2      0 -1  0
+        3      0 -1 -2
         >>> print(X.is_martingale())
         True
 
-        A random walk with `p > 0.5` is a submartingale
+        A random walk with `p > 0.5` is a submartingale.
 
         >>> X.p = 0.7
         >>> X.regenerate()
@@ -1263,10 +1263,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         Random walk 'X':
         t       0  1  2
         omega
-        0       0 -1 -2
-        1       0 -1  0
-        2       0  1  0
-        3       0  1  2
+        0      0  1  2
+        1      0  1  0
+        2      0 -1  0
+        3      0 -1 -2
 
         Define a stochastic process `Y` for which each `Y[t]` is a function of `X[0]`, `X[1]`, ... , `X[t]`.
 
@@ -1281,10 +1281,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         Stochastic process 'Y':
         t       0  1  2
         omega
-        0       1 -1 -1
-        1       1 -1  1
-        2       1  1 -1
-        3       1  1  1
+        0      1  1  1
+        1      1  1 -1
+        2      1 -1  1
+        3      1 -1 -1
 
         Check that `Y` is adapted to the natural filtration of `X`.
 

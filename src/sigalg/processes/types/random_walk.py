@@ -41,25 +41,25 @@ class RandomWalk(StochasticProcess):
     Random walk 'X':
     t       0  1  2  3
     omega
-    0       0 -1 -2 -3
-    1       0 -1 -2 -1
-    2       0 -1  0 -1
-    3       0 -1  0  1
-    4       0  1  0 -1
-    5       0  1  0  1
-    6       0  1  2  1
-    7       0  1  2  3
+    0      0  1  2  3
+    1      0  1  2  1
+    2      0  1  0  1
+    3      0  1  0 -1
+    4      0 -1  0  1
+    5      0 -1  0 -1
+    6      0 -1 -2 -1
+    7      0 -1 -2 -3
 
     Print the values of the `X_3` component random variable and its corresponding law.
 
     >>> print(X[3].pushforward())  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P_X_3':
-               P_X_3
+            P_X_3
     X_3
-    -3      0.015625
-    -1      0.140625
-     1      0.421875
-     3      0.421875
+    -3   0.015625
+    -1   0.140625
+     1   0.421875
+     3   0.421875
 
     Print binomial probabilities and note they match the law of `X_3`.
 
@@ -79,7 +79,7 @@ class RandomWalk(StochasticProcess):
     @StochasticProcess.generator
     def generate(
         cls,
-        p: Real,
+        p: Real = 0.5,
         initial_state: Real = 0,
         mode: Literal["enum", "sim"] = "sim",
         n_trajectories: int | None = None,
@@ -93,7 +93,7 @@ class RandomWalk(StochasticProcess):
 
         Parameters
         ----------
-        p : Real
+        p : Real, default=0.5
             The probability of stepping "to the right".
         initial_state : Real, default=0
             The initial state of the random walk.
@@ -134,14 +134,14 @@ class RandomWalk(StochasticProcess):
         Random walk 'X':
         t       0  1  2  3
         omega
-        0       0 -1 -2 -3
-        1       0 -1 -2 -1
-        2       0 -1  0 -1
-        3       0 -1  0  1
-        4       0  1  0 -1
-        5       0  1  0  1
-        6       0  1  2  1
-        7       0  1  2  3
+        0      0  1  2  3
+        1      0  1  2  1
+        2      0  1  0  1
+        3      0  1  0 -1
+        4      0 -1  0  1
+        5      0 -1  0 -1
+        6      0 -1 -2 -1
+        7      0 -1 -2 -3
 
         Simulate ten length-3 trajectories of a random walk that begins at 2 and has probability `0.4` of stepping right.
 
@@ -204,10 +204,10 @@ class RandomWalk(StochasticProcess):
         Random walk 'X':
         t       1  2  3
         omega
-        0       0 -1 -2
-        1       0 -1  0
-        2       0  1  0
-        3       0  1  2
+        0      0  1  2
+        1      0  1  0
+        2      0 -1  0
+        3      0 -1 -2
         >>> print(X.measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                    P
@@ -225,10 +225,10 @@ class RandomWalk(StochasticProcess):
         Probability measure 'P':
                    P
         omega
-        0       0.09
-        1       0.21
-        2       0.21
-        3       0.49
+        0      0.49
+        1      0.21
+        2      0.21
+        3      0.09
         """
         return self._p
 
@@ -271,10 +271,10 @@ class RandomWalk(StochasticProcess):
         Random walk 'X':
         t       1  2  3
         omega
-        0       0 -1 -2
-        1       0 -1  0
-        2       0  1  0
-        3       0  1  2
+        0      0  1  2
+        1      0  1  0
+        2      0 -1  0
+        3      0 -1 -2
 
         Set the `initial_state` parameter to `0.5`, regenerate the trajectories, and print the new trajectories.
 
@@ -284,10 +284,10 @@ class RandomWalk(StochasticProcess):
         Random walk 'X':
         t       1    2    3
         omega
-        0     0.5 -0.5 -1.5
-        1     0.5 -0.5  0.5
-        2     0.5  1.5  0.5
-        3     0.5  1.5  2.5
+        0      0.5  1.5  2.5
+        1      0.5  1.5  0.5
+        2      0.5 -0.5  0.5
+        3      0.5 -0.5 -1.5
         """
         return self._initial_state
 
@@ -325,7 +325,7 @@ class RandomWalk(StochasticProcess):
         step_indicators = IIDProcess.generate(
             mode="enum",
             distribution=bernoulli(p=self.p),
-            support=[0, 1],
+            support=[1, 0],
             index=self._index[1:],
             name="step_indicators",
         )
@@ -369,26 +369,26 @@ class RandomWalk(StochasticProcess):
         Random walk 'X':
         t       0  1  2  3
         omega
-        0       0 -1 -2 -3
-        1       0 -1 -2 -1
-        2       0 -1  0 -1
-        3       0 -1  0  1
-        4       0  1  0 -1
-        5       0  1  0  1
-        6       0  1  2  1
-        7       0  1  2  3
+        0      0  1  2  3
+        1      0  1  2  1
+        2      0  1  0  1
+        3      0  1  0 -1
+        4      0 -1  0  1
+        5      0 -1  0 -1
+        6      0 -1 -2 -1
+        7      0 -1 -2 -3
         >>> print(X.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                           P
         omega
-        0          0.015625
-        1          0.046875
-        2          0.046875
-        3          0.140625
-        4          0.046875
-        5          0.140625
-        6          0.140625
-        7          0.421875
+        0      0.421875
+        1      0.140625
+        2      0.140625
+        3      0.046875
+        4      0.140625
+        5      0.046875
+        6      0.046875
+        7      0.015625
         """
         return self.step_indicators._generate_exact_prob_measure(domain)
 
@@ -413,7 +413,7 @@ class RandomWalk(StochasticProcess):
         step_indicators = IIDProcess.generate(
             mode="sim",
             distribution=bernoulli(p=self.p),
-            support=[0, 1],
+            support=[1, 0],
             index=self._index[1:],
             name="step_indicators",
             n_trajectories=self._n_trajectories,
