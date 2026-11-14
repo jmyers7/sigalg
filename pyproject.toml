@@ -87,6 +87,9 @@ filterwarnings = [
     "ignore::PendingDeprecationWarning",
 ]
 
+[tool.setuptools.package-data]
+sigalg = ["style/*.mplstyle"]
+
 [tool.coverage.run]
 source = ["src/sigalg"]
 branch = true

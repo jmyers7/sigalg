@@ -1,4 +1,4 @@
-from . import core, finance, processes  # noqa: D104
+from . import core, finance, processes, style  # noqa: D104
 from .core import (
     L2,
     Domain,
@@ -43,5 +43,6 @@ from .processes import (
 
 blue = "#3399FF"
 orange = "#FF8000"
+amber = "#FFB000"
 
 __all__ = core.__all__ + finance.__all__ + processes.__all__
