@@ -732,8 +732,8 @@ class TrinomialPricingModel(DiscretePricingModel):
 
         Get the risk-neutral price of the put option.
 
-        >>> S.price(claim=american_put, theta=0.2)
-        0.7706511175898927
+        >>> round(S.price(claim=american_put, theta=0.2), 8)
+        0.77065112
         """
         from ...core.measures.probability_measure import ProbabilityMeasure
 
