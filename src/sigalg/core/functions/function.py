@@ -3978,6 +3978,10 @@ class Function(OperatorsMethods):
                     data = operation(self.data, other)
 
                 if self.dimension == 1:
+                    if isinstance(data, pd.DataFrame):
+                        raise TypeError(
+                            "The data is a pd.DataFrame, but the function has 1-dimensional outputs."
+                        )
                     data = data.rename(name)
 
                 return type(self)._from_validated(
