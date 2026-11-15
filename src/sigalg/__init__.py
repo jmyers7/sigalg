@@ -41,8 +41,4 @@ from .processes import (
     StoppingTime,
 )
 
-blue = "#3399FF"
-orange = "#FF8000"
-amber = "#FFB000"
-
 __all__ = core.__all__ + finance.__all__ + processes.__all__

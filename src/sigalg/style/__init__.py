@@ -5,3 +5,5 @@ __all__ = ["get_style", "set_style", "styled", "use_globally"]
 blue = "#3399FF"
 orange = "#FF8000"
 amber = "#FFB000"
+purple = "#6743DC"
+gray = "#DADADC"

@@ -39,8 +39,8 @@ axes.linewidth: 0.6
 axes.spines.right:  False
 axes.spines.top:  False
 
-axes.titlesize : 10
-axes.labelsize : 9
+axes.titlesize : 11
+axes.labelsize : 10
 
 axes.labelpad: 6
 
@@ -51,8 +51,8 @@ axes.labelpad: 6
 xtick.color: black
 ytick.color: black
 
-xtick.labelsize : 8
-ytick.labelsize : 8
+xtick.labelsize : 10
+ytick.labelsize : 10
 
 ## ***************************************************************************
 ## * GRIDS                                                                   *
@@ -72,7 +72,7 @@ grid.alpha:     0.4
 legend.labelcolor: black
 legend.facecolor: white
 legend.edgecolor: black
-legend.fontsize: 8
+legend.fontsize: 12
 
 ## ***************************************************************************
 ## * FIGURE                                                                  *
