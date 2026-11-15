@@ -35,7 +35,7 @@ The core design philosophy of SigAlg centers on mathematical fidelity and accura
 
 ## Installation
 
-Open a virtual environment running Python 3.11 or later and install SigAlg using either `uv` or `pip`:
+Open a virtual environment running Python 3.13 or later and install SigAlg using either `uv` or `pip`:
 
 === "uv"
     ```bash
@@ -48,11 +48,14 @@ Open a virtual environment running Python 3.11 or later and install SigAlg using
 
 ## Getting started
 
-SigAlg is in active development and recently underwent a complete rewrite of its core (moving from `v0.1.11` to `v0.1.12`). This made several older tutorials and code examples outdated, which are in the process of being rewritten. However, a new tutorial written after the core refactoring focuses on SigAlg's financial roots and is available here:
+SigAlg is under active development. The core was completely rewritten between `v0.1.11` and `v0.1.12`, which made the older introductory tutorials obsolete. They are being rewritten. In the meantime, several new tutorials cover SigAlg's financial applications:
 
-- Risk-neutral valuation in SigAlg with binomial trees [:material-github:](https://github.com/jmyers7/sigalg/blob/dev/docs/notebooks/binomial-pricing-model.ipynb){target="_blank"} [:simple-googlecolab:](https://colab.research.google.com/github/jmyers7/sigalg/blob/dev/docs/notebooks/binomial-pricing-model.ipynb){target="_blank"}
+- [The basics of binomial trees](https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/binomial-pricing-model-1.ipynb){target="_blank"}
+- [Contingent claims](https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/binomial-pricing-model-2.ipynb){target="_blank"}
+- [Risk-neutral valuation using binomial trees](https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/binomial-pricing-model-3.ipynb){target="_blank"}
+- [Standard and arithmetic Brownian motions](https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/brownian-motion-1.ipynb){target="_blank"}
 
-Check back for more tutorials. In the meantime, there are many (many!) code examples in the API reference.
+These tutorials are pitched at a higher level than a first introduction, which will follow soon. Until then, the API reference contains many code examples.
 
 </div>
 
