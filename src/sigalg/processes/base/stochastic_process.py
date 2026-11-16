@@ -127,12 +127,13 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     @staticmethod
     def generator(func):
-        """Decorator that handles common setup and execution for generate methods."""  # noqa: D401
+        """Decorator that handles common setup and execution for generation methods."""  # noqa: D401
 
         @wraps(func)
         def wrapper(
             cls,
-            *args,
+            *args,  # Subclass-specific parameters should be defined in the subclass's generate method signature
+            process_params: dict[str, dict] | None = None,
             mode: Literal["enum", "sim"] = "sim",
             n_trajectories: int | None = None,
             domain_name: Hashable | None = None,
@@ -141,11 +142,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             name: Hashable | None = None,
             random_state: int | np.random.Generator | None = None,
             **kwargs,
-        ):
-            subclass_kwargs = func(cls, *args, mode=mode, **kwargs)
-            if name is None:
-                name = inspect.signature(func).parameters["name"].default
-
+        ) -> StochasticProcess | tuple[StochasticProcess, ...]:
             index, random_state = cls._validate_and_return_generation_params(
                 index=index,
                 length=length,
@@ -154,60 +151,83 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 random_state=random_state,
             )
 
-            process = cls.__new__(cls)
-            process.domain_kind = "SampleSpace"
-            process.domain_name = domain_name if domain_name is not None else "Omega"
-            process.index_kind = "Time"
-            process.index_name = "I"
-            process.name = name
+            if isinstance(process_params, dict):
+                expected = {f"process_{i}" for i in range(1, len(process_params) + 1)}
+                if process_params.keys() != expected:
+                    raise ValueError(
+                        "process_params must have keys process_1, ..., process_n."
+                    )
 
-            process._mode = mode
-            process._index = index
-            process._n_trajectories = n_trajectories
-            process._random_state = random_state
+                processes = []
 
-            for key, value in subclass_kwargs.items():
-                setattr(process, "_" + key, value)
+                for n, parameters in enumerate(process_params.values(), 1):
+                    subclass_kwargs = func(cls, mode=mode, **parameters, **kwargs)
 
-            if mode == "enum":
-                return process._enumeration_logic()
+                    name = parameters.get("name")
+                    if name is None:
+                        name = (
+                            inspect.signature(func).parameters["name"].default + f"_{n}"
+                        )
+
+                    process = cls.__new__(cls)
+                    process.domain_kind = "SampleSpace"
+                    process.domain_name = (
+                        domain_name if domain_name is not None else "Omega"
+                    )
+                    process.index_kind = "Time"
+                    process.index_name = "T"
+                    process.name = name
+
+                    process._mode = mode
+                    process._index = index
+                    process._n_trajectories = n_trajectories
+                    process._random_state = random_state
+
+                    for key, value in subclass_kwargs.items():
+                        setattr(process, "_" + key, value)
+
+                    processes.append(process)
+
+                if mode == "enum":
+                    return cls._multiple_enumeration_logic(processes)
+                else:
+                    return cls._multiple_simulation_logic(processes)
+
             else:
-                return process._simulation_logic()
+                subclass_kwargs = func(cls, *args, mode=mode, **kwargs)
+
+                if name is None:
+                    name = inspect.signature(func).parameters["name"].default
+
+                process = cls.__new__(cls)
+                process.domain_kind = "SampleSpace"
+                process.domain_name = (
+                    domain_name if domain_name is not None else "Omega"
+                )
+                process.index_kind = "Time"
+                process.index_name = "T"
+                process.name = name
+
+                process._mode = mode
+                process._index = index
+                process._n_trajectories = n_trajectories
+                process._random_state = random_state
+
+                for key, value in subclass_kwargs.items():
+                    setattr(process, "_" + key, value)
+
+                if mode == "enum":
+                    return process._enumeration_logic()
+                else:
+                    return process._simulation_logic()
 
         return classmethod(wrapper)
 
     @generator
-    def generate(
-        cls,
-        *args,  # Subclass-specific parameters should be defined in the subclass's generate method signature
-        mode: Literal["enum", "sim"] = "sim",
-        n_trajectories: int | None = None,
-        domain_name: Hashable | None = None,
-        index: IndexLike | None = None,
-        length: int | None = None,
-        name: Hashable = "X",
-        random_state: int | np.random.Generator | None = None,
-    ) -> dict[str, object]:
+    def generate(cls) -> StochasticProcess | tuple[StochasticProcess, ...]:
         """Generate trajectories of the stochastic process by either exhaustive enumeration or Monte Carlo simulation.
 
         This is an abstract method that must be implemented in subclasses. It should validate any subclass-specific parameters, pack them into a dictionary, and return the dictionary. Provided that the user decorates with the `@generator` decorator, the base class will handle the rest of the generation logic. The implementation of the `generate` method in the subclass `IIDProcess` is a good template to review to help understand the needed steps.
-
-        Parameters
-        ----------
-        mode : Literal["enum", "sim"], default="sim"
-            The generation mode of the process, either `enum` for exhaustive enumeration or `sim` for Monte Carlo simulation.
-        n_trajectories : int | None, default=None
-            The number of trajectories to simulate. If `mode` is set to `enum`, this parameter is ignored.
-        domain_name : Hashable | None, default=None
-            The name of the domain. If `None`, a default will be generated.
-        index : IndexLike | None, default=None
-            The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        length : int | None, default=None
-            The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        name : Hashable, default="X"
-            The name of the stochastic process.
-        random_state : int | np.random.Generator | None, default=None
-            An optional random state for reproducibility.
 
         Returns
         -------
@@ -318,6 +338,22 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         """
         raise NotImplementedError("Not implemented.")
 
+    @classmethod
+    def _multiple_enumeration_logic(
+        cls, processes: list[StochasticProcess]
+    ) -> tuple[StochasticProcess, ...]:
+        """Calls the subclass-specific overriden method `_multiple_enumeration_subclass_hook` to generate trajectories and the underlying probability space.
+
+        This method is not meant to be overriden by subclasses. Leave it as is.
+        """  # noqa: D401
+        raise NotImplementedError("Not implemented yet.")
+
+    @classmethod
+    def _multiple_enumeration_subclass_hook(
+        cls, processes: list[StochasticProcess]
+    ) -> list[pd.DataFrame]:
+        raise NotImplementedError("Not implemented.")
+
     def _generate_exact_prob_measure(self, domain: Domain) -> ProbabilityMeasure:
         """Generate the exact probability measure for an enumerated stochastic process.
 
@@ -342,7 +378,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     # --------------------- simulation methods --------------------- #
 
     def _simulation_logic(self) -> StochasticProcess:
-        """Calls the subclass-specific overriden methods `_simulation_subclass_hook` to generate trajectories and the underlying probability space, and returns `self`.
+        """Calls the subclass-specific overriden method `_simulation_subclass_hook` to generate trajectories and the underlying probability space, and returns `self`.
 
         This method is not meant to be overriden by subclasses. Leave it as is.
         """  # noqa: D401
@@ -370,7 +406,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def _simulation_subclass_hook() -> pd.DataFrame:
         """Abstract hook for simulation logic.
 
-        This method must be implemented in subclasses to define how to simulation trajectories. It will use any subclass-specific attributes of `self` to generate a `pd.DataFrame` whose rows are trajectories of the stochastic process.
+        This method must be implemented in subclasses to define how to simulate trajectories. It will use any subclass-specific attributes of `self` to generate a `pd.DataFrame` whose rows are trajectories of the stochastic process.
 
         The implementation of `_simulation_subclass_hook` in the subclass `IIDProcess` is a good template to review to help understand the needed steps.
 
@@ -381,6 +417,43 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         """
         raise NotImplementedError("Not implemented.")
 
+    @classmethod
+    def _multiple_simulation_logic(
+        cls, processes: list[StochasticProcess]
+    ) -> tuple[StochasticProcess, ...]:
+        """Calls the subclass-specific overriden method `_multiple_simulation_subclass_hook` to generate trajectories and the underlying probability space.
+
+        This method is not meant to be overriden by subclasses. Leave it as is.
+        """  # noqa: D401
+        from ...core.measures.probability_measure import ProbabilityMeasure
+        from ...validation.mapping_validator import MappingValidator
+
+        mappings = cls._multiple_simulation_subclass_hook(processes)
+
+        for mapping, process in zip(mappings, processes):
+            v = MappingValidator(
+                mapping=mapping,
+                domain_kind="SampleSpace",
+                index=process._index,
+                index_kind="Time",
+                multi_dim_outputs=True,
+                name=process.name,
+            )
+
+            process.data = v.data
+            process.name = v.name
+            process.measure = ProbabilityMeasure.uniform(process.domain)
+            process.sig_alg = process.measure.sig_alg
+
+        return tuple(processes)
+
+    @classmethod
+    def _multiple_simulation_subclass_hook(
+        cls, processes: list[StochasticProcess]
+    ) -> list[pd.DataFrame]:
+        """Abstract hook for simulation logic of multiple processes."""
+        raise NotImplementedError("Not implemented.")
+
     # --------------------- validation methods --------------------- #
 
     @staticmethod
@@ -389,6 +462,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         index: Time | IndexLike | None = None,
         length: int | None = None,
         n_trajectories: int | None = None,
+        n_processes: int | None = None,
         random_state: int | np.random.Generator | None = None,
     ) -> tuple[Time, np.random.Generator]:
         from ...core.indices.time import Time
@@ -423,6 +497,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise TypeError(
                 "If the generation mode is 'sim', n_trajectories must not be None."
             )
+        if n_processes is not None and (
+            not isinstance(n_processes, int) or n_processes <= 0
+        ):
+            raise ValueError("n_processes must be a positive integer.")
 
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)
@@ -948,7 +1026,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         Filtration 'F'
         ==============
         <BLANKLINE>
-        * Time 'I':
+        * Time 'T':
          t
          0
          1
@@ -1369,6 +1447,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         if ax is None:
             _, ax = plt.subplots()
+            if title is None:
+                title = f"{type(self)._str_name} '{self.name}'"
         elif not isinstance(ax, Axes):
             raise TypeError("ax must be a matplotlib Axes object")
 
@@ -1409,9 +1489,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
-        if title is None:
-            title = f"{type(self)._str_name} '{self.name}'"
-        ax.set_title(title)
+        if title is not None:
+            ax.set_title(title)
 
         return ax
 
