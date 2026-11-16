@@ -14,7 +14,6 @@ from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator
 
 from ...core.functions.random_vector import RandomVector
-from ...style.style import styled
 from ..transforms.process_transforms import ProcessTransformMethods
 
 if TYPE_CHECKING:
@@ -1402,7 +1401,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- plotting methods --------------------- #
 
-    @styled
     def plot_trajectories(
         self,
         ax: Axes = None,

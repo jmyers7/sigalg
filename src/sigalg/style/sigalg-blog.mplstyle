@@ -1,0 +1,87 @@
+## Palette (hex values written without '#', since '#' starts a comment in .mplstyle files)
+##   darkgrey 121212   yellow FFC300   white FAF9F6   blue 3399FF
+
+## ***************************************************************************
+## * LINES                                                                   *
+## ***************************************************************************
+
+lines.linewidth: 2
+lines.markersize: 4
+
+## ***************************************************************************
+## * PATCHES                                                                 *
+## ***************************************************************************
+
+patch.linewidth: 0.2
+patch.edgecolor: FAF9F6
+
+## ***************************************************************************
+## * FONT                                                                    *
+## ***************************************************************************
+
+font.family:  monospace
+font.monospace:  DejaVu Sans Mono, Bitstream Vera Sans Mono, Computer Modern Typewriter, Andale Mono, Nimbus Mono L, Courier New, Courier, Fixed, Terminal, monospace
+
+## ***************************************************************************
+## * TEXT                                                                    *
+## ***************************************************************************
+
+text.color: FAF9F6
+
+## ***************************************************************************
+## * AXES                                                                    *
+## ***************************************************************************
+
+axes.facecolor: 121212
+axes.labelcolor: FAF9F6
+
+axes.prop_cycle: cycler('color', ['FFC300', '3399FF', 'FAF9F6', '8A8A8A'])
+
+axes.edgecolor: FAF9F6
+axes.linewidth: 0.6
+axes.spines.right:  False
+axes.spines.top:  False
+
+axes.titlesize : 11
+axes.labelsize : 10
+
+axes.labelpad: 6
+
+## ***************************************************************************
+## * TICKS                                                                   *
+## ***************************************************************************
+
+xtick.color: FAF9F6
+ytick.color: FAF9F6
+
+xtick.labelsize : 10
+ytick.labelsize : 10
+
+## ***************************************************************************
+## * GRIDS                                                                   *
+## ***************************************************************************
+
+axes.grid: True
+grid.color: FAF9F6
+grid.linestyle: --
+grid.linewidth: 0.6
+grid.alpha:     0.4
+
+
+## ***************************************************************************
+## * LEGEND                                                                  *
+## ***************************************************************************
+
+legend.labelcolor: FAF9F6
+legend.facecolor: 121212
+legend.edgecolor: FAF9F6
+legend.fontsize: 12
+
+## ***************************************************************************
+## * FIGURE                                                                  *
+## ***************************************************************************
+
+figure.dpi: 100
+savefig.dpi : 200
+figure.facecolor: 121212
+pdf.fonttype: 42
