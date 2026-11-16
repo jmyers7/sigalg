@@ -1273,18 +1273,95 @@
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Time</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Time</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.processes</span><span class="w"> </span><span class="kn">import</span> <span class="n">BrownianMotion</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mf">1.1</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.35</span><span class="p">)</span>
+</code></pre></div>
+    <p>Simulate four trajectories from a standard Brownian motion.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">BrownianMotion</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">n_trajectories</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
 <span class="go">Brownian motion &#39;X&#39;:</span>
-<span class="go">t           0.100000  0.433333  0.766667  1.100000</span>
+<span class="go">t      1.0       1.2       1.4       1.6       1.8       2.0</span>
 <span class="go">omega</span>
-<span class="go">0                0.0  0.175928 -0.424507  0.008767</span>
-<span class="go">1                0.0  0.543035 -0.583395 -1.335209</span>
-<span class="go">2                0.0  0.073809 -0.108774 -0.118474</span>
-<span class="go">3                0.0 -0.492505  0.015216  0.464274</span>
+<span class="go">0      0.0  0.136274 -0.328821  0.006791  0.427424 -0.445106</span>
+<span class="go">1      0.0 -0.582352 -0.525180 -0.666608 -0.674122 -1.055615</span>
+<span class="go">2      0.0  0.393279  0.741118  0.770648  1.274765  1.483842</span>
+<span class="go">3      0.0 -0.384287 -0.219377 -0.648202 -0.255347 -0.277675</span>
+</code></pre></div>
+    <p>Simulate four trajectories from a geometric Brownian motion with explicit drift and diffusion parameters, and initial state.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">BrownianMotion</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">drift</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">diffusion</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">initial_state</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<span class="go">Brownian motion &#39;X&#39;:</span>
+<span class="go">t       1.0        1.2        1.4        1.6        1.8        2.0</span>
+<span class="go">omega</span>
+<span class="go">0      10.0  10.207255  10.294236  10.541358  10.805485  10.810979</span>
+<span class="go">1      10.0  10.063530  10.254964  10.406678  10.585176  10.688877</span>
+<span class="go">2      10.0  10.258656  10.508224  10.694130  10.974953  11.196768</span>
+<span class="go">3      10.0  10.103143  10.316125  10.410360  10.668931  10.844465</span>
+</code></pre></div>
+    <p>Simulate four trajectories each from three correlated geometric Brownian motions. Notice that the <code>corr</code> and <code>process_params</code> parameters are explicitly given.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">X_1</span><span class="p">,</span> <span class="n">X_2</span><span class="p">,</span> <span class="n">X_3</span> <span class="o">=</span> <span class="n">BrownianMotion</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">process_params</span><span class="o">=</span><span class="p">{</span>
+<span class="gp">... </span>        <span class="s2">&quot;process_1&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>            <span class="s2">&quot;drift&quot;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;diffusion&quot;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;initial_state&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="p">},</span>
+<span class="gp">... </span>        <span class="s2">&quot;process_2&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>            <span class="s2">&quot;drift&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;diffusion&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;initial_state&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="p">},</span>
+<span class="gp">... </span>        <span class="s2">&quot;process_3&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>            <span class="s2">&quot;drift&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;diffusion&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;initial_state&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="p">},</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span>    <span class="n">corr</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="p">[</span>
+<span class="gp">... </span>            <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span>
+<span class="gp">... </span>            <span class="p">[</span><span class="mf">0.8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">],</span>
+<span class="gp">... </span>            <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="p">]</span>
+<span class="gp">... </span>    <span class="p">),</span>
+<span class="gp">... </span>    <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;geo&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X_1</span><span class="p">)</span>
+<span class="go">Brownian motion &#39;X_1&#39;:</span>
+<span class="go">t      1.0       1.2       1.4       1.6       1.8       2.0</span>
+<span class="go">omega</span>
+<span class="go">0        5  4.831503  4.180535  4.222883  4.905912  5.390442</span>
+<span class="go">1        5  5.577524  5.405173  6.266389  6.605897  6.840311</span>
+<span class="go">2        5  4.330638  4.962413  4.929643  5.092950  5.611992</span>
+<span class="go">3        5  5.350632  5.313522  4.863619  5.032385  4.512444</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X_2</span><span class="p">)</span>
+<span class="go">Brownian motion &#39;X_2&#39;:</span>
+<span class="go">t      1.0        1.2        1.4        1.6        1.8        2.0</span>
+<span class="go">omega</span>
+<span class="go">0       10  10.408150  10.648137  11.228736  12.325913  13.017113</span>
+<span class="go">1       10  11.085709  11.321918  12.405477  13.365085  13.920751</span>
+<span class="go">2       10   9.671646  10.573562  11.317016  11.635994  12.707257</span>
+<span class="go">3       10  10.501574  10.792152  11.135433  12.072122  11.906228</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X_3</span><span class="p">)</span>
+<span class="go">Brownian motion &#39;X_3&#39;:</span>
+<span class="go">t      1.0       1.2       1.4       1.6       1.8       2.0</span>
+<span class="go">omega</span>
+<span class="go">0        8  8.692539  9.440641  9.698771  9.922823  9.040637</span>
+<span class="go">1        8  8.429620  7.838853  7.572118  8.288721  7.821338</span>
+<span class="go">2        8  6.764620  7.086107  7.754669  6.912697  7.314529</span>
+<span class="go">3        8  7.330884  6.911280  7.472078  8.361373  7.973022</span>
 </code></pre></div>
 
 
@@ -1321,6 +1398,8 @@
     <span class="n">diffusion</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
     <span class="n">initial_state</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
     <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;arith&quot;</span><span class="p">,</span>
+    <span class="n">corr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">process_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;sim&quot;</span><span class="p">,</span>
     <span class="n">n_trajectories</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">domain_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1332,7 +1411,7 @@
 
     <div class="doc doc-contents ">
 
-        <p>Simulate trajectories of the Brownian motion by Monte Carlo simulation.</p>
+        <p>Simulate trajectories of a Brownian motion.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1408,6 +1487,38 @@
             </td>
             <td>
                   <code>&#34;arith&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>corr</code>
+            </td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A correlation matrix if multiple correlated Brownian motions are desired. See the Examples.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>process_params</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="dict">dict</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If multiple correlated Brownian motions are desired, this is a dictionary with keys <code>'process_1'</code>, ... <code>'process_n'</code> and values the parameters listed above. If passed, a correlation matrix must also be passed. See the Examples.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -1520,12 +1631,12 @@
       </thead>
       <tbody>
           <tr class="doc-section-item">
-<td><code>info</code></td>            <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="object">object</span>]</code>
+<td><code>processes</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="            BrownianMotion (sigalg.processes.types.brownian_motion.BrownianMotion)" href="#sigalg.processes.BrownianMotion">BrownianMotion</a> | <span title="tuple">tuple</span>[<a class="autorefs autorefs-internal" title="            BrownianMotion (sigalg.processes.types.brownian_motion.BrownianMotion)" href="#sigalg.processes.BrownianMotion">BrownianMotion</a>, ...]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>A dictionary containing the names of the BrownianMotion-specific parameters and their values.</p>
+                <p>Either a single instance of Brownian motion, or a tuple of correlated Brownian motions.</p>
               </div>
             </td>
           </tr>
@@ -1534,18 +1645,95 @@
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Time</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Time</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.processes</span><span class="w"> </span><span class="kn">import</span> <span class="n">BrownianMotion</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mf">1.1</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.35</span><span class="p">)</span>
+</code></pre></div>
+    <p>Simulate four trajectories from a standard Brownian motion.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">BrownianMotion</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">n_trajectories</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
 <span class="go">Brownian motion &#39;X&#39;:</span>
-<span class="go">t           0.100000  0.433333  0.766667  1.100000</span>
+<span class="go">t      1.0       1.2       1.4       1.6       1.8       2.0</span>
 <span class="go">omega</span>
-<span class="go">0                0.0  0.175928 -0.424507  0.008767</span>
-<span class="go">1                0.0  0.543035 -0.583395 -1.335209</span>
-<span class="go">2                0.0  0.073809 -0.108774 -0.118474</span>
-<span class="go">3                0.0 -0.492505  0.015216  0.464274</span>
+<span class="go">0      0.0  0.136274 -0.328821  0.006791  0.427424 -0.445106</span>
+<span class="go">1      0.0 -0.582352 -0.525180 -0.666608 -0.674122 -1.055615</span>
+<span class="go">2      0.0  0.393279  0.741118  0.770648  1.274765  1.483842</span>
+<span class="go">3      0.0 -0.384287 -0.219377 -0.648202 -0.255347 -0.277675</span>
+</code></pre></div>
+    <p>Simulate four trajectories from a geometric Brownian motion with explicit drift and diffusion parameters, and initial state.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">BrownianMotion</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">drift</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">diffusion</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">initial_state</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<span class="go">Brownian motion &#39;X&#39;:</span>
+<span class="go">t       1.0        1.2        1.4        1.6        1.8        2.0</span>
+<span class="go">omega</span>
+<span class="go">0      10.0  10.207255  10.294236  10.541358  10.805485  10.810979</span>
+<span class="go">1      10.0  10.063530  10.254964  10.406678  10.585176  10.688877</span>
+<span class="go">2      10.0  10.258656  10.508224  10.694130  10.974953  11.196768</span>
+<span class="go">3      10.0  10.103143  10.316125  10.410360  10.668931  10.844465</span>
+</code></pre></div>
+    <p>Simulate four trajectories each from three correlated geometric Brownian motions. Notice that the <code>corr</code> and <code>process_params</code> parameters are explicitly given.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">X_1</span><span class="p">,</span> <span class="n">X_2</span><span class="p">,</span> <span class="n">X_3</span> <span class="o">=</span> <span class="n">BrownianMotion</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">process_params</span><span class="o">=</span><span class="p">{</span>
+<span class="gp">... </span>        <span class="s2">&quot;process_1&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>            <span class="s2">&quot;drift&quot;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;diffusion&quot;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;initial_state&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="p">},</span>
+<span class="gp">... </span>        <span class="s2">&quot;process_2&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>            <span class="s2">&quot;drift&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;diffusion&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;initial_state&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="p">},</span>
+<span class="gp">... </span>        <span class="s2">&quot;process_3&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>            <span class="s2">&quot;drift&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;diffusion&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;initial_state&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="p">},</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span>    <span class="n">corr</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="p">[</span>
+<span class="gp">... </span>            <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span>
+<span class="gp">... </span>            <span class="p">[</span><span class="mf">0.8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">],</span>
+<span class="gp">... </span>            <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="p">]</span>
+<span class="gp">... </span>    <span class="p">),</span>
+<span class="gp">... </span>    <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;geo&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X_1</span><span class="p">)</span>
+<span class="go">Brownian motion &#39;X_1&#39;:</span>
+<span class="go">t      1.0       1.2       1.4       1.6       1.8       2.0</span>
+<span class="go">omega</span>
+<span class="go">0        5  4.831503  4.180535  4.222883  4.905912  5.390442</span>
+<span class="go">1        5  5.577524  5.405173  6.266389  6.605897  6.840311</span>
+<span class="go">2        5  4.330638  4.962413  4.929643  5.092950  5.611992</span>
+<span class="go">3        5  5.350632  5.313522  4.863619  5.032385  4.512444</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X_2</span><span class="p">)</span>
+<span class="go">Brownian motion &#39;X_2&#39;:</span>
+<span class="go">t      1.0        1.2        1.4        1.6        1.8        2.0</span>
+<span class="go">omega</span>
+<span class="go">0       10  10.408150  10.648137  11.228736  12.325913  13.017113</span>
+<span class="go">1       10  11.085709  11.321918  12.405477  13.365085  13.920751</span>
+<span class="go">2       10   9.671646  10.573562  11.317016  11.635994  12.707257</span>
+<span class="go">3       10  10.501574  10.792152  11.135433  12.072122  11.906228</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X_3</span><span class="p">)</span>
+<span class="go">Brownian motion &#39;X_3&#39;:</span>
+<span class="go">t      1.0       1.2       1.4       1.6       1.8       2.0</span>
+<span class="go">omega</span>
+<span class="go">0        8  8.692539  9.440641  9.698771  9.922823  9.040637</span>
+<span class="go">1        8  8.429620  7.838853  7.572118  8.288721  7.821338</span>
+<span class="go">2        8  6.764620  7.086107  7.754669  6.912697  7.314529</span>
+<span class="go">3        8  7.330884  6.911280  7.472078  8.361373  7.973022</span>
 </code></pre></div>
 
 
@@ -6312,7 +6500,7 @@ X^\tau_t(\omega) = X_{\min\{t, \tau(\omega)\}}(\omega).
 <span class="go">Filtration &#39;F&#39;</span>
 <span class="go">==============</span>
 
-<span class="go">* Time &#39;I&#39;:</span>
+<span class="go">* Time &#39;T&#39;:</span>
 <span class="go"> t</span>
 <span class="go"> 0</span>
 <span class="go"> 1</span>
@@ -6577,149 +6765,13 @@ X^\tau_t(\omega) = X_{\min\{t, \tau(\omega)\}}(\omega).
 
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">generate</span><span class="p">(</span>
-    <span class="o">*</span><span class="n">args</span><span class="p">,</span>
-    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;sim&quot;</span><span class="p">,</span>
-    <span class="n">n_trajectories</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">domain_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">,</span>
-    <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">generate</span><span class="p">()</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Generate trajectories of the stochastic process by either exhaustive enumeration or Monte Carlo simulation.</p>
 <p>This is an abstract method that must be implemented in subclasses. It should validate any subclass-specific parameters, pack them into a dictionary, and return the dictionary. Provided that the user decorates with the <code>@generator</code> decorator, the base class will handle the rest of the generation logic. The implementation of the <code>generate</code> method in the subclass <code>IIDProcess</code> is a good template to review to help understand the needed steps.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>mode</code>
-            </td>
-            <td>
-                  <code><span title="typing.Literal">Literal</span>[&#39;enum&#39;, &#39;sim&#39;]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The generation mode of the process, either <code>enum</code> for exhaustive enumeration or <code>sim</code> for Monte Carlo simulation.</p>
-              </div>
-            </td>
-            <td>
-                  <code>&#34;sim&#34;</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>n_trajectories</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span> | None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The number of trajectories to simulate. If <code>mode</code> is set to <code>enum</code>, this parameter is ignored.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>domain_name</code>
-            </td>
-            <td>
-                  <code><span title="collections.abc.Hashable">Hashable</span> | None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The name of the domain. If <code>None</code>, a default will be generated.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>index</code>
-            </td>
-            <td>
-                  <code><span title="sigalg.typing.index_like.IndexLike">IndexLike</span> | None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The index of the stochastic process. One of <code>index</code> or <code>length</code> must be provided; if both are provided, the length of <code>index</code> must match <code>length</code>.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>length</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span> | None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The length of the trajectories of the stochastic process. One of <code>index</code> or <code>length</code> must be provided; if both are provided, the length of <code>index</code> must match <code>length</code>.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>name</code>
-            </td>
-            <td>
-                  <code><span title="collections.abc.Hashable">Hashable</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The name of the stochastic process.</p>
-              </div>
-            </td>
-            <td>
-                  <code>&#34;X&#34;</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>random_state</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span> | <span title="numpy.random.Generator">Generator</span> | None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>An optional random state for reproducibility.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -6766,7 +6818,7 @@ X^\tau_t(\omega) = X_{\min\{t, \tau(\omega)\}}(\omega).
 
     <div class="doc doc-contents ">
 
-        <p>Decorator that handles common setup and execution for generate methods.</p>
+        <p>Decorator that handles common setup and execution for generation methods.</p>
 
 
     </div>
