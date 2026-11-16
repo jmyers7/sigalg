@@ -32,7 +32,7 @@ text.color: black
 axes.facecolor: white
 axes.labelcolor: black
 
-axes.prop_cycle: cycler('color', ['6743DC'])
+axes.prop_cycle: cycler('color', ['6743DC', 'F2A03D', '1FA6A0', 'E0537F', '3F8EDB', '9BC53D', 'B58AE8', '7A7A8C'])
 
 axes.edgecolor: black
 axes.linewidth: 0.6
