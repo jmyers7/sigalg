@@ -6,6 +6,7 @@ from collections.abc import Callable, Hashable
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
+import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
@@ -428,6 +429,32 @@ class Operators:
 
         return MeasurableVector._from_validated(
             data=data_trans,
+            sig_alg=vec.sig_alg,
+            measure=vec.measure,
+            index_kind=vec.index_kind,
+            index_name=vec.index_name,
+            name=name,
+        )
+
+    # TODO: input validation
+    @classmethod
+    def apply_to_components(
+        cls,
+        vec: MeasurableVector,
+        function: Callable[[np.ndarray], np.ndarray],
+        name: Hashable | None = None,
+    ) -> MeasurableVector:
+        """Pass."""
+        from .measurable_vector import MeasurableVector
+
+        mapping = np.apply_along_axis(function, 0, vec)
+        data = pd.DataFrame(mapping, index=vec.domain.data, columns=vec.index.data)
+
+        if name is None:
+            name = f"{vec.name}_mapped"
+
+        return MeasurableVector._from_validated(
+            data=data,
             sig_alg=vec.sig_alg,
             measure=vec.measure,
             index_kind=vec.index_kind,
@@ -2918,6 +2945,14 @@ class OperatorsMethods:
         3      4  3  2
         """
         return Operators.pointwise_map(vec=self, function=function, name=name)
+
+    def apply_to_components(
+        self,
+        function: Callable[[np.ndarray], np.ndarray],
+        name: Hashable | None = None,
+    ) -> MeasurableVector:
+        """Pass."""
+        return Operators.apply_to_components(vec=self, function=function, name=name)
 
     def cumsum(self, name: Hashable | None = None) -> MeasurableVector:
         """Compute the cumulative sum of the measurable vector along its index.
