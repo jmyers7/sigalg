@@ -712,8 +712,8 @@ class ProcessTransforms:
     @classmethod
     def ito_integral(
         cls,
-        integrand: StochasticProcess,
-        integrator: StochasticProcess,
+        integrand: StochasticProcess | None = None,
+        integrator: StochasticProcess | None = None,
         name: Hashable | None = None,
     ) -> StochasticProcess:
         r"""Compute the Itô integral of a stochastic process with respect to another stochastic process.
@@ -763,19 +763,58 @@ class ProcessTransforms:
         """
         from ..base.stochastic_process import StochasticProcess
 
-        increments = -1 * integrator.data.diff(periods=-1, axis=1).dropna(axis=1)
-        integrand_data = integrand.data.drop(columns=integrand.data.columns[-1])
-        data = (integrand_data * increments).cumsum(axis=1)
+        if integrand is None and integrator is not None:
+            data = -1 * integrator.data.diff(periods=-1, axis=1).dropna(axis=1).cumsum(
+                axis=1
+            )
+            data.insert(loc=0, column="initial", value=0)
+            data.columns = integrator.time.data
 
-        if name is None:
-            name = f"int {integrand.name} d{integrator.name}"
+            if name is None:
+                name = f"int d{integrator.name}"
+
+        elif integrand is not None and integrator is not None:
+            increments = -1 * integrator.data.diff(periods=-1, axis=1).dropna(axis=1)
+            integrand_data = integrand.data.drop(columns=integrand.data.columns[-1])
+            data = (integrand_data * increments).cumsum(axis=1)
+            data.insert(loc=0, column="initial", value=0)
+            data.columns = integrand.time.data
+
+            if name is None:
+                name = f"int {integrand.name} d{integrator.name}"
 
         return StochasticProcess._from_validated(
             data=data,
-            sig_alg=integrand.sig_alg,
-            measure=integrand.measure,
+            sig_alg=integrator.sig_alg,
+            measure=integrator.measure,
             index_kind="Time",
-            index_name=integrand.index_name,
+            index_name=integrator.index_name,
+            name=name,
+        )
+
+    @classmethod
+    def quad_var(
+        cls,
+        process: StochasticProcess,
+        name: Hashable | None = None,
+    ) -> StochasticProcess:
+        """Pass."""
+        from ..base.stochastic_process import StochasticProcess
+
+        increments = -1 * process.data.diff(periods=-1, axis=1).dropna(axis=1)
+        data = (increments**2).cumsum(axis=1)
+        data.insert(loc=0, column="initial", value=0)
+        data.columns = process.time.data
+
+        if name is None:
+            name = f"[{process.name}]"
+
+        return StochasticProcess._from_validated(
+            data=data,
+            sig_alg=process.sig_alg,
+            measure=process.measure,
+            index_kind="Time",
+            index_name=process.index_name,
             name=name,
         )
 
