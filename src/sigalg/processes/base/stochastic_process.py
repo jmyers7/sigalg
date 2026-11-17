@@ -225,11 +225,26 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     # TODO: add input validation
     @classmethod
     def from_time(
-        cls, process: StochasticProcess, name: Hashable | None = None
+        cls,
+        time: Time | None = None,
+        n_trajectories: int | None = None,
+        process: StochasticProcess | None = None,
+        name: Hashable | None = None,
     ) -> StochasticProcess:
         """Pass."""
-        time = process.time
-        domain, sig_alg, measure = process.prob_space
+        from ...core.measures.probability_measure import ProbabilityMeasure
+        from ...core.spaces.sample_space import SampleSpace
+
+        if process is not None and time is None:
+            time = process.time
+            domain, sig_alg, measure = process.prob_space
+        elif process is None and time is not None:
+            if n_trajectories is None:
+                raise TypeError("If time is given, so must n_trajectories.")
+            domain = SampleSpace.from_sequence(size=n_trajectories)
+            measure = ProbabilityMeasure.uniform(domain)
+            sig_alg = measure.sig_alg
+
         data = pd.DataFrame(
             [time.data] * len(domain), index=domain.data, columns=time.data
         )
@@ -1430,7 +1445,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ax: Axes = None,
         colors: list = None,
         plot_kwargs: dict = None,
-        x_label: str = "time",
+        x_label: str | None = None,
         y_label: str | None = None,
         title: str = None,
     ):
@@ -1464,13 +1479,15 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         columns = self.time.data
         n_trajectories = self.n_trajectories
 
-        if y_label is None:
-            y_label = self._default_y_axis_label
-
         if ax is None:
             _, ax = plt.subplots()
             if title is None:
                 title = f"{type(self)._str_name} '{self.name}'"
+            if x_label is None:
+                x_label = "t"
+            if y_label is None:
+                y_label = self._default_y_axis_label
+
         elif not isinstance(ax, Axes):
             raise TypeError("ax must be a matplotlib Axes object")
 
@@ -1509,8 +1526,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if is_trajectory_integer:
             ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-        ax.set_xlabel(x_label)
-        ax.set_ylabel(y_label)
+        if x_label is not None:
+            ax.set_xlabel(x_label)
+        if y_label is not None:
+            ax.set_ylabel(y_label)
         if title is not None:
             ax.set_title(title)
 
