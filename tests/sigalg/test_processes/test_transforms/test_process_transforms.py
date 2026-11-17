@@ -538,40 +538,21 @@ class TestItoIntegral:
         T = Time.discrete(length=2)
         return RandomWalk.generate(mode="enum", p=0.6, initial_state=1, index=T)
 
-    def test_ito_integral_with_default_integrand(self, X):
-        """Test the Ito integral of the process 1 with respect to a given integrator."""
-        integral = ProcessTransforms.ito_integral(integrator=X)
-        expected_df = pd.DataFrame(
-            [[0, 1, 2], [0, 1, 0], [0, -1, 0], [0, -1, -2]],
-            index=X.sample_space.data,
-            columns=X.time.data,
-        )
-
-        pd.testing.assert_frame_equal(integral.data, expected_df, check_dtype=False)
-        assert integral.name == "int dX"
-
     def test_ito_integral_with_explicit_integrand_and_integrator(self, X):
         """Test the Ito integral of an explicit integrand with respect to an integrator."""
         integral = ProcessTransforms.ito_integral(integrand=X, integrator=X)
         expected_df = pd.DataFrame(
-            [[0, 1, 3], [0, 1, -1], [0, -1, -1], [0, -1, -1]],
+            [
+                [1, 3],
+                [1, -1],
+                [-1, -1],
+                [-1, -1],
+            ],
             index=X.sample_space.data,
-            columns=X.time.data,
+            columns=X.time[:-1].data,
         )
 
         pd.testing.assert_frame_equal(integral.data, expected_df, check_dtype=False)
-
-    def test_ito_integral_with_default_integrator(self, X):
-        """Test the Ito integral of an explicit integrand with respect to the default time integrator."""
-        integral = ProcessTransforms.ito_integral(integrand=X)
-        expected_df = pd.DataFrame(
-            [[0, 1, 3], [0, 1, 3], [0, 1, 1], [0, 1, 1]],
-            index=X.sample_space.data,
-            columns=X.time.data,
-        )
-
-        pd.testing.assert_frame_equal(integral.data, expected_df, check_dtype=False)
-        assert integral.name == "int dt"
 
 
 # --------------------- test is_monotonic --------------------- #

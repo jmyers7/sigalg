@@ -712,11 +712,11 @@ class ProcessTransforms:
     @classmethod
     def ito_integral(
         cls,
-        integrand: StochasticProcess | None = None,
-        integrator: StochasticProcess | None = None,
+        integrand: StochasticProcess,
+        integrator: StochasticProcess,
         name: Hashable | None = None,
     ) -> StochasticProcess:
-        """Compute the Itô integral of a stochastic process with respect to another stochastic process.
+        r"""Compute the Itô integral of a stochastic process with respect to another stochastic process.
 
         Parameters
         ----------
@@ -734,75 +734,48 @@ class ProcessTransforms:
 
         Examples
         --------
+        >>> import numpy as np
         >>> from sigalg.core import Time
-        >>> from sigalg.processes import ProcessTransforms, RandomWalk
-        >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.generate(mode="enum", p=0.6, initial_state=1, index=T)
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        t       0  1  2
-        omega
-        0      1  2  3
-        1      1  2  1
-        2      1  0  1
-        3      1  0 -1
-        >>> integral = ProcessTransforms.ito_integral(integrator=X)
-        >>> print(1 + integral)  # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process '(1 + int dX)':
-        t      0    1    2
-        omega
-        0      1  2.0  3.0
-        1      1  2.0  1.0
-        2      1  0.0  1.0
-        3      1  0.0 -1.0
+        >>> from sigalg.processes import BrownianMotion, ProcessTransforms
+
+        Define a Brownian motion and its increment process.
+
+        >>> T = Time.continuous(start=1, stop=4, dt=0.01)
+        >>> W = BrownianMotion.generate(n_trajectories=1, index=T, name="W", random_state=42)
+        >>> dW = W.increments()
+
+        The time interval `T` represents $[1,4]$ with a specified partition
+        $$
+        1 = t_0 < t_1 < \cdots < t_{300} = 4,
+        $$
+        with $t_{k+1} - t_k = 0.01$ for each $k=0,1,\ldots,299$. Inspired by the Taylor expansion of the function $f(w) = w^2$, elementary algebra shows that
+        $$
+        \Delta W_{t_k}^2 = 2 W_{t_k} \, \Delta W_{t_k} + (\Delta W_{t_k})^2.
+        $$
+        Summing both sides of the equation from $k=0$ to $k=299$ yields an equation with the Itô integral:
+        $$
+        W_4^2 - W_1^2 = 2 \int_1^4 W_t \, dW_t + \sum_{k=0}^{299}\Delta W_{t_k}.
+        $$
+        We verify this equality in SigAlg as follows.
+
+        >>> np.allclose(W[4] ** 2 - W[1] ** 2, (2 * ProcessTransforms.ito_integral(W, W) + (dW * dW).cumsum()).last_rv)
+        True
         """
         from ..base.stochastic_process import StochasticProcess
 
-        if integrand is None:
-            integrand_data = pd.DataFrame(
-                [[1] * len(integrator.index.data)],
-                index=integrator.domain.data,
-                columns=integrator.index.data,
-            )
-            integrand_name = None
-            initial_time = integrator.index[0]
-        else:
-            integrand_data = integrand.data
-            integrand_name = integrand.name
-            sig_alg = integrand.sig_alg
-            measure = integrand.measure
-            index_name = integrand.time.name
-            initial_time = integrand.index[0]
-
-        if integrator is None:
-            integrator_data = -1 * integrand.index.data.diff(periods=-1)
-            integrator_name = "t"
-        else:
-            integrator_data = integrator.increments().data
-            integrator_name = integrator.name
-            sig_alg = integrator.sig_alg
-            measure = integrator.measure
-            index_name = integrator.time.name
+        increments = -1 * integrator.data.diff(periods=-1, axis=1).dropna(axis=1)
+        integrand_data = integrand.data.drop(columns=integrand.data.columns[-1])
+        data = (integrand_data * increments).cumsum(axis=1)
 
         if name is None:
-            name = (
-                f"int {integrand_name} d{integrator_name}"
-                if integrator_name is None
-                else f"int d{integrator_name}"
-            )
-
-        data = (
-            (integrand_data * integrator_data).cumsum(axis=1).dropna(axis=1, how="all")
-        )
-        data.columns = data.columns + 1
-        data.insert(0, initial_time, 0)
+            name = f"int {integrand.name} d{integrator.name}"
 
         return StochasticProcess._from_validated(
             data=data,
-            sig_alg=sig_alg,
-            measure=measure,
+            sig_alg=integrand.sig_alg,
+            measure=integrand.measure,
             index_kind="Time",
-            index_name=index_name,
+            index_name=integrand.index_name,
             name=name,
         )
 
@@ -1501,10 +1474,10 @@ class ProcessTransformMethods:
     # TODO: update docstrings
     def ito_integral(
         self,
-        integrator: StochasticProcess | None = None,
+        integrator: StochasticProcess,
         name: Hashable | None = None,
     ) -> StochasticProcess:
-        """Compute the Itô integral of a stochastic process with respect to another stochastic process.
+        r"""Compute the Itô integral of a stochastic process with respect to another stochastic process.
 
         Internally calls the `ProcessTransforms.ito_integral` method.
 
@@ -1519,8 +1492,39 @@ class ProcessTransformMethods:
         -------
         ito_integral_process : StochasticProcess
             A new stochastic process representing the Itô integral of the input process with respect to the integrator.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import BrownianMotion
+
+        Define a Brownian motion and its increment process.
+
+        >>> T = Time.continuous(start=1, stop=4, dt=0.01)
+        >>> W = BrownianMotion.generate(n_trajectories=1, index=T, name="W", random_state=42)
+        >>> dW = W.increments()
+
+        The time interval `T` represents $[1,4]$ with a specified partition
+        $$
+        1 = t_0 < t_1 < \cdots < t_{300} = 4,
+        $$
+        with $t_{k+1} - t_k = 0.01$ for each $k=0,1,\ldots,299$. Inspired by the Taylor expansion of the function $f(w) = w^2$, elementary algebra shows that
+        $$
+        \Delta W_{t_k}^2 = 2 W_{t_k} \, \Delta W_{t_k} + (\Delta W_{t_k})^2.
+        $$
+        Summing both sides of the equation from $k=0$ to $k=299$ yields an equation with the Itô integral:
+        $$
+        W_4^2 - W_1^2 = 2 \int_1^4 W_t \, dW_t + \sum_{k=0}^{299}\Delta W_{t_k}.
+        $$
+        We verify this equality in SigAlg as follows.
+
+        >>> np.allclose(W[4] ** 2 - W[1] ** 2, (2 * W.ito_integral(W) + (dW * dW).cumsum()).last_rv)
+        True
         """
-        return ProcessTransforms.ito_integral(self, integrator=integrator, name=name)
+        return ProcessTransforms.ito_integral(
+            integrand=self, integrator=integrator, name=name
+        )
 
     # TODO: update docstrings
     def is_monotonic(self, increasing: bool = True) -> bool:
