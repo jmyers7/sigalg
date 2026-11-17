@@ -222,6 +222,30 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         return classmethod(wrapper)
 
+    # TODO: add input validation
+    @classmethod
+    def from_time(
+        cls, process: StochasticProcess, name: Hashable | None = None
+    ) -> StochasticProcess:
+        """Pass."""
+        time = process.time
+        domain, sig_alg, measure = process.prob_space
+        data = pd.DataFrame(
+            [time.data] * len(domain), index=domain.data, columns=time.data
+        )
+
+        if name is None:
+            name = time.name + "_process"
+
+        return cls._from_validated(
+            data=data,
+            sig_alg=sig_alg,
+            measure=measure,
+            index_kind="Time",
+            index_name=time.name,
+            name=name,
+        )
+
     @generator
     def generate(cls) -> StochasticProcess | tuple[StochasticProcess, ...]:
         """Generate trajectories of the stochastic process by either exhaustive enumeration or Monte Carlo simulation.
