@@ -48,12 +48,13 @@ Open a virtual environment running Python 3.13 or later and install SigAlg using
 
 ## Getting started
 
-SigAlg is under active development. The core was completely rewritten between `v0.1.11` and `v0.1.12`, which made the older introductory tutorials obsolete. They are being rewritten. In the meantime, several new tutorials cover SigAlg's financial applications:
+SigAlg is under active development. The core was completely rewritten between `v0.1.11` and `v0.1.12`, which made the older introductory tutorials obsolete. They are being rewritten. In the meantime, several new tutorials preview SigAlg's applications in finance and stochastic calculus:
 
 - [The basics of binomial trees](https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/binomial-pricing-model-1.ipynb){target="_blank"}
 - [Contingent claims](https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/binomial-pricing-model-2.ipynb){target="_blank"}
 - [Risk-neutral valuation using binomial trees](https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/binomial-pricing-model-3.ipynb){target="_blank"}
 - [Standard and arithmetic Brownian motions](https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/brownian-motion-1.ipynb){target="_blank"}
+- [Stochastic calculus in SigAlg I: a preview of Itô's lemma](https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/stochastic-calc-1.ipynb){target="_blank"}
 
 These tutorials are pitched at a higher level than a first introduction, which will follow soon. Until then, the API reference contains many code examples.
 
