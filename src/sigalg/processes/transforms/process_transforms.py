@@ -740,25 +740,14 @@ class ProcessTransforms:
 
         Define a Brownian motion and its increment process.
 
-        >>> T = Time.continuous(start=1, stop=4, dt=0.01)
-        >>> W = BrownianMotion.generate(n_trajectories=1, index=T, name="W", random_state=42)
-        >>> dW = W.increments()
+        >>> T = Time.continuous(start=0, stop=4, dt=0.001)
+        >>> W = BrownianMotion.generate(n_trajectories=5, index=T, name="W", random_state=42)
 
-        The time interval `T` represents $[1,4]$ with a specified partition
-        $$
-        1 = t_0 < t_1 < \cdots < t_{300} = 4,
-        $$
-        with $t_{k+1} - t_k = 0.01$ for each $k=0,1,\ldots,299$. Inspired by the Taylor expansion of the function $f(w) = w^2$, elementary algebra shows that
-        $$
-        \Delta W_{t_k}^2 = 2 W_{t_k} \, \Delta W_{t_k} + (\Delta W_{t_k})^2.
-        $$
-        Summing both sides of the equation from $k=0$ to $k=299$ yields an equation with the Itô integral:
-        $$
-        W_4^2 - W_1^2 = 2 \int_1^4 W_t \, dW_t + \sum_{k=0}^{299}\Delta W_{t_k}.
-        $$
-        We verify this equality in SigAlg as follows.
+        Verify the Fundametal Theorem of Calculus with Itô's correction and the function $f(w) = w^2$.
 
-        >>> np.allclose(W[4] ** 2 - W[1] ** 2, (2 * ProcessTransforms.ito_integral(W, W) + (dW * dW).cumsum()).last_rv)
+        >>> ito_integral = ProcessTransforms.ito_integral
+        >>> quad_var = ProcessTransforms.quad_var
+        >>> np.allclose(ito_integral(integrator=W**2), 2 * ito_integral(W, W) + ito_integral(integrator=quad_var(W)))
         True
         """
         from ..base.stochastic_process import StochasticProcess
@@ -798,7 +787,38 @@ class ProcessTransforms:
         process: StochasticProcess,
         name: Hashable | None = None,
     ) -> StochasticProcess:
-        """Pass."""
+        r"""Compute the quadratic variation of a stochastic process.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The stochastic process whose quadratic variation is to be computed.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, a default will be generated.
+
+        Returns
+        -------
+        quad_var : StochasticProcess
+            A new stochastic process representing the quadratic variation of the input process.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import BrownianMotion, ProcessTransforms
+
+        Define a Brownian motion and its increment process.
+
+        >>> T = Time.continuous(start=0, stop=4, dt=0.001)
+        >>> W = BrownianMotion.generate(n_trajectories=5, index=T, name="W", random_state=42)
+
+        Verify the Fundametal Theorem of Calculus with Itô's correction and the function $f(w) = w^2$.
+
+        >>> ito_integral = ProcessTransforms.ito_integral
+        >>> quad_var = ProcessTransforms.quad_var
+        >>> np.allclose(ito_integral(integrator=W**2), 2 * ito_integral(W, W) + ito_integral(integrator=quad_var(W)))
+        True
+        """
         from ..base.stochastic_process import StochasticProcess
 
         increments = -1 * process.data.diff(periods=-1, axis=1).dropna(axis=1)
@@ -1536,34 +1556,61 @@ class ProcessTransformMethods:
         --------
         >>> import numpy as np
         >>> from sigalg.core import Time
-        >>> from sigalg.processes import BrownianMotion
+        >>> from sigalg.processes import BrownianMotion, ProcessTransforms
 
         Define a Brownian motion and its increment process.
 
-        >>> T = Time.continuous(start=1, stop=4, dt=0.01)
-        >>> W = BrownianMotion.generate(n_trajectories=1, index=T, name="W", random_state=42)
-        >>> dW = W.increments()
+        >>> T = Time.continuous(start=0, stop=4, dt=0.001)
+        >>> W = BrownianMotion.generate(n_trajectories=5, index=T, name="W", random_state=42)
 
-        The time interval `T` represents $[1,4]$ with a specified partition
-        $$
-        1 = t_0 < t_1 < \cdots < t_{300} = 4,
-        $$
-        with $t_{k+1} - t_k = 0.01$ for each $k=0,1,\ldots,299$. Inspired by the Taylor expansion of the function $f(w) = w^2$, elementary algebra shows that
-        $$
-        \Delta W_{t_k}^2 = 2 W_{t_k} \, \Delta W_{t_k} + (\Delta W_{t_k})^2.
-        $$
-        Summing both sides of the equation from $k=0$ to $k=299$ yields an equation with the Itô integral:
-        $$
-        W_4^2 - W_1^2 = 2 \int_1^4 W_t \, dW_t + \sum_{k=0}^{299}\Delta W_{t_k}.
-        $$
-        We verify this equality in SigAlg as follows.
+        Verify the Fundametal Theorem of Calculus with Itô's correction and the function $f(w) = w^2$.
 
-        >>> np.allclose(W[4] ** 2 - W[1] ** 2, (2 * W.ito_integral(W) + (dW * dW).cumsum()).last_rv)
+        >>> ito_integral = ProcessTransforms.ito_integral
+        >>> quad_var = ProcessTransforms.quad_var
+        >>> np.allclose(ito_integral(integrator=W**2), 2 * ito_integral(W, W) + ito_integral(integrator=quad_var(W)))
         True
         """
         return ProcessTransforms.ito_integral(
             integrand=self, integrator=integrator, name=name
         )
+
+    def quad_var(
+        self,
+        name: Hashable | None = None,
+    ) -> StochasticProcess:
+        r"""Compute the quadratic variation of a stochastic process.
+
+        Internally calls the `ProcessTransforms.quad_var` method.
+
+        Parameters
+        ----------
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, a default will be generated.
+
+        Returns
+        -------
+        quad_var : StochasticProcess
+            A new stochastic process representing the quadratic variation of the input process.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import BrownianMotion, ProcessTransforms
+
+        Define a Brownian motion and its increment process.
+
+        >>> T = Time.continuous(start=0, stop=4, dt=0.001)
+        >>> W = BrownianMotion.generate(n_trajectories=5, index=T, name="W", random_state=42)
+
+        Verify the Fundametal Theorem of Calculus with Itô's correction and the function $f(w) = w^2$.
+
+        >>> ito_integral = ProcessTransforms.ito_integral
+        >>> quad_var = ProcessTransforms.quad_var
+        >>> np.allclose(ito_integral(integrator=W**2), 2 * ito_integral(W, W) + ito_integral(integrator=quad_var(W)))
+        True
+        """
+        return ProcessTransforms.quad_var(process=self, name=name)
 
     # TODO: update docstrings
     def is_monotonic(self, increasing: bool = True) -> bool:

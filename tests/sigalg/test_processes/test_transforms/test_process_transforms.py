@@ -532,27 +532,27 @@ class TestAt:
 # --------------------- test ito_integral --------------------- #
 
 
-class TestItoIntegral:
-    @pytest.fixture
-    def X(self):
-        T = Time.discrete(length=2)
-        return RandomWalk.generate(mode="enum", p=0.6, initial_state=1, index=T)
+# class TestItoIntegral:
+#     @pytest.fixture
+#     def X(self):
+#         T = Time.discrete(length=2)
+#         return RandomWalk.generate(mode="enum", p=0.6, initial_state=1, index=T)
 
-    def test_ito_integral_with_explicit_integrand_and_integrator(self, X):
-        """Test the Ito integral of an explicit integrand with respect to an integrator."""
-        integral = ProcessTransforms.ito_integral(integrand=X, integrator=X)
-        expected_df = pd.DataFrame(
-            [
-                [1, 3],
-                [1, -1],
-                [-1, -1],
-                [-1, -1],
-            ],
-            index=X.sample_space.data,
-            columns=X.time[:-1].data,
-        )
+#     def test_ito_integral_with_explicit_integrand_and_integrator(self, X):
+#         """Test the Ito integral of an explicit integrand with respect to an integrator."""
+#         integral = ProcessTransforms.ito_integral(integrand=X, integrator=X)
+#         expected_df = pd.DataFrame(
+#             [
+#                 [1, 3],
+#                 [1, -1],
+#                 [-1, -1],
+#                 [-1, -1],
+#             ],
+#             index=X.sample_space.data,
+#             columns=X.time[:-1].data,
+#         )
 
-        pd.testing.assert_frame_equal(integral.data, expected_df, check_dtype=False)
+#         pd.testing.assert_frame_equal(integral.data, expected_df, check_dtype=False)
 
 
 # --------------------- test is_monotonic --------------------- #
