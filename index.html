@@ -404,10 +404,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
+  <a href="#tutorials" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Getting started
+        Tutorials
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-snippets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code snippets
       
     </span>
   </a>
@@ -634,12 +645,9 @@
   <img src="assets/sigalg-light-no-logo.svg" class="hero-logo hero-logo--light" alt="SigAlg">
   <img src="assets/sigalg-dark-no-logo.svg" class="hero-logo hero-logo--dark" alt="SigAlg">
 </header>
-<p>Named after a <em><span class="arithmatex">\(\sigma\)</span>-algebra</em>, a foundational type of object in modern probability theory, SigAlg is a Python library designed as a tool for theoreticians and practioners that work in the intersection of rigorous probability theory and computation. It was first conceived as a tool for experiments in quantitative finance, but its scope has since grown to include abstractions of core probabilistic objects ranging from probability spaces and random variables, to Radon-Nikodym derivatives and conditional KL divergences.</p>
-<p>The core design philosophy of SigAlg centers on mathematical fidelity and accuracy, not just black-box simulation and speed. The user manipulates random variables and other objects in SigAlg code as easily as they would with pen and paper, facilitating experimentation and reducing the friction between abstract mathematical concepts and concrete executable code.</p>
-</div>
-<div>
+<p>Named after a <em><span class="arithmatex">\(\sigma\)</span>-algebra</em>, a foundational type of object in measure theory, SigAlg is a Python library for computational measure-theoretic probability theory and stochastic calculus. Originally developed by <a href="https://github.com/jmyers7" target="_blank">a mathematician</a> as a self-study and plotting library for quantitative finance, it has since grown into a general toolkit for probability on finite spaces and the stochastic processes built on them, including finite approximations of continuous objects. Every mathematical object, from <span class="arithmatex">\(\sigma\)</span>-algebras to conditional expectations and martingales, is a concrete Python object you can inspect.</p>
 <h2 id="installation">Installation</h2>
-<p>Open a virtual environment running Python 3.13 or later and install SigAlg using either <code>uv</code> or <code>pip</code>:</p>
+<p>Open a virtual environment running Python 3.13 or 3.14 (3.15 has not been tested yet) and install SigAlg using either <code>uv</code> or <code>pip</code>:</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">uv</label><label for="__tabbed_1_2">pip</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -652,16 +660,249 @@
 </div>
 </div>
 </div>
-<h2 id="getting-started">Getting started</h2>
-<p>SigAlg is under active development. The core was completely rewritten between <code>v0.1.11</code> and <code>v0.1.12</code>, which made the older introductory tutorials obsolete. They are being rewritten. In the meantime, several new tutorials preview SigAlg's applications in finance and stochastic calculus:</p>
+<h2 id="tutorials">Tutorials</h2>
+<p>In addition to the tutorials below, the API Reference contains many examples of SigAlg.</p>
 <ul>
+<li><a href="https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/info-theory.ipynb" target="_blank">Thinking in <span class="arithmatex">\(\sigma\)</span>-algebras: an information-theoretic introduction to SigAlg</a></li>
 <li><a href="https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/binomial-pricing-model-1.ipynb" target="_blank">The basics of binomial trees</a></li>
 <li><a href="https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/binomial-pricing-model-2.ipynb" target="_blank">Contingent claims</a></li>
 <li><a href="https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/binomial-pricing-model-3.ipynb" target="_blank">Risk-neutral valuation using binomial trees</a></li>
 <li><a href="https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/brownian-motion-1.ipynb" target="_blank">Standard and arithmetic Brownian motions</a></li>
 <li><a href="https://github.com/jmyers7/sigalg/blob/main/docs/notebooks/stochastic-calc-1.ipynb" target="_blank">Stochastic calculus in SigAlg I: a preview of Itô's lemma</a></li>
 </ul>
-<p>These tutorials are pitched at a higher level than a first introduction, which will follow soon. Until then, the API reference contains many code examples.</p>
+</div>
+<div>
+<h2 id="code-snippets">Code snippets</h2>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:6"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><input id="__tabbed_2_4" name="__tabbed_2" type="radio" /><input id="__tabbed_2_5" name="__tabbed_2" type="radio" /><input id="__tabbed_2_6" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Fundamental Theorem of Calculus with Itô's correction</label><label for="__tabbed_2_2">Quadratic variation of Brownian motion</label><label for="__tabbed_2_3">Binomial pricing models</label><label for="__tabbed_2_4">Trinomial pricing models</label><label for="__tabbed_2_5">Markov chain</label><label for="__tabbed_2_6">Polynomial regression in an <span class="arithmatex">\(L^2\)</span>-space</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Demonstrate the Fundamental Theorem of Calculus with Itô&#39;s correction.&quot;&quot;&quot;</span>
+<span class="c1"># (1)!</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sa</span>
+
+<span class="n">T</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
+<span class="n">W</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">BrownianMotion</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;W&quot;</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">ito_integral</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">ProcessTransforms</span><span class="o">.</span><span class="n">ito_integral</span>
+<span class="n">quad_var</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">ProcessTransforms</span><span class="o">.</span><span class="n">quad_var</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">f</span><span class="p">(</span><span class="n">X</span><span class="p">:</span> <span class="n">sa</span><span class="o">.</span><span class="n">StochasticProcess</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sa</span><span class="o">.</span><span class="n">StochasticProcess</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">X</span><span class="o">**</span><span class="mi">2</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">f_prime</span><span class="p">(</span><span class="n">X</span><span class="p">:</span> <span class="n">sa</span><span class="o">.</span><span class="n">StochasticProcess</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sa</span><span class="o">.</span><span class="n">StochasticProcess</span><span class="p">:</span>
+    <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">X</span>
+
+
+<span class="n">increment</span> <span class="o">=</span> <span class="n">ito_integral</span><span class="p">(</span><span class="n">integrator</span><span class="o">=</span><span class="n">f</span><span class="p">(</span><span class="n">W</span><span class="p">))</span>
+<span class="n">classical_term</span> <span class="o">=</span> <span class="n">ito_integral</span><span class="p">(</span><span class="n">f_prime</span><span class="p">(</span><span class="n">W</span><span class="p">),</span> <span class="n">W</span><span class="p">)</span>
+<span class="n">ito_correction</span> <span class="o">=</span> <span class="n">ito_integral</span><span class="p">(</span><span class="n">integrator</span><span class="o">=</span><span class="n">quad_var</span><span class="p">(</span><span class="n">W</span><span class="p">))</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">increment</span><span class="p">,</span> <span class="n">classical_term</span> <span class="o">+</span> <span class="n">ito_correction</span><span class="p">)</span>
+</code></pre></div>
+<ol>
+<li>The Fundamental Theorem of Calculus with Itô's correction states that <span class="arithmatex">\(f(X_t) - f(X_0) = \int_0^t f'(X_u) \, dX_u + \frac{1}{2} \int_0^t f''(X_u) \, d[X]_u\)</span>, where <span class="arithmatex">\(X_t\)</span> is a "nice" stochastic process (like a diffusion), <span class="arithmatex">\(f\)</span> is a twice-differentiable function, and <span class="arithmatex">\([X]_t\)</span> is the quadratic variation of <span class="arithmatex">\(X_t\)</span>. The first term on the right of this equation is the <em>classical term</em>, while the second is <em>Itô's correction</em>.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Test the quadratic variation method.&quot;&quot;&quot;</span>
+<span class="c1"># (1)!</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sa</span>
+
+<span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">set_style</span><span class="p">()</span>
+
+<span class="n">T</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
+<span class="n">W</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">BrownianMotion</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;W&quot;</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">StochasticProcess</span><span class="o">.</span><span class="n">from_time</span><span class="p">(</span><span class="n">process</span><span class="o">=</span><span class="n">W</span><span class="p">)</span>
+
+<span class="n">_</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">W</span><span class="o">.</span><span class="n">quad_var</span><span class="p">()</span><span class="o">.</span><span class="n">plot_trajectories</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">purple</span><span class="p">])</span>
+<span class="n">t</span><span class="o">.</span><span class="n">plot_trajectories</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">amber</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div>
+<ol>
+<li>One of the foundational results in stochastic calculus states that <span class="arithmatex">\([W]_t = t\)</span>, where <span class="arithmatex">\(W\)</span> is a standard Brownian motion.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Demo risk-neutral pricing of a European call option with binomial trees.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sa</span>
+
+<span class="n">S_0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">T</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mi">3</span>
+
+<span class="n">S</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">BinomialPricingModel</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
+    <span class="n">up_factor</span><span class="o">=</span><span class="n">u</span><span class="p">,</span>
+    <span class="n">down_factor</span><span class="o">=</span><span class="n">d</span><span class="p">,</span>
+    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+    <span class="n">length</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;enum&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">euro_call</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+
+<span class="n">Delta</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">euro_call</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">euro_call</span><span class="o">.</span><span class="n">price_process</span><span class="p">()</span>
+
+<span class="n">X</span><span class="o">.</span><span class="n">last_rv</span> <span class="o">==</span> <span class="n">V</span><span class="o">.</span><span class="n">last_rv</span>  <span class="c1"># (1)!</span>
+<span class="nb">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">V</span><span class="p">[</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">r</span><span class="p">)</span> <span class="o">*</span> <span class="n">B</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">+</span> <span class="n">S</span><span class="p">[</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">Delta</span><span class="p">[</span><span class="n">t</span><span class="p">])</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">T</span><span class="p">))</span>
+
+<span class="n">Q</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">emm</span><span class="p">()</span>  <span class="c1"># (2)!</span>
+<span class="n">X</span><span class="o">.</span><span class="n">discount</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">.</span><span class="n">is_martingale</span><span class="p">(</span><span class="n">prob_measure</span><span class="o">=</span><span class="n">Q</span><span class="p">)</span>
+</code></pre></div>
+<ol>
+<li>The value process <span class="arithmatex">\(V_t\)</span> of the replicating portfolio must have two properties: First, at maturity <span class="arithmatex">\(T\)</span> the value <span class="arithmatex">\(V_T\)</span> must equal the payoff of the option. Second, the portfolio must be <em>self-financing</em>, in the sense that <span class="arithmatex">\(V_{t+1} = (1+r) B_t + S_{t+1} \Delta_t\)</span>.</li>
+<li>The no-arbitrage condition guarnatees the existence of an <em>equivalent martingale measure</em> <span class="arithmatex">\(Q\)</span> (also called a <em>risk-neutral measure</em>) such that the discounted price process of the option is a martingale.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Demo risk-neutral pricing of an American put option with trinomial trees.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sa</span>
+
+<span class="n">S_0</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">T</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mi">4</span>
+
+<span class="n">S</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">TrinomialPricingModel</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
+    <span class="n">up_factor</span><span class="o">=</span><span class="n">u</span><span class="p">,</span>
+    <span class="n">middle_factor</span><span class="o">=</span><span class="n">m</span><span class="p">,</span>
+    <span class="n">down_factor</span><span class="o">=</span><span class="n">d</span><span class="p">,</span>
+    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;enum&quot;</span><span class="p">,</span>
+    <span class="n">length</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="n">K</span> <span class="o">=</span> <span class="mi">90</span>
+<span class="n">american_put</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span>
+    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span>
+    <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">theta</span> <span class="o">=</span> <span class="mf">0.5</span>  <span class="c1"># (1)!</span>
+<span class="n">Q</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">emm</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">)</span>
+<span class="n">S</span><span class="o">.</span><span class="n">discount</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">.</span><span class="n">is_martingale</span><span class="p">(</span><span class="n">prob_measure</span><span class="o">=</span><span class="n">Q</span><span class="p">)</span>
+
+<span class="n">X</span> <span class="o">=</span> <span class="n">american_put</span><span class="o">.</span><span class="n">price_process</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">)</span>  <span class="c1"># (2)!</span>
+<span class="n">X</span><span class="o">.</span><span class="n">discount</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">.</span><span class="n">is_martingale</span><span class="p">(</span><span class="n">prob_measure</span><span class="o">=</span><span class="n">Q</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;super&quot;</span><span class="p">)</span>
+
+<span class="n">tau</span> <span class="o">=</span> <span class="n">american_put</span><span class="o">.</span><span class="n">exercise_time</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">)</span>  <span class="c1"># (3)!</span>
+
+<span class="n">price</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># (4)!</span>
+<span class="n">discounted_expectation</span> <span class="o">=</span> <span class="n">american_put</span><span class="o">.</span><span class="n">discount</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="n">measure</span><span class="o">=</span><span class="n">Q</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">price</span><span class="p">,</span> <span class="n">discounted_expectation</span><span class="p">)</span>
+</code></pre></div>
+<ol>
+<li>Trinomial pricing models are examples of incomplete markets, which means that multiple equivalent martingale measures (EMMs) exist. In SigAlg, the the EMMs are parametrized by a real number <span class="arithmatex">\(\theta \in (0,1)\)</span>. The discounted price process of the asset is a martingale with respect to every EMM <span class="arithmatex">\(Q\)</span>.</li>
+<li>American option contracts allow early exercise, so their risk-neutral valuation turns into an optimal stopping problem. The price process of an American option with respect to an EMM is not a martingale, but rather a <em>super</em>martingale.</li>
+<li>SigAlg can compute the optimal stopping time <span class="arithmatex">\(\tau\)</span> for an early-exercise option.</li>
+<li>If we evaluate the discounted price process <span class="arithmatex">\((1+r)^{-t}X_t\)</span> of the American option at the optimal stopping time <span class="arithmatex">\(\tau\)</span>, we get a random variable <span class="arithmatex">\((1+r)^{-\tau}X_\tau\)</span> whose expectation is the initial price of the option.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Demo a Markov chain in SigAlg.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">prod</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sa</span>
+
+<span class="n">K</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">]]</span>
+<span class="n">pi</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">]</span>
+<span class="n">T</span> <span class="o">=</span> <span class="mi">10</span>
+
+<span class="n">X</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">MarkovChain</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">initial_distribution</span><span class="o">=</span><span class="n">pi</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="n">T</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;enum&quot;</span><span class="p">)</span>
+
+<span class="n">P</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">measure</span>  <span class="c1"># (1)!</span>
+<span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span>
+    <span class="n">P</span> <span class="o">&gt;&gt;</span> <span class="n">X</span><span class="p">,</span> <span class="p">(</span><span class="n">P</span> <span class="o">&gt;&gt;</span> <span class="n">X</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">prod</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">conditional</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">t</span><span class="p">])</span> <span class="o">&gt;&gt;</span> <span class="n">X</span><span class="p">[</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">T</span><span class="p">))</span>
+<span class="p">)</span>
+</code></pre></div>
+<ol>
+<li>The joint distribution <span class="arithmatex">\(P\)</span> of a Markov chain factors as <span class="arithmatex">\(P(X_0=x_0,\ldots,X_T=x_T) = P(X_0=x_0) \prod_{k=0}^{T-1} P(X_{k+1}=x_{k+1} \mid X_{k} = x_{k})\)</span>.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Demo polynomial regression as orthogonal projection in an L^2-space.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sa</span>
+
+<span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">set_style</span><span class="p">()</span>
+
+<span class="n">n</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">SampleSpace</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">ProbabilityMeasure</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">Omega</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;P&quot;</span><span class="p">)</span>
+<span class="n">H</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">L2</span><span class="p">(</span><span class="n">Omega</span><span class="p">,</span> <span class="n">measure</span><span class="o">=</span><span class="n">P</span><span class="p">)</span>  <span class="c1"># (1)!</span>
+
+<span class="n">X</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">RandomVariable</span><span class="p">(</span>  <span class="c1"># (2)!</span>
+    <span class="n">domain</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span>
+    <span class="n">measure</span><span class="o">=</span><span class="n">P</span><span class="p">,</span>
+    <span class="n">mapping</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">epsilon</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">RandomVariable</span><span class="o">.</span><span class="n">from_rand</span><span class="p">(</span>
+    <span class="n">domain</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span>
+    <span class="n">measure</span><span class="o">=</span><span class="n">P</span><span class="p">,</span>
+    <span class="n">distribution</span><span class="o">=</span><span class="s2">&quot;normal&quot;</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;epsilon&quot;</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">X</span> <span class="o">-</span> <span class="n">X</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="s2">&quot;Y&quot;</span><span class="p">)</span>
+
+<span class="n">one</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">RandomVariable</span><span class="o">.</span><span class="n">from_constant</span><span class="p">(</span>  <span class="c1"># (3)!</span>
+    <span class="n">domain</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span>
+    <span class="n">measure</span><span class="o">=</span><span class="n">P</span><span class="p">,</span>
+    <span class="n">constant</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;one&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">polynomial_basis</span> <span class="o">=</span> <span class="p">[</span><span class="n">one</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">X</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">X</span><span class="o">**</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">Y_fit</span><span class="p">,</span> <span class="n">coeffs_poly</span><span class="p">,</span> <span class="n">dim_poly</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">proj</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">polynomial_basis</span><span class="p">)</span>
+
+<span class="n">x_smooth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>  <span class="c1"># (4)!</span>
+<span class="n">y_smooth</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">coeffs_poly</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="o">+</span> <span class="n">coeffs_poly</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">x_smooth</span>
+    <span class="o">+</span> <span class="n">coeffs_poly</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">x_smooth</span><span class="o">**</span><span class="mi">2</span>
+    <span class="o">+</span> <span class="n">coeffs_poly</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">x_smooth</span><span class="o">**</span><span class="mi">3</span>
+<span class="p">)</span>
+
+<span class="n">_</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">amber</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_smooth</span><span class="p">,</span> <span class="n">y_smooth</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div>
+<ol>
+<li>Define the Hilbert space <span class="arithmatex">\(\mathcal{H} = L^2(\Omega, \mathcal{F},P)\)</span>.</li>
+<li>Define a random variable <span class="arithmatex">\(X\)</span> on a sample space of cardinality <span class="arithmatex">\(20\)</span>, and another random variable <span class="arithmatex">\(Y = 2+3X-X^2 + \epsilon\)</span> where <span class="arithmatex">\(\epsilon\)</span> is a random noise term.</li>
+<li>We will project <span class="arithmatex">\(Y\)</span> onto the subspace spanned by <span class="arithmatex">\(1\)</span>, <span class="arithmatex">\(X\)</span>, and <span class="arithmatex">\(X^2\)</span> in an <span class="arithmatex">\(L^2\)</span>-space.</li>
+<li>Get the coefficients from the orthogonal projection, and plot the fit.</li>
+</ol>
+</div>
+</div>
+</div>
 </div>
 </div>
 
