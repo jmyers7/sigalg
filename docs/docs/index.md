@@ -25,7 +25,7 @@ hide:
   <img src="assets/sigalg-dark-no-logo.svg" class="hero-logo hero-logo--dark" alt="SigAlg">
 </header>
 
-Named after a *$\sigma$-algebra*, a foundational type of object in measure theory, SigAlg is a Python library for computational measure-theoretic probability theory and stochastic calculus. Originally developed by [a mathematician](https://github.com/jmyers7){target="_blank"} as a self-study and plotting library for quantitative finance, it has since grown into a general toolkit for probability on finite spaces and the stochastic processes built on them, including finite approximations of continuous objects. Every mathematical object, from $\sigma$-algebras to conditional expectations and martingales, is a concrete Python object you can inspect.
+Named after a *$\sigma$-algebra*, a foundational type of object in measure theory, SigAlg is a Python library for computational measure-theoretic probability theory and stochastic calculus. Originally developed as a self-study and plotting library for quantitative finance, it has since grown into a general toolkit for probability on finite spaces and the stochastic processes built on them, including finite approximations of continuous objects. Every mathematical object, from $\sigma$-algebras to conditional expectations and martingales, is a concrete Python object you can inspect.
 
 ## Installation
 
