@@ -1339,15 +1339,17 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             group_probs = df["probability"].groupby(df["atom ID"]).transform("sum")
             expectation = weighted_sum / group_probs
 
-            is_close = np.allclose(expectation, self[t_prev].data, rtol=rtol, atol=atol)
-            is_greater = np.all(expectation > self[t_prev].data)
-            is_lesser = np.all(expectation < self[t_prev].data)
+            x_prev = self[t_prev].data
+            tol = atol + rtol * np.abs(x_prev)
+            is_close = np.allclose(expectation, x_prev, rtol=rtol, atol=atol)
+            is_geq = np.all(expectation >= x_prev - tol)
+            is_leq = np.all(expectation <= x_prev + tol)
 
             if kind == "plain" and not is_close:
                 return False
-            elif kind == "sub" and not is_close and not is_greater:
+            elif kind == "sub" and not is_geq:
                 return False
-            elif kind == "super" and not is_close and not is_lesser:
+            elif kind == "super" and not is_leq:
                 return False
 
         return True
