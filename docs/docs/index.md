@@ -63,6 +63,12 @@ In addition to the tutorials below, the API Reference contains many examples of 
     --8<-- "ito-lemma.py"
     ```
 
+    1. Let $f(t,x)$ be a twice-differentiable function and $X_t$ a solution to the stochastic differential equation (SDE) $dX_t = \mu \, dt + \sigma \, dW_t$ where $\mu$ and $\sigma>0$ are constants and $W_t$ is a standard Brownian motion. One simple version of *Itô's lemma* states that the stochastic process $f(t, X_t)$ is a solution of the SDE $df = \left( f_t + \mu f_x + \frac{\sigma^2}{2} f_{xx}\right)\, dt + \sigma f_x \, dW_t$. (For brevity we omit the arguments of all functions in the SDE.)
+    2. Get the "time" stochastic process $t$ and the Brownian motion $W_t$ that drives $X_t$.
+    3. The function in the demonstration is $f(t,x) = tx^2$. Compute and set the partial derivatives of this function.
+    4. Integrate the differentials in the SDE in the statement of Itô's lemma.
+    5. Plot the integrals on the two sides of Itô's lemma to check for their (approximate) equality.
+
 === "Fundamental Theorem of Calculus with Itô's correction"
     ```python
     --8<-- "ftc-with-ito.py"
