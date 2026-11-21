@@ -129,7 +129,7 @@ class BrownianMotion(StochasticProcess):
         cls,
         drift: Real = 0.0,
         diffusion: Real = 1.0,
-        initial_state: Real = 0.0,
+        initial_state: Real | None = None,
         kind: Literal["arith", "geo"] = "arith",
         corr: np.ndarray | None = None,
         process_params: dict[str, dict] | None = None,
@@ -148,8 +148,8 @@ class BrownianMotion(StochasticProcess):
             The drift coefficient of the Brownian motion.
         diffusion : Real, default=0.0
             The diffusion coefficient of the Brownian motion.
-        initial_state : Real, default=0.0
-            The initial state of the Brownian motion.
+        initial_state : Real | None, default=None
+            The initial state of the Brownian motion. If `None` and `kind` is `'arith'`, then the default value is `0.0`; otherwise, if `None` and `kind` is `'geo'`, the default is `1.0`.
         kind : Literal["arith", "geo"], default="arith"
             The type of Brownian motion, either arithmetic or geometric.
         corr : np.ndarray | None, default=None
@@ -273,10 +273,16 @@ class BrownianMotion(StochasticProcess):
             raise TypeError("The drift coefficient must be a real number.")
         if not isinstance(diffusion, Real):
             raise TypeError("The diffusion coefficient must be a real number.")
-        if not isinstance(initial_state, Real):
+        if initial_state is not None and not isinstance(initial_state, Real):
             raise TypeError("The initial state must be a real number.")
         if kind not in {"arith", "geo"}:
             raise ValueError("The 'kind' parameter must be either 'arith' or 'geo'.")
+
+        if initial_state is None:
+            if kind == "arith":
+                initial_state = 0.0
+            else:
+                initial_state = 1.0
 
         return {
             "drift": drift,
@@ -285,6 +291,66 @@ class BrownianMotion(StochasticProcess):
             "corr": corr,
             "kind": kind,
         }
+
+    # --------------------- properties --------------------- #
+
+    @property
+    def driver(self) -> BrownianMotion:
+        """Get the standard Brownian motion that drives the current arithmetic/geometric Brownian motion.
+
+        Returns
+        -------
+        driver : BrownianMotion
+            The driving standard Brownian motion.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg import BrownianMotion, ProcessTransforms, StochasticProcess, Time
+
+        Define an arithmetic Brownian motion.
+
+        >>> mu = 0.7
+        >>> sigma = 0.5
+        >>> T = Time.continuous(start=0, stop=1, dt=0.001)
+        >>> X = BrownianMotion.generate(
+        ...     drift=mu,
+        ...     diffusion=sigma,
+        ...     initial_state=1,
+        ...     n_trajectories=5,
+        ...     index=T,
+        ...     random_state=42,
+        ... )
+
+        Get the "time" process and the Brownian motion that drives `X`.
+
+        >>> t = StochasticProcess.from_time(process=X)
+        >>> W = X.driver
+
+        Get the `ito_integral` method.
+
+        >>> ito_integral = ProcessTransforms.ito_integral
+
+        Test that the arithmetic Brownian motion is a solution to the SDE defining its dynamics.
+
+        >>> np.allclose(
+        ...     ito_integral(integrator=X),
+        ...     mu * ito_integral(integrator=t) + sigma * ito_integral(integrator=W),
+        ... )
+        True
+        """
+        if hasattr(self, "_driver_data"):
+            self._driver_data.index = self.domain.data
+            self._driver_data.columns = self.index.data
+
+            return BrownianMotion._from_validated(
+                data=self._driver_data,
+                sig_alg=self.sig_alg,
+                measure=self.measure,
+                index_kind="Time",
+                index_name=self.index_name,
+                name="W",
+            )
 
     # --------------------- simulation methods --------------------- #
 
@@ -305,18 +371,30 @@ class BrownianMotion(StochasticProcess):
         increments = pd.DataFrame(increments_arr, columns=self._index.data[1:])
 
         if self._kind == "arith":
-            trajectories = (self._drift * dt + self._diffusion * increments).cumsum(
-                axis=1
-            )
+            drift_term = pd.DataFrame(
+                self._drift * dt, index=increments.index, columns=increments.columns
+            ).cumsum(axis=1)
+
+            self._driver_data = increments.cumsum(axis=1)
+            trajectories = drift_term + self._diffusion * self._driver_data
+
+            self._driver_data.insert(loc=0, column=initial_time, value=0.0)
             trajectories.insert(loc=0, column=initial_time, value=0.0)
+
             return trajectories + self._initial_state
 
         else:
-            log_incr = (
-                self._drift - 0.5 * self._diffusion**2
-            ) * dt + self._diffusion * increments
-            trajectories = np.exp(log_incr.cumsum(axis=1)) * self._initial_state
+            drift_term = pd.DataFrame(
+                self._drift * dt, index=increments.index, columns=increments.columns
+            ).cumsum(axis=1)
+
+            self._driver_data = increments.cumsum(axis=1)
+            log_trajectories = drift_term + self._diffusion * self._driver_data
+            trajectories = np.exp(log_trajectories) * self._initial_state
+
+            self._driver_data.insert(loc=0, column=initial_time, value=0.0)
             trajectories.insert(loc=0, column=initial_time, value=self._initial_state)
+
             return trajectories
 
     @classmethod
