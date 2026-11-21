@@ -58,6 +58,11 @@ In addition to the tutorials below, the API Reference contains many examples of 
 
 ## Code snippets
 
+=== "The Itô lemma"
+    ```python
+    --8<-- "ito-lemma.py"
+    ```
+
 === "Fundamental Theorem of Calculus with Itô's correction"
     ```python
     --8<-- "ftc-with-ito.py"
