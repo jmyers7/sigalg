@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
+import numpy as np
 import pandas as pd
 
 from ...processes.base.stochastic_process import StochasticProcess
@@ -1559,3 +1560,78 @@ class Claim(StochasticProcess):
         7      1.23603  5.110544  10.464286  14.025
         """
         return self.model.replicating_portfolio(claim=self, **kwargs)
+
+    @staticmethod
+    def BS_price(
+        initial_price: Real,
+        strike: Real,
+        risk_free_rate: Real,
+        volatility: Real,
+        time_to_maturity: Real,
+        type: Literal["call", "put"] = "call",
+    ) -> Real:
+        """Compute the Black-Scholes price of a European call or put option.
+
+        Parameters
+        ----------
+        initial_price : Real
+            The initial price of the underlying asset.
+        strike : Real
+            The strike price of the option.
+        risk_free_rate : Real
+            The risk-free rate.
+        volatility : Real
+            The volatility of the price of the underlying asset.
+        time_to_maturity : Real
+            The time to maturity of the option.
+        type : Literal["call", "put"], default = "call"
+            The type of option.
+
+        Returns
+        -------
+        price : Real
+            The Black-Scholes price of the option.
+
+        Examples
+        --------
+        >>> from sigalg import Claim
+
+        Compute the BS prices of a European call and put option following Example 15.6 in Hull's *Options, Futures, and Other Derivatives* (11th edition).
+
+        >>> S_0, K, r, sigma, T = 42, 40, 0.1, 0.2, 0.5
+        >>> Claim.BS_price(S_0, K, r, sigma, T, type="call")
+        4.759422392871532
+        >>> Claim.BS_price(S_0, K, r, sigma, T, type="put")
+        0.8085993729000922
+        """
+        from scipy.stats import norm
+
+        if not isinstance(initial_price, Real) or initial_price <= 0:
+            raise ValueError("initial price must be a positive real number.")
+        if not isinstance(strike, Real) or strike <= 0:
+            raise ValueError("strike must be a positive real number.")
+        if not isinstance(risk_free_rate, Real) or risk_free_rate <= 0:
+            raise ValueError("risk_free_rate must be a positive real number.")
+        if not isinstance(volatility, Real) or volatility <= 0:
+            raise ValueError("volatility must be a positive real number.")
+        if not isinstance(time_to_maturity, Real) or time_to_maturity <= 0:
+            raise ValueError("maturity must be a positive real number.")
+        if type not in ["call", "put"]:
+            raise ValueError("The type of the option must be 'call' or 'put'.")
+
+        S_0, K, r, sigma, T = (
+            initial_price,
+            strike,
+            risk_free_rate,
+            volatility,
+            time_to_maturity,
+        )
+
+        d_1 = (np.log(S_0 / K) + (r + sigma**2 / 2) * T) / (sigma * np.sqrt(T))
+        d_2 = d_1 - sigma * np.sqrt(T)
+        N = norm.cdf
+
+        if type == "call":
+            return (S_0 * N(d_1) - K * np.exp(-r * T) * N(d_2)).astype(Real)
+        else:
+            return (K * np.exp(-r * T) * N(-d_2) - S_0 * N(-d_1)).astype(Real)
