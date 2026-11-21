@@ -1,3 +1,6 @@
+"""Demonstrate Itô's lemma using SigAlg."""
+# (1)!
+
 import matplotlib.pyplot as plt
 import sigalg as sa
 
@@ -16,21 +19,26 @@ X = sa.BrownianMotion.generate(
     random_state=42,
 )
 
+t = sa.StochasticProcess.from_time(process=X)  # (2)!
 W = X.driver
-t = sa.StochasticProcess.from_time(process=X)
 
-f_t = X**2
+f_t = X**2  # (3)!
 f_x = 2 * t * X
 f_tt = 0.0
 f_xx = 2 * t
 
 ito_integral = sa.ProcessTransforms.ito_integral
 
-increment = ito_integral(integrator=t * X**2)
+increment = ito_integral(integrator=t * X**2)  # (4)!
 int_dt = ito_integral(f_t + mu * f_x + (1 / 2) * sigma**2 * f_xx, t)
 int_dw = ito_integral(sigma * f_x, W)
 
-fig, axes = plt.subplots(ncols=2, sharex=True, sharey=True, figsize=(10, 4))
+fig, axes = plt.subplots(  # (5)!
+    ncols=2,
+    sharex=True,
+    sharey=True,
+    figsize=(10, 4),
+)
 
 increment.plot_trajectories(
     axes[0], colors=[sa.style.purple, sa.style.teal], plot_kwargs={"linewidth": 1.5}
