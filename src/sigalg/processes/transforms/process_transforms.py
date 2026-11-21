@@ -838,6 +838,83 @@ class ProcessTransforms:
             name=name,
         )
 
+    # TODO: need input validation!
+    @classmethod
+    def cross_var(
+        cls,
+        process1: StochasticProcess,
+        process2: StochasticProcess,
+        name: Hashable | None = None,
+    ) -> StochasticProcess:
+        r"""Compute the cross variation between two stochastic processes.
+
+        Parameters
+        ----------
+        process1 : StochasticProcess
+            The first process.
+        process2 : StochasticProcess
+            The second process.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, a default will be generated.
+
+        Returns
+        -------
+        cross_var : StochasticProcess
+            A new stochastic process representing the cross variance between the processes.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg import BrownianMotion, ProcessTransforms, StochasticProcess, Time
+
+        Define an arithmetic Brownian motion.
+
+        >>> mu = 0.7
+        >>> sigma = 0.5
+        >>> T = Time.continuous(start=0, stop=2, dt=0.001)
+        >>> X = BrownianMotion.generate(
+        ...     drift=mu,
+        ...     diffusion=sigma,
+        ...     initial_state=1,
+        ...     n_trajectories=5,
+        ...     index=T,
+        ...     random_state=42,
+        ... )
+
+        Define the "time" process.
+
+        >>> t = StochasticProcess.from_time(process=X)
+
+        Check that the cross variance between `t` and `X` is (approximately) `0.0`.
+
+        >>> np.allclose(ProcessTransforms.cross_var(t, X), 0, atol=0.01)
+        True
+
+        Check that the cross variance between `t` and itself is (approximately) `0,0`.
+
+        >>> np.allclose(ProcessTransforms.cross_var(t, t), 0, atol=0.01)
+        True
+        """
+        from ..base.stochastic_process import StochasticProcess
+
+        increments1 = -1 * process1.data.diff(periods=-1, axis=1).dropna(axis=1)
+        increments2 = -1 * process2.data.diff(periods=-1, axis=1).dropna(axis=1)
+        data = (increments1 * increments2).cumsum(axis=1)
+        data.insert(loc=0, column="initial", value=0)
+        data.columns = process1.time.data
+
+        if name is None:
+            name = f"[{process1.name}, {process2.name}]"
+
+        return StochasticProcess._from_validated(
+            data=data,
+            sig_alg=process1.sig_alg,
+            measure=process1.measure,
+            index_kind="Time",
+            index_name=process1.index_name,
+            name=name,
+        )
+
     # TODO: update docstrings
     @classmethod
     def is_monotonic(cls, process: StochasticProcess, increasing: bool = True) -> bool:
@@ -1611,6 +1688,62 @@ class ProcessTransformMethods:
         True
         """
         return ProcessTransforms.quad_var(process=self, name=name)
+
+    def cross_var(
+        self,
+        process: StochasticProcess,
+        name: Hashable | None = None,
+    ) -> StochasticProcess:
+        r"""Compute the cross variation between this stochastic process and a second one.
+
+        Internally calls `ProcessTransforms.cross_var`.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The other process.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, a default will be generated.
+
+        Returns
+        -------
+        cross_var : StochasticProcess
+            A new stochastic process representing the cross variance between the processes.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg import BrownianMotion, StochasticProcess, Time
+
+        Define an arithmetic Brownian motion.
+
+        >>> mu = 0.7
+        >>> sigma = 0.5
+        >>> T = Time.continuous(start=0, stop=2, dt=0.001)
+        >>> X = BrownianMotion.generate(
+        ...     drift=mu,
+        ...     diffusion=sigma,
+        ...     initial_state=1,
+        ...     n_trajectories=5,
+        ...     index=T,
+        ...     random_state=42,
+        ... )
+
+        Define the "time" process.
+
+        >>> t = StochasticProcess.from_time(process=X)
+
+        Check that the cross variance between `t` and `X` is (approximately) `0.0`.
+
+        >>> np.allclose(t.cross_var(X), 0, atol=0.01)
+        True
+
+        Check that the cross variance between `t` and itself is (approximately) `0,0`.
+
+        >>> np.allclose(t.cross_var(t), 0, atol=0.01)
+        True
+        """
+        return ProcessTransforms.cross_var(process1=self, process2=process, name=name)
 
     # TODO: update docstrings
     def is_monotonic(self, increasing: bool = True) -> bool:
