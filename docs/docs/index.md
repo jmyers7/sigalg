@@ -58,7 +58,7 @@ In addition to the tutorials below, the API Reference contains many examples of 
 
 ## Code snippets
 
-=== "The Itô lemma"
+=== "Itô's lemma"
     ```python
     --8<-- "ito-lemma.py"
     ```
