@@ -673,8 +673,62 @@
 </div>
 <div>
 <h2 id="code-snippets">Code snippets</h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="2:6"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><input id="__tabbed_2_4" name="__tabbed_2" type="radio" /><input id="__tabbed_2_5" name="__tabbed_2" type="radio" /><input id="__tabbed_2_6" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Fundamental Theorem of Calculus with Itô's correction</label><label for="__tabbed_2_2">Quadratic variation of Brownian motion</label><label for="__tabbed_2_3">Binomial pricing models</label><label for="__tabbed_2_4">Trinomial pricing models</label><label for="__tabbed_2_5">Markov chain</label><label for="__tabbed_2_6">Polynomial regression in an <span class="arithmatex">\(L^2\)</span>-space</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:7"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><input id="__tabbed_2_4" name="__tabbed_2" type="radio" /><input id="__tabbed_2_5" name="__tabbed_2" type="radio" /><input id="__tabbed_2_6" name="__tabbed_2" type="radio" /><input id="__tabbed_2_7" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">The Itô lemma</label><label for="__tabbed_2_2">Fundamental Theorem of Calculus with Itô's correction</label><label for="__tabbed_2_3">Quadratic variation of Brownian motion</label><label for="__tabbed_2_4">Binomial pricing models</label><label for="__tabbed_2_5">Trinomial pricing models</label><label for="__tabbed_2_6">Markov chain</label><label for="__tabbed_2_7">Polynomial regression in an <span class="arithmatex">\(L^2\)</span>-space</label></div>
 <div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sa</span>
+
+<span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">set_style</span><span class="p">(</span><span class="s2">&quot;black&quot;</span><span class="p">)</span>
+
+<span class="n">mu</span> <span class="o">=</span> <span class="mf">0.7</span>
+<span class="n">sigma</span> <span class="o">=</span> <span class="mf">0.5</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
+
+<span class="n">X</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">BrownianMotion</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+    <span class="n">drift</span><span class="o">=</span><span class="n">mu</span><span class="p">,</span>
+    <span class="n">diffusion</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+    <span class="n">initial_state</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">W</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">driver</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">StochasticProcess</span><span class="o">.</span><span class="n">from_time</span><span class="p">(</span><span class="n">process</span><span class="o">=</span><span class="n">X</span><span class="p">)</span>
+
+<span class="n">f_t</span> <span class="o">=</span> <span class="n">X</span><span class="o">**</span><span class="mi">2</span>
+<span class="n">f_x</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">t</span> <span class="o">*</span> <span class="n">X</span>
+<span class="n">f_tt</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">f_xx</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">t</span>
+
+<span class="n">ito_integral</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">ProcessTransforms</span><span class="o">.</span><span class="n">ito_integral</span>
+
+<span class="n">increment</span> <span class="o">=</span> <span class="n">ito_integral</span><span class="p">(</span><span class="n">integrator</span><span class="o">=</span><span class="n">t</span> <span class="o">*</span> <span class="n">X</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">int_dt</span> <span class="o">=</span> <span class="n">ito_integral</span><span class="p">(</span><span class="n">f_t</span> <span class="o">+</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">f_x</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">f_xx</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+<span class="n">int_dw</span> <span class="o">=</span> <span class="n">ito_integral</span><span class="p">(</span><span class="n">sigma</span> <span class="o">*</span> <span class="n">f_x</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+
+<span class="n">increment</span><span class="o">.</span><span class="n">plot_trajectories</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">purple</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">teal</span><span class="p">],</span> <span class="n">plot_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="mf">1.5</span><span class="p">}</span>
+<span class="p">)</span>
+<span class="p">(</span><span class="n">int_dt</span> <span class="o">+</span> <span class="n">int_dw</span><span class="p">)</span><span class="o">.</span><span class="n">plot_trajectories</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">purple</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">teal</span><span class="p">],</span> <span class="n">plot_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="mf">1.5</span><span class="p">}</span>
+<span class="p">)</span>
+
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$f(t, X_t) - f(0, X_0)$&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;$\int_0^t \left( f_t(u, X_u)+\mu f_x(u,X_u) + \frac</span><span class="si">{1}{2}</span><span class="s2">\sigma^2 f_</span><span class="si">{xx}</span><span class="s2">(u,X_u) \right) \, du + \int_0^t \sigma f_x(u, X_u) \, dW_u$&quot;</span>
+<span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$t$&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$t$&quot;</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Itô&#39;s lemma for $f(t,X_t) = tX_t^2$ and $dX_t = 0.7\, dt + 0.5 \, dW_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div>
+</div>
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Demonstrate the Fundamental Theorem of Calculus with Itô&#39;s correction.&quot;&quot;&quot;</span>
 <span class="c1"># (1)!</span>
