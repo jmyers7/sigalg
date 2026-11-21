@@ -359,6 +359,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         self.name = v.name
         self.measure = self._generate_exact_prob_measure(self.domain)
         self.sig_alg = self.measure.sig_alg
+        self.kind = "any"
 
         return self
 
@@ -438,6 +439,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         self.name = v.name
         self.measure = ProbabilityMeasure.uniform(self.domain)
         self.sig_alg = self.measure.sig_alg
+        self.kind = "any"
 
         return self
 
@@ -482,6 +484,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             process.name = v.name
             process.measure = ProbabilityMeasure.uniform(process.domain)
             process.sig_alg = process.measure.sig_alg
+            process.kind = "any"
 
         return tuple(processes)
 
