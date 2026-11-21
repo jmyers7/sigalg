@@ -76,12 +76,12 @@ In addition to the tutorials below, the API Reference contains many examples of 
 
     1. The Fundamental Theorem of Calculus with Itô's correction states that $f(X_t) - f(X_0) = \int_0^t f'(X_u) \, dX_u + \frac{1}{2} \int_0^t f''(X_u) \, d[X]_u$, where $X_t$ is a "nice" stochastic process (like a diffusion), $f$ is a twice-differentiable function, and $[X]_t$ is the quadratic variation of $X_t$. The first term on the right of this equation is the *classical term*, while the second is *Itô's correction*.
 
-=== "Quadratic variation of Brownian motion"
+=== "Quadratic/cross variations in stochastic calculus"
     ```python
-    --8<-- "quad-var.py"
+    --8<-- "quad-cross-var.py"
     ```
 
-    1. One of the foundational results in stochastic calculus states that $[W]_t = t$, where $W$ is a standard Brownian motion.
+    1. In stochastic calculus, the informal differential "multiplication" rules $dW_t^2=0$, $dt \, dW_t=0$, and $dt^2=0$ are used constantly, where $W_t$ is a standard Brownian motion. These are formal equations with no intrinsic meaning that stand for precise equalities regarding quadratic and cross variations. This snippet demonstrates that these latter equalities hold (approximately, since we're working in the discrete setting.)
 
 === "Binomial pricing models"
     ```python
