@@ -1,4 +1,4 @@
-"""Demonstrate Itô's lemma using SigAlg."""
+"""Demonstrate Itô's lemma with SigAlg."""
 # (1)!
 
 import matplotlib.pyplot as plt
