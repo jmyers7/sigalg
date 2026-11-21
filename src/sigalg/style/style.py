@@ -4,13 +4,20 @@ from typing import Literal
 import matplotlib.pyplot as plt
 
 _DEFAULT = str(resources.files("sigalg") / "style" / "sigalg.mplstyle")
+_BLACK = str(resources.files("sigalg") / "style" / "sigalg-black.mplstyle")
 _BLOG = str(resources.files("sigalg") / "style" / "sigalg-blog.mplstyle")
 _current = _DEFAULT
 
 
-def set_style(style: Literal["default", "blog"] = "default"):  # noqa: D103
+def set_style(style: Literal["default", "black", "blog"] = "default"):  # noqa: D103
     global _current
-    _current = _DEFAULT if style == "default" else _BLOG
+    if style == "black":
+        _current = _BLACK
+    elif style == "blog":
+        _current = _BLOG
+    else:
+        _current = _DEFAULT
+
     plt.style.use(_current)
 
 
