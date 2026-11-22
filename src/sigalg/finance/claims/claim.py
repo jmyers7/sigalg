@@ -15,10 +15,10 @@ if TYPE_CHECKING:
 
     from ...core.functions.random_variable import RandomVariable
     from ...processes.stopping_times import StoppingTime
-    from ..continuous_pricing_models.continuous_pricing_model import (
+    from ..continuous_models.continuous_pricing_model import (
         ContinuousPricingModel,
     )
-    from ..discrete_pricing_models.discrete_pricing_model import DiscretePricingModel
+    from ..discrete_models.discrete_pricing_model import DiscretePricingModel
     from .american_option import AmericanOption
     from .asian_option import AsianOption
     from .european_option import EuropeanOption
@@ -244,10 +244,10 @@ class Claim(StochasticProcess):
         6      0.0  0.0   0.000000   0.000
         7      0.0  0.0   0.000000   0.000
         """
-        from ..continuous_pricing_models.continuous_pricing_model import (
+        from ..continuous_models.continuous_pricing_model import (
             ContinuousPricingModel,
         )
-        from ..discrete_pricing_models.discrete_pricing_model import (
+        from ..discrete_models.discrete_pricing_model import (
             DiscretePricingModel,
         )
 
@@ -398,10 +398,10 @@ class Claim(StochasticProcess):
         """
         from ...core.functions.random_variable import RandomVariable
         from ...core.indices.time import Time
-        from ..continuous_pricing_models.continuous_pricing_model import (
+        from ..continuous_models.continuous_pricing_model import (
             ContinuousPricingModel,
         )
-        from ..discrete_pricing_models.discrete_pricing_model import (
+        from ..discrete_models.discrete_pricing_model import (
             DiscretePricingModel,
         )
 
