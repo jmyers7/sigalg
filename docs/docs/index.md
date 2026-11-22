@@ -83,6 +83,14 @@ In addition to the tutorials below, the API Reference contains many examples of 
 
     1. In stochastic calculus, the informal differential "multiplication" rules $dW_t^2=0$, $dt \, dW_t=0$, and $dt^2=0$ are used constantly, where $W_t$ is a standard Brownian motion. These are formal equations with no intrinsic meaning that stand for precise equalities regarding quadratic and cross variations. This snippet demonstrates that these latter equalities hold (approximately, since we're working in the discrete setting.)
 
+=== "Black-Scholes pricing and hedging"
+    ```python
+    --8<-- "black-scholes-1.py"
+    ```
+
+    1. Compute the price process of the European put.
+    2. Compute the $\Delta$-hedging process.
+
 === "Binomial pricing models"
     ```python
     --8<-- "binomial-pricing.py"
@@ -101,7 +109,7 @@ In addition to the tutorials below, the API Reference contains many examples of 
     3. SigAlg can compute the optimal stopping time $\tau$ for an early-exercise option.
     4. If we evaluate the discounted price process $(1+r)^{-t}X_t$ of the American option at the optimal stopping time $\tau$, we get a random variable $(1+r)^{-\tau}X_\tau$ whose expectation is the initial price of the option.
 
-=== "Markov chain"
+=== "Markov chains"
     ```python
     --8<-- "markov-chain.py"
     ```
