@@ -27,6 +27,7 @@ from .core import (
 )
 from .finance import (
     BinomialPricingModel,
+    BlackScholes,
     Claim,
     TrinomialPricingModel,
 )

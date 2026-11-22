@@ -1,6 +1,7 @@
 """Module containing components for financial mathematics, including derivative pricing models."""
 
 from .claims import Claim
+from .continuous_pricing_models import BlackScholes
 from .discrete_pricing_models import BinomialPricingModel, TrinomialPricingModel
 
-__all__ = ["BinomialPricingModel", "TrinomialPricingModel", "Claim"]
+__all__ = ["BinomialPricingModel", "TrinomialPricingModel", "Claim", "BlackScholes"]
