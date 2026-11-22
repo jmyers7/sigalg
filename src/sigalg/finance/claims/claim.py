@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 class Claim(StochasticProcess):
     """Base class for contingent claims.
 
-    The base constructor is not meant to be called directly by users. Instead, the user should call the `from_stochastic_process` or `from_random_variables_ class methods. See the Examples section below for usage.
+    The base constructor is not meant to be called directly by users. Instead, the user should call the `from_stochastic_process` or `from_random_variables` class methods. See the Examples section below for usage.
 
     Examples
     --------
