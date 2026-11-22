@@ -1452,6 +1452,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         plot_kwargs: dict = None,
         x_label: str | None = None,
         y_label: str | None = None,
+        label: str | None = None,
         title: str = None,
     ):
         """Plot the trajectories of the stochastic process.
@@ -1470,6 +1471,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             Label for the x-axis.
         y_label : str | None, default=None
             Label for the y-axis. If `None`, a class-specific default will be used.
+        label : str | None, default=None
+            An optional label for the plot. We recommend that this is used only when the trajectories are a single color.
         title : str, default=None
             Title of the plot. If `None`, a default title will be generated.
 
@@ -1515,10 +1518,12 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                     ]
 
         for i, (_, row) in enumerate(self.data.iterrows()):
+            if i > 0:
+                label = None
             if colors is not None:
-                ax.plot(columns, row, color=colors[i], **plot_kwargs)
+                ax.plot(columns, row, color=colors[i], **plot_kwargs, label=label)
             else:
-                ax.plot(columns, row, **plot_kwargs)
+                ax.plot(columns, row, **plot_kwargs, label=label)
 
         is_time_integer = self._integer_check(columns.values)
         is_trajectory_integer = self._integer_check(self.data.values.flatten())
