@@ -123,28 +123,6 @@ class BlackScholes(ContinuousPricingModel):
         -------
         price : Real
             The Black-Scholes price of the option.
-
-        Examples
-        --------
-        >>> from sigalg import BlackScholes
-
-        Compute the BS prices of a European call and put option following Example 15.6 in Hull's *Options, Futures, and Other Derivatives* (11th edition).
-
-        >>> K, r, sigma = 40, 0.1, 0.2
-        >>> euro_call = BlackScholes(K, r, sigma, type="call")
-        >>> print(euro_call)
-        BlackScholes(strike=40, r=0.1, sigma=0.2, type=euro_call)
-
-        >>> tau, s = 0.5, 42
-        >>> euro_call.price(tau, s)
-        4.759422392871532
-
-        >>> euro_put = BlackScholes(K, r, sigma, type="put")
-        >>> print(euro_put)
-        BlackScholes(strike=40, r=0.1, sigma=0.2, type=euro_put)
-
-        >>> euro_put.price(tau, s)
-        0.8085993729000922
         """
         ...
 
@@ -219,7 +197,7 @@ class BlackScholes(ContinuousPricingModel):
             measure=self.measure,
             index_kind="Time",
             index_name=self.index_name,
-            name="X",
+            name="Delta",
         )
 
     # --------------------- simulation methods --------------------- #
