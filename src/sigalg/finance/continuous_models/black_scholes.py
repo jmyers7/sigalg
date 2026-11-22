@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 class hybridmethod(classmethod):
-    """Descriptor for methods that function as both instance and class methods."""
+    """Descriptor class for methods that function as both instance and class methods."""
 
     def __get__(self, instance, owner=None):  # noqa: D105
         target = owner if instance is None else instance
@@ -39,12 +39,13 @@ class BlackScholes(ContinuousPricingModel):
 
     Build a Black-Scholes model with 5 simulated trajectories.
 
-    >>> S_0, r, sigma = 49, 0.05, 0.2
+    >>> S_0, r, sigma, mu = 49, 0.05, 0.2, 0.04
     >>> T = Time.continuous(start=0, stop=2, dt=0.5)
     >>> S = BlackScholes.generate(
     ...     initial_price=S_0,
     ...     risk_free_rate=r,
     ...     volatility=sigma,
+    ...     expected_return=mu,
     ...     n_trajectories=5,
     ...     index=T,
     ...     random_state=rng,
@@ -53,11 +54,11 @@ class BlackScholes(ContinuousPricingModel):
     Black-Scholes model 'S':
     t      0.0        0.5        1.0        1.5        2.0
     omega
-    0       49  52.452804  46.424988  52.929861  61.990652
-    1       49  38.126221  32.516455  33.947854  33.284844
-    2       49  50.121209  45.549772  52.887726  60.531729
-    3       49  50.711791  60.981737  66.799142  60.652929
-    4       49  52.929960  47.387717  55.014385  56.010216
+    0       49  52.191195  45.963051  52.141838  60.763155
+    1       49  37.936065  32.192911  33.442436  32.625760
+    2       49  49.871229  45.096545  52.100330  59.333120
+    3       49  50.458865  60.374959  65.804632  59.451921
+    4       49  52.665971  46.916201  54.195327  54.901139
 
     Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.
 
@@ -70,11 +71,11 @@ class BlackScholes(ContinuousPricingModel):
     European option 'Phi':
     t      0.0  0.5  1.0  1.5        2.0
     omega
-    0      0.0  0.0  0.0  0.0  11.990652
+    0      0.0  0.0  0.0  0.0  10.763155
     1      0.0  0.0  0.0  0.0   0.000000
-    2      0.0  0.0  0.0  0.0  10.531729
-    3      0.0  0.0  0.0  0.0  10.652929
-    4      0.0  0.0  0.0  0.0   6.010216
+    2      0.0  0.0  0.0  0.0   9.333120
+    3      0.0  0.0  0.0  0.0   9.451921
+    4      0.0  0.0  0.0  0.0   4.901139
 
     Compute the price process of the claim.
 
@@ -83,11 +84,11 @@ class BlackScholes(ContinuousPricingModel):
     Stochastic process 'X':
     t           0.0       0.5        1.0        1.5        2.0
     omega
-    0      7.386405  8.440085   3.202279   5.415626  11.990652
-    1      7.386405  1.231376   0.086297   0.009507   0.000000
-    2      7.386405  6.802385   2.788511   5.384392  10.531729
-    3      7.386405  7.202873  13.971552  18.070297  10.652929
-    4      7.386405  8.793073   3.695375   7.049514   6.010216
+    0      7.386405  8.249011   2.979762   4.844518  10.763155
+    1      7.386405  1.184672   0.075325   0.006723   0.000000
+    2      7.386405  6.635949   2.587312   4.815220   9.333120
+    3      7.386405  7.030119  13.421694  17.088206   9.451921
+    4      7.386405  8.597073   3.448950   6.387844   4.901139
 
     Compute the Delta-hedging process for the claim.
 
@@ -96,11 +97,11 @@ class BlackScholes(ContinuousPricingModel):
     Stochastic process 'Delta':
     t           0.0       0.5       1.0       1.5
     omega
-    0      0.664052  0.733743  0.491652  0.742201
-    1      0.664052  0.248827  0.035821  0.006380
-    2      0.664052  0.669505  0.453792  0.740379
-    3      0.664052  0.686647  0.910325  0.989155
-    4      0.664052  0.745740  0.532557  0.822070
+    0      0.664052  0.726999  0.471728  0.706807
+    1      0.664052  0.242402  0.032057  0.004709
+    2      0.664052  0.662075  0.434044  0.704867
+    3      0.664052  0.679377  0.901952  0.985726
+    4      0.664052  0.739151  0.512644  0.793097
     """
 
     _repr_name = "BlackScholesModel"
@@ -114,6 +115,7 @@ class BlackScholes(ContinuousPricingModel):
         initial_price: Real,
         risk_free_rate: Real,
         volatility: Real,
+        expected_return: Real | None = None,
         mode: Literal["enum", "sim"] = "sim",
         n_trajectories: int | None = None,
         domain_name: Hashable | None = None,
@@ -132,6 +134,8 @@ class BlackScholes(ContinuousPricingModel):
             The continuous risk-free rate.
         volatility : Real
             The volatility of the asset.
+        expected_return : Real | None, default=None
+            The expected return of the underlying asset. If `None`, will be set equal to `risk_free_rate`.
         mode : Literal["enum", "sim"], default="sim"
             Not used. (This parameter is only included for consistency with the parent class.)
         n_trajectories : int | None, default=None
@@ -158,12 +162,13 @@ class BlackScholes(ContinuousPricingModel):
 
         Build a Black-Scholes model with 5 simulated trajectories.
 
-        >>> S_0, r, sigma = 49, 0.05, 0.2
+        >>> S_0, r, sigma, mu = 49, 0.05, 0.2, 0.04
         >>> T = Time.continuous(start=0, stop=2, dt=0.5)
         >>> S = BlackScholes.generate(
         ...     initial_price=S_0,
         ...     risk_free_rate=r,
         ...     volatility=sigma,
+        ...     expected_return=mu,
         ...     n_trajectories=5,
         ...     index=T,
         ...     random_state=rng,
@@ -172,11 +177,11 @@ class BlackScholes(ContinuousPricingModel):
         Black-Scholes model 'S':
         t      0.0        0.5        1.0        1.5        2.0
         omega
-        0       49  52.452804  46.424988  52.929861  61.990652
-        1       49  38.126221  32.516455  33.947854  33.284844
-        2       49  50.121209  45.549772  52.887726  60.531729
-        3       49  50.711791  60.981737  66.799142  60.652929
-        4       49  52.929960  47.387717  55.014385  56.010216
+        0       49  52.191195  45.963051  52.141838  60.763155
+        1       49  37.936065  32.192911  33.442436  32.625760
+        2       49  49.871229  45.096545  52.100330  59.333120
+        3       49  50.458865  60.374959  65.804632  59.451921
+        4       49  52.665971  46.916201  54.195327  54.901139
 
         Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.
 
@@ -189,11 +194,11 @@ class BlackScholes(ContinuousPricingModel):
         European option 'Phi':
         t      0.0  0.5  1.0  1.5        2.0
         omega
-        0      0.0  0.0  0.0  0.0  11.990652
+        0      0.0  0.0  0.0  0.0  10.763155
         1      0.0  0.0  0.0  0.0   0.000000
-        2      0.0  0.0  0.0  0.0  10.531729
-        3      0.0  0.0  0.0  0.0  10.652929
-        4      0.0  0.0  0.0  0.0   6.010216
+        2      0.0  0.0  0.0  0.0   9.333120
+        3      0.0  0.0  0.0  0.0   9.451921
+        4      0.0  0.0  0.0  0.0   4.901139
 
         Compute the price process of the claim.
 
@@ -202,11 +207,11 @@ class BlackScholes(ContinuousPricingModel):
         Stochastic process 'X':
         t           0.0       0.5        1.0        1.5        2.0
         omega
-        0      7.386405  8.440085   3.202279   5.415626  11.990652
-        1      7.386405  1.231376   0.086297   0.009507   0.000000
-        2      7.386405  6.802385   2.788511   5.384392  10.531729
-        3      7.386405  7.202873  13.971552  18.070297  10.652929
-        4      7.386405  8.793073   3.695375   7.049514   6.010216
+        0      7.386405  8.249011   2.979762   4.844518  10.763155
+        1      7.386405  1.184672   0.075325   0.006723   0.000000
+        2      7.386405  6.635949   2.587312   4.815220   9.333120
+        3      7.386405  7.030119  13.421694  17.088206   9.451921
+        4      7.386405  8.597073   3.448950   6.387844   4.901139
 
         Compute the Delta-hedging process for the claim.
 
@@ -215,11 +220,11 @@ class BlackScholes(ContinuousPricingModel):
         Stochastic process 'Delta':
         t           0.0       0.5       1.0       1.5
         omega
-        0      0.664052  0.733743  0.491652  0.742201
-        1      0.664052  0.248827  0.035821  0.006380
-        2      0.664052  0.669505  0.453792  0.740379
-        3      0.664052  0.686647  0.910325  0.989155
-        4      0.664052  0.745740  0.532557  0.822070
+        0      0.664052  0.726999  0.471728  0.706807
+        1      0.664052  0.242402  0.032057  0.004709
+        2      0.664052  0.662075  0.434044  0.704867
+        3      0.664052  0.679377  0.901952  0.985726
+        4      0.664052  0.739151  0.512644  0.793097
         """
         cls._validate_pricing_params(
             initial_price=initial_price,
@@ -227,10 +232,14 @@ class BlackScholes(ContinuousPricingModel):
             volatility=volatility,
         )
 
+        if expected_return is None:
+            expected_return = risk_free_rate
+
         return {
             "initial_price": initial_price,
             "risk_free_rate": risk_free_rate,
             "volatility": volatility,
+            "expected_return": expected_return,
         }
 
     @staticmethod
@@ -238,6 +247,7 @@ class BlackScholes(ContinuousPricingModel):
         initial_price: Real | None = None,
         risk_free_rate: Real | None = None,
         volatility: Real | None = None,
+        expected_return: Real | None = None,
         time_to_maturity: Real | None = None,
         strike: Real | None = None,
         option_type: Literal["call", "put"] | None = None,
@@ -255,6 +265,10 @@ class BlackScholes(ContinuousPricingModel):
             not isinstance(volatility, Real) or volatility <= 0
         ):
             raise ValueError("volatility must be a positive real number.")
+        if expected_return is not None and (
+            not isinstance(expected_return, Real) or expected_return <= 0
+        ):
+            raise ValueError("expected must be a positive real number.")
         if time_to_maturity is not None and (
             not isinstance(time_to_maturity, Real) or time_to_maturity <= 0
         ):
@@ -270,6 +284,7 @@ class BlackScholes(ContinuousPricingModel):
         data: pd.DataFrame,
         risk_free_rate: Real,
         volatility: Real | None = None,
+        expected_return: Real | None = None,
         name: Hashable = "S",
     ) -> BlackScholes:
         """Generate a Black-Scholes model from a `pd.DataFrame`.
@@ -282,6 +297,8 @@ class BlackScholes(ContinuousPricingModel):
             The continuous risk-free rate.
         volatility : Real | None, default=None
             The volatility of the asset. If `None`, it will be estimated as a historical volatility.
+        expected_return : Real | None, default=None
+            The expected return of the underlying asset. If `None`, will be set equal to `risk_free_rate`.
         name : Hashable, default="S"
             The name of the model.
 
@@ -304,7 +321,7 @@ class BlackScholes(ContinuousPricingModel):
 
         Build a Black-Scholes model using the data.
 
-        >>> S = BlackScholes.from_data(data=data, risk_free_rate=0.05)
+        >>> S = BlackScholes.from_data(data=data, risk_free_rate=0.05, expected_return=0.045)
         >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
         Black-Scholes model 'S':
         t      0.0    0.5    1.0    1.5    2.0
@@ -361,8 +378,13 @@ class BlackScholes(ContinuousPricingModel):
         if not isinstance(data, pd.DataFrame):
             raise TypeError("data must be a pd.DataFrame")
         cls._validate_pricing_params(
-            risk_free_rate=risk_free_rate, volatility=volatility
+            risk_free_rate=risk_free_rate,
+            volatility=volatility,
+            expected_return=expected_return,
         )
+
+        if expected_return is None:
+            expected_return = risk_free_rate
 
         if volatility is None:
             log_returns = np.log(data).diff(axis=1).iloc[:, 1:]
@@ -377,6 +399,7 @@ class BlackScholes(ContinuousPricingModel):
         process = cls.with_uniform(mapping=data, index_kind="Time", name=name)
         process._risk_free_rate = risk_free_rate
         process._volatility = volatility
+        process._expected_return = expected_return
 
         return process
 
@@ -391,6 +414,11 @@ class BlackScholes(ContinuousPricingModel):
     def volatility(self) -> Real:
         """Get the volatility of the model."""
         return self._volatility
+
+    @property
+    def expected_return(self) -> Real:
+        """Get the expected return of the model."""
+        return self._expected_return
 
     # --------------------- finance methods --------------------- #
 
@@ -440,7 +468,7 @@ class BlackScholes(ContinuousPricingModel):
 
         Define pricing parameters.
 
-        >>> S_0, K, r, tau, sigma = 49, 50, 0.05, 20 / 52, 0.2
+        >>> S_0, K, r, tau, sigma, mu = 49, 50, 0.05, 20 / 52, 0.2, 0.04
 
         Compute a price using the method as a class method with explicit pricing parameters.
 
@@ -462,6 +490,7 @@ class BlackScholes(ContinuousPricingModel):
         ...     initial_price=S_0,
         ...     risk_free_rate=r,
         ...     volatility=sigma,
+        ...     expected_return=mu,
         ...     n_trajectories=10,
         ...     index=T,
         ...     random_state=rng,
@@ -545,25 +574,26 @@ class BlackScholes(ContinuousPricingModel):
 
         Build a Black-Scholes model with 5 simulated trajectories.
 
-        >>> S_0, r, sigma = 49, 0.05, 0.2
+        >>> S_0, r, sigma, mu = 49, 0.05, 0.2, 0.4
         >>> T = Time.continuous(start=0, stop=2, dt=0.5)
         >>> S = BlackScholes.generate(
         ...     initial_price=S_0,
         ...     risk_free_rate=r,
         ...     volatility=sigma,
+        ...     expected_return=mu,
         ...     n_trajectories=5,
         ...     index=T,
         ...     random_state=rng,
         ... )
         >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
         Black-Scholes model 'S':
-        t      0.0        0.5        1.0        1.5        2.0
+        t      0.0        0.5        1.0         1.5         2.0
         omega
-        0       49  52.452804  46.424988  52.929861  61.990652
-        1       49  38.126221  32.516455  33.947854  33.284844
-        2       49  50.121209  45.549772  52.887726  60.531729
-        3       49  50.711791  60.981737  66.799142  60.652929
-        4       49  52.929960  47.387717  55.014385  56.010216
+        0       49  62.484205  65.880193   89.475752  124.833844
+        1       49  45.417716  46.143046   57.387449   67.027446
+        2       49  59.706701  64.638204   89.404524  121.895933
+        3       49  60.410229  86.537204  112.921200  122.140000
+        4       49  63.052615  67.246371   92.999553  112.790724
 
         Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.
 
@@ -576,24 +606,24 @@ class BlackScholes(ContinuousPricingModel):
         European option 'Phi':
         t      0.0  0.5  1.0  1.5        2.0
         omega
-        0      0.0  0.0  0.0  0.0  11.990652
-        1      0.0  0.0  0.0  0.0   0.000000
-        2      0.0  0.0  0.0  0.0  10.531729
-        3      0.0  0.0  0.0  0.0  10.652929
-        4      0.0  0.0  0.0  0.0   6.010216
+        0      0.0  0.0  0.0  0.0  74.833844
+        1      0.0  0.0  0.0  0.0  17.027446
+        2      0.0  0.0  0.0  0.0  71.895933
+        3      0.0  0.0  0.0  0.0  72.140000
+        4      0.0  0.0  0.0  0.0  62.790724
 
         Compute the price process of the claim.
 
         >>> X = S.price_process(claim=Phi)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X':
-        t           0.0       0.5        1.0        1.5        2.0
+        t           0.0        0.5        1.0        1.5        2.0
         omega
-        0      7.386405  8.440085   3.202279   5.415626  11.990652
-        1      7.386405  1.231376   0.086297   0.009507   0.000000
-        2      7.386405  6.802385   2.788511   5.384392  10.531729
-        3      7.386405  7.202873  13.971552  18.070297  10.652929
-        4      7.386405  8.793073   3.695375   7.049514   6.010216
+        0      7.386405  16.809103  18.560704  40.710274  74.833844
+        1      7.386405   4.006231   3.065372   9.084691  17.027446
+        2      7.386405  14.327734  17.376318  40.639046  71.895933
+        3      7.386405  14.947097  38.980742  64.155705  72.140000
+        4      7.386405  17.327843  19.875574  44.234062  62.790724
         """
         from scipy.stats import norm
 
@@ -678,7 +708,7 @@ class BlackScholes(ContinuousPricingModel):
 
         Define pricing parameters.
 
-        >>> S_0, K, r, tau, sigma = 49, 50, 0.05, 20 / 52, 0.2
+        >>> S_0, K, r, tau, sigma, mu = 49, 50, 0.05, 20 / 52, 0.2, 0.4
 
         Compute a delta using the method as a class method with explicit pricing parameters.
 
@@ -700,6 +730,7 @@ class BlackScholes(ContinuousPricingModel):
         ...     initial_price=S_0,
         ...     risk_free_rate=r,
         ...     volatility=sigma,
+        ...     expected_return=mu,
         ...     n_trajectories=10,
         ...     index=T,
         ...     random_state=rng,
@@ -806,7 +837,7 @@ class BlackScholes(ContinuousPricingModel):
         increments = pd.DataFrame(increments_arr, columns=self._index.data[1:])
 
         drift_term = pd.DataFrame(
-            self._risk_free_rate * dt,
+            self._expected_return * dt,
             index=increments.index,
             columns=increments.columns,
         ).cumsum(axis=1)
