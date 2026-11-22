@@ -3554,7 +3554,75 @@
 
 
 
-        <p>Class representing data for Black-Scholes pricing.</p>
+        <p>A class modeling a Black-Scholes pricing model.</p>
+<p>The base constructor is not meant to be called directly by users. Instead, the user should call the <code>generate</code> class method. See the Examples section below for usage.</p>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">BlackScholes</span><span class="p">,</span> <span class="n">Claim</span><span class="p">,</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</code></pre></div>
+    <p>Build a Black-Scholes model with 5 simulated trajectories.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<span class="go">Black-Scholes model &#39;S&#39;:</span>
+<span class="go">t      0.0        0.5        1.0        1.5        2.0</span>
+<span class="go">omega</span>
+<span class="go">0       49  52.452804  46.424988  52.929861  61.990652</span>
+<span class="go">1       49  38.126221  32.516455  33.947854  33.284844</span>
+<span class="go">2       49  50.121209  45.549772  52.887726  60.531729</span>
+<span class="go">3       49  50.711791  60.981737  66.799142  60.652929</span>
+<span class="go">4       49  52.929960  47.387717  55.014385  56.010216</span>
+</code></pre></div>
+    <p>Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
+</code></pre></div>
+    <p>Print the payoffs of the option.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
+<span class="go">European option &#39;Phi&#39;:</span>
+<span class="go">t      0.0  0.5  1.0  1.5        2.0</span>
+<span class="go">omega</span>
+<span class="go">0      0.0  0.0  0.0  0.0  11.990652</span>
+<span class="go">1      0.0  0.0  0.0  0.0   0.000000</span>
+<span class="go">2      0.0  0.0  0.0  0.0  10.531729</span>
+<span class="go">3      0.0  0.0  0.0  0.0  10.652929</span>
+<span class="go">4      0.0  0.0  0.0  0.0   6.010216</span>
+</code></pre></div>
+    <p>Compute the price process of the claim.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">price_process</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;X&#39;:</span>
+<span class="go">t           0.0       0.5        1.0        1.5        2.0</span>
+<span class="go">omega</span>
+<span class="go">0      7.386405  8.440085   3.202279   5.415626  11.990652</span>
+<span class="go">1      7.386405  1.231376   0.086297   0.009507   0.000000</span>
+<span class="go">2      7.386405  6.802385   2.788511   5.384392  10.531729</span>
+<span class="go">3      7.386405  7.202873  13.971552  18.070297  10.652929</span>
+<span class="go">4      7.386405  8.793073   3.695375   7.049514   6.010216</span>
+</code></pre></div>
+    <p>Compute the Delta-hedging process for the claim.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Delta</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">delta</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Delta</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;Delta&#39;:</span>
+<span class="go">t           0.0       0.5       1.0       1.5</span>
+<span class="go">omega</span>
+<span class="go">0      0.664052  0.733743  0.491652  0.742201</span>
+<span class="go">1      0.664052  0.248827  0.035821  0.006380</span>
+<span class="go">2      0.664052  0.669505  0.453792  0.740379</span>
+<span class="go">3      0.664052  0.686647  0.910325  0.989155</span>
+<span class="go">4      0.664052  0.745740  0.532557  0.822070</span>
+</code></pre></div>
 
 
 
@@ -3592,7 +3660,7 @@
 
     <div class="doc doc-contents ">
 
-        <p>Pass.</p>
+        <p>Get the continuous risk-free rate of the model.</p>
 
     </div>
 
@@ -3616,7 +3684,7 @@
 
     <div class="doc doc-contents ">
 
-        <p>Pass.</p>
+        <p>Get the volatility of the model.</p>
 
     </div>
 
@@ -3633,12 +3701,150 @@
 
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">delta</span><span class="p">(</span><span class="n">claim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">delta</span><span class="p">(</span>
+    <span class="n">self_or_cls</span><span class="p">,</span>
+    <span class="n">claim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">time_to_maturity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">price</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">strike</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">risk_free_rate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">volatility</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Compute the delta process of a European call or put option.</p>
+<p>This method may be called either a class method, in which case explicit parameters like the current price and time to maturity must be passed, or the method may be called on an instance of <code>BlackScholes</code> with an explict European option passed as the <code>claim</code> parameter.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>claim</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            Claim (sigalg.finance.claims.claim.Claim)" href="#sigalg.finance.Claim">Claim</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The contingent claim whose delta process is desired. If not given, the pricing parameters must be given.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>time_to_maturity</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The time to maturity of the option.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>price</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The current price of the underlying asset.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>strike</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The strike price of the option.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>risk_free_rate</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The continuous risk-free rate.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>volatility</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The volatility of the underlying asset</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>option_type</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;call&#39;, &#39;put&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The option type.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;call&#34;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -3652,16 +3858,67 @@
       <tbody>
           <tr class="doc-section-item">
 <td><code>delta</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="            StochasticProcess (sigalg.processes.base.stochastic_process.StochasticProcess)" href="../processes/#sigalg.processes.StochasticProcess">StochasticProcess</a></code>
+                  <code><span title="numbers.Real">Real</span> | <a class="autorefs autorefs-internal" title="            StochasticProcess (sigalg.processes.base.stochastic_process.StochasticProcess)" href="../processes/#sigalg.processes.StochasticProcess">StochasticProcess</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The delta process of the option.</p>
+                <p>If <code>claim</code> is passed, the entire delta process is returned. Otherwise, if only the pricing parameters are passed, then a single real number is returned.</p>
               </div>
             </td>
           </tr>
       </tbody>
     </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">BlackScholes</span><span class="p">,</span> <span class="n">Claim</span><span class="p">,</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</code></pre></div>
+    <p>Define pricing parameters.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mi">20</span> <span class="o">/</span> <span class="mi">52</span><span class="p">,</span> <span class="mf">0.2</span>
+</code></pre></div>
+    <p>Compute a delta using the method as a class method with explicit pricing parameters.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">delta</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">delta</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">time_to_maturity</span><span class="o">=</span><span class="n">tau</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">delta</span>
+<span class="go">0.5216046610663964</span>
+</code></pre></div>
+    <p>Instead, the method may be called on an instance of <code>BlackScholes</code>. Define such an instance using the same parameters as above.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">tau</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</code></pre></div>
+    <p>Define a <code>Claim</code> instance and compute its delta process.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Delta</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">delta</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Delta</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="go">Random variable &#39;Delta_0_0&#39;:</span>
+<span class="go">       Delta_0_0</span>
+<span class="go">omega</span>
+<span class="go">0       0.521605</span>
+<span class="go">1       0.521605</span>
+<span class="go">2       0.521605</span>
+<span class="go">3       0.521605</span>
+<span class="go">4       0.521605</span>
+<span class="go">5       0.521605</span>
+<span class="go">6       0.521605</span>
+<span class="go">7       0.521605</span>
+<span class="go">8       0.521605</span>
+<span class="go">9       0.521605</span>
+</code></pre></div>
 
 
     </div>
@@ -3680,12 +3937,159 @@
   </span>
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">from_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="p">,</span> <span class="n">volatility</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;S&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">from_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="p">,</span> <span class="n">volatility</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;S&#39;</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Pass.</p>
+        <p>Generate a Black-Scholes model from a <code>pd.DataFrame</code>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>data</code>
+            </td>
+            <td>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The data frame containing the price trajectories.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>risk_free_rate</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The continuous risk-free rate.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>volatility</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The volatility of the asset. If <code>None</code>, it will be estimated as a historical volatility.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Hashable">Hashable</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the model.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;S&#34;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">BlackScholes</span><span class="p">,</span> <span class="n">Claim</span>
+</code></pre></div>
+    <p>Define data for the price trajectories. (This is a somewhat artifical example in which we have five price trajectories.)</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">{</span>
+<span class="gp">... </span>        <span class="mf">0.0</span><span class="p">:</span> <span class="p">[</span><span class="mi">49</span><span class="p">,</span> <span class="mi">49</span><span class="p">,</span> <span class="mi">49</span><span class="p">,</span> <span class="mi">49</span><span class="p">,</span> <span class="mi">49</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="mf">0.5</span><span class="p">:</span> <span class="p">[</span><span class="mf">52.45</span><span class="p">,</span> <span class="mf">38.13</span><span class="p">,</span> <span class="mf">50.12</span><span class="p">,</span> <span class="mf">50.71</span><span class="p">,</span> <span class="mf">52.93</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="mf">1.0</span><span class="p">:</span> <span class="p">[</span><span class="mf">46.42</span><span class="p">,</span> <span class="mf">32.52</span><span class="p">,</span> <span class="mf">45.55</span><span class="p">,</span> <span class="mf">60.98</span><span class="p">,</span> <span class="mf">47.39</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="mf">1.5</span><span class="p">:</span> <span class="p">[</span><span class="mf">52.93</span><span class="p">,</span> <span class="mf">33.95</span><span class="p">,</span> <span class="mf">52.89</span><span class="p">,</span> <span class="mf">66.80</span><span class="p">,</span> <span class="mf">55.01</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="mf">2.0</span><span class="p">:</span> <span class="p">[</span><span class="mf">61.99</span><span class="p">,</span> <span class="mf">33.28</span><span class="p">,</span> <span class="mf">60.53</span><span class="p">,</span> <span class="mf">60.65</span><span class="p">,</span> <span class="mf">56.01</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span><span class="p">)</span>
+</code></pre></div>
+    <p>Build a Black-Scholes model using the data.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<span class="go">Black-Scholes model &#39;S&#39;:</span>
+<span class="go">t      0.0    0.5    1.0    1.5    2.0</span>
+<span class="go">omega</span>
+<span class="go">0       49  52.45  46.42  52.93  61.99</span>
+<span class="go">1       49  38.13  32.52  33.95  33.28</span>
+<span class="go">2       49  50.12  45.55  52.89  60.53</span>
+<span class="go">3       49  50.71  60.98  66.80  60.65</span>
+<span class="go">4       49  52.93  47.39  55.01  56.01</span>
+</code></pre></div>
+    <p>Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
+</code></pre></div>
+    <p>Print the payoffs of the option.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
+<span class="go">European option &#39;Phi&#39;:</span>
+<span class="go">t      0.0  0.5  1.0  1.5    2.0</span>
+<span class="go">omega</span>
+<span class="go">0      0.0  0.0  0.0  0.0  11.99</span>
+<span class="go">1      0.0  0.0  0.0  0.0   0.00</span>
+<span class="go">2      0.0  0.0  0.0  0.0  10.53</span>
+<span class="go">3      0.0  0.0  0.0  0.0  10.65</span>
+<span class="go">4      0.0  0.0  0.0  0.0   6.01</span>
+</code></pre></div>
+    <p>Compute the price process of the claim.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">price_process</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;X&#39;:</span>
+<span class="go">t           0.0       0.5        1.0        1.5    2.0</span>
+<span class="go">omega</span>
+<span class="go">0      6.732889  7.899673   2.719060   5.109367  11.99</span>
+<span class="go">1      6.732889  0.865099   0.034833   0.002333   0.00</span>
+<span class="go">2      6.732889  6.227428   2.321031   5.078744  10.53</span>
+<span class="go">3      6.732889  6.634800  13.740568  18.046255  10.65</span>
+<span class="go">4      6.732889  8.264169   3.206782   6.796204   6.01</span>
+</code></pre></div>
+    <p>Compute the Delta-hedging process for the claim.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Delta</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">delta</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Delta</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;Delta&#39;:</span>
+<span class="go">t           0.0       0.5       1.0       1.5</span>
+<span class="go">omega</span>
+<span class="go">0      0.672669  0.752669  0.479031  0.766536</span>
+<span class="go">1      0.672669  0.208064  0.017970  0.001979</span>
+<span class="go">2      0.672669  0.680719  0.435926  0.764651</span>
+<span class="go">3      0.672669  0.700076  0.935131  0.995588</span>
+<span class="go">4      0.672669  0.765975  0.526413  0.850999</span>
+</code></pre></div>
 
 
     </div>
@@ -3730,6 +4134,54 @@
         </tr>
       </thead>
       <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>initial_price</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The initial price of the asset.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>risk_free_rate</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The continuous risk-free rate.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>volatility</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The volatility of the asset.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
           <tr class="doc-section-item">
             <td>
                 <code>mode</code>
@@ -3853,6 +4305,73 @@
     </table>
 
 
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">BlackScholes</span><span class="p">,</span> <span class="n">Claim</span><span class="p">,</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</code></pre></div>
+    <p>Build a Black-Scholes model with 5 simulated trajectories.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<span class="go">Black-Scholes model &#39;S&#39;:</span>
+<span class="go">t      0.0        0.5        1.0        1.5        2.0</span>
+<span class="go">omega</span>
+<span class="go">0       49  52.452804  46.424988  52.929861  61.990652</span>
+<span class="go">1       49  38.126221  32.516455  33.947854  33.284844</span>
+<span class="go">2       49  50.121209  45.549772  52.887726  60.531729</span>
+<span class="go">3       49  50.711791  60.981737  66.799142  60.652929</span>
+<span class="go">4       49  52.929960  47.387717  55.014385  56.010216</span>
+</code></pre></div>
+    <p>Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
+</code></pre></div>
+    <p>Print the payoffs of the option.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
+<span class="go">European option &#39;Phi&#39;:</span>
+<span class="go">t      0.0  0.5  1.0  1.5        2.0</span>
+<span class="go">omega</span>
+<span class="go">0      0.0  0.0  0.0  0.0  11.990652</span>
+<span class="go">1      0.0  0.0  0.0  0.0   0.000000</span>
+<span class="go">2      0.0  0.0  0.0  0.0  10.531729</span>
+<span class="go">3      0.0  0.0  0.0  0.0  10.652929</span>
+<span class="go">4      0.0  0.0  0.0  0.0   6.010216</span>
+</code></pre></div>
+    <p>Compute the price process of the claim.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">price_process</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;X&#39;:</span>
+<span class="go">t           0.0       0.5        1.0        1.5        2.0</span>
+<span class="go">omega</span>
+<span class="go">0      7.386405  8.440085   3.202279   5.415626  11.990652</span>
+<span class="go">1      7.386405  1.231376   0.086297   0.009507   0.000000</span>
+<span class="go">2      7.386405  6.802385   2.788511   5.384392  10.531729</span>
+<span class="go">3      7.386405  7.202873  13.971552  18.070297  10.652929</span>
+<span class="go">4      7.386405  8.793073   3.695375   7.049514   6.010216</span>
+</code></pre></div>
+    <p>Compute the Delta-hedging process for the claim.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Delta</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">delta</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Delta</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;Delta&#39;:</span>
+<span class="go">t           0.0       0.5       1.0       1.5</span>
+<span class="go">omega</span>
+<span class="go">0      0.664052  0.733743  0.491652  0.742201</span>
+<span class="go">1      0.664052  0.248827  0.035821  0.006380</span>
+<span class="go">2      0.664052  0.669505  0.453792  0.740379</span>
+<span class="go">3      0.664052  0.686647  0.910325  0.989155</span>
+<span class="go">4      0.664052  0.745740  0.532557  0.822070</span>
+</code></pre></div>
+
+
     </div>
 
 </div>
@@ -3865,12 +4384,23 @@
 
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">price</span><span class="p">(</span><span class="n">claim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">price</span><span class="p">(</span>
+    <span class="n">self_or_cls</span><span class="p">,</span>
+    <span class="n">claim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">time_to_maturity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">price</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">strike</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">risk_free_rate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">volatility</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Compute the Black-Scholes price of a European call or put option.</p>
+<p>This method may be called either a class method, in which case explicit parameters like the current price and time to maturity must be passed, or the method may be called on an instance of <code>BlackScholes</code> with an explict European option passed as the <code>claim</code> parameter.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3889,15 +4419,111 @@
                 <code>claim</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="            Claim (sigalg.finance.claims.claim.Claim)" href="#sigalg.finance.Claim">Claim</a></code>
+                  <code><a class="autorefs autorefs-internal" title="            Claim (sigalg.finance.claims.claim.Claim)" href="#sigalg.finance.Claim">Claim</a> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The contingent claim to price.</p>
+                <p>The contingent claim to price. If not given, the pricing parameters must be given.</p>
               </div>
             </td>
             <td>
-                <em>required</em>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>time_to_maturity</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The time to maturity of the option.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>price</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The current price of the underlying asset.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>strike</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The strike price of the option.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>risk_free_rate</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The continuous risk-free rate.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>volatility</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The volatility of the underlying asset</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>option_type</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;call&#39;, &#39;put&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The option type.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;call&#34;</code>
             </td>
           </tr>
       </tbody>
@@ -3927,6 +4553,44 @@
     </table>
 
 
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">BlackScholes</span><span class="p">,</span> <span class="n">Claim</span><span class="p">,</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</code></pre></div>
+    <p>Define pricing parameters.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mi">20</span> <span class="o">/</span> <span class="mi">52</span><span class="p">,</span> <span class="mf">0.2</span>
+</code></pre></div>
+    <p>Compute a price using the method as a class method with explicit pricing parameters.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">price</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">price</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">time_to_maturity</span><span class="o">=</span><span class="n">tau</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">price</span>
+<span class="go">2.4005273232717137</span>
+</code></pre></div>
+    <p>Instead, the method may be called on an instance of <code>BlackScholes</code>. Define such an instance using the same parameters as above.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">tau</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</code></pre></div>
+    <p>Define a <code>Claim</code> instance and price it.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span><span class="o">.</span><span class="n">price</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
+<span class="go">2.4005273232717137</span>
+</code></pre></div>
+
+
     </div>
 
 </div>
@@ -3939,12 +4603,98 @@
 
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">price_process</span><span class="p">(</span><span class="n">claim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">price_process</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Pass.</p>
+        <p>Compute the price process of a European call or put option.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>claim</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            Claim (sigalg.finance.claims.claim.Claim)" href="#sigalg.finance.Claim">Claim</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The contingent claim to price.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">BlackScholes</span><span class="p">,</span> <span class="n">Claim</span><span class="p">,</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</code></pre></div>
+    <p>Build a Black-Scholes model with 5 simulated trajectories.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<span class="go">Black-Scholes model &#39;S&#39;:</span>
+<span class="go">t      0.0        0.5        1.0        1.5        2.0</span>
+<span class="go">omega</span>
+<span class="go">0       49  52.452804  46.424988  52.929861  61.990652</span>
+<span class="go">1       49  38.126221  32.516455  33.947854  33.284844</span>
+<span class="go">2       49  50.121209  45.549772  52.887726  60.531729</span>
+<span class="go">3       49  50.711791  60.981737  66.799142  60.652929</span>
+<span class="go">4       49  52.929960  47.387717  55.014385  56.010216</span>
+</code></pre></div>
+    <p>Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
+</code></pre></div>
+    <p>Print the payoffs of the option.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
+<span class="go">European option &#39;Phi&#39;:</span>
+<span class="go">t      0.0  0.5  1.0  1.5        2.0</span>
+<span class="go">omega</span>
+<span class="go">0      0.0  0.0  0.0  0.0  11.990652</span>
+<span class="go">1      0.0  0.0  0.0  0.0   0.000000</span>
+<span class="go">2      0.0  0.0  0.0  0.0  10.531729</span>
+<span class="go">3      0.0  0.0  0.0  0.0  10.652929</span>
+<span class="go">4      0.0  0.0  0.0  0.0   6.010216</span>
+</code></pre></div>
+    <p>Compute the price process of the claim.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">price_process</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;X&#39;:</span>
+<span class="go">t           0.0       0.5        1.0        1.5        2.0</span>
+<span class="go">omega</span>
+<span class="go">0      7.386405  8.440085   3.202279   5.415626  11.990652</span>
+<span class="go">1      7.386405  1.231376   0.086297   0.009507   0.000000</span>
+<span class="go">2      7.386405  6.802385   2.788511   5.384392  10.531729</span>
+<span class="go">3      7.386405  7.202873  13.971552  18.070297  10.652929</span>
+<span class="go">4      7.386405  8.793073   3.695375   7.049514   6.010216</span>
+</code></pre></div>
 
 
     </div>
@@ -4456,7 +5206,294 @@
 
     <div class="doc doc-contents ">
 
+        <p>Create an American option.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>strike</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The strike price of the option.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="sigalg.finance.continuous_pricing_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_pricing_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The model of the underlying asset.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>type</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;call&#39;, &#39;put&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The type of option.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;call&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Hashable">Hashable</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the option.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;Phi&#34;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>option</code></td>            <td>
+                  <code><span title="sigalg.finance.claims.european_option.EuropeanOption">EuropeanOption</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The option.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.finance</span><span class="w"> </span><span class="kn">import</span> <span class="n">BinomialPricingModel</span><span class="p">,</span> <span class="n">Claim</span>
+</code></pre></div>
+    <p>Define a binomial pricing model.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BinomialPricingModel</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">up_prob</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">up_factor</span><span class="o">=</span><span class="mf">1.1</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">down_factor</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">enum_mode</span><span class="o">=</span><span class="s2">&quot;dense&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;enum&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">length</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<span class="go">Binomial price process &#39;S&#39;:</span>
+<span class="go">t          0      1      2      3</span>
+<span class="go">omega</span>
+<span class="go">0      100.0  110.0  121.0  133.1</span>
+<span class="go">1      100.0  110.0  121.0  108.9</span>
+<span class="go">2      100.0  110.0   99.0  108.9</span>
+<span class="go">3      100.0  110.0   99.0   89.1</span>
+<span class="go">4      100.0   90.0   99.0  108.9</span>
+<span class="go">5      100.0   90.0   99.0   89.1</span>
+<span class="go">6      100.0   90.0   81.0   89.1</span>
+<span class="go">7      100.0   90.0   81.0   72.9</span>
+</code></pre></div>
+    <p>Create an American call option with strike <code>K=100</code>.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
+<span class="go">American option &#39;Phi&#39;:</span>
+<span class="go">t        0     1     2     3</span>
+<span class="go">omega</span>
+<span class="go">0      0.0  10.0  21.0  33.1</span>
+<span class="go">1      0.0  10.0  21.0   8.9</span>
+<span class="go">2      0.0  10.0   0.0   8.9</span>
+<span class="go">3      0.0  10.0   0.0   0.0</span>
+<span class="go">4      0.0   0.0   0.0   8.9</span>
+<span class="go">5      0.0   0.0   0.0   0.0</span>
+<span class="go">6      0.0   0.0   0.0   0.0</span>
+<span class="go">7      0.0   0.0   0.0   0.0</span>
+</code></pre></div>
+    <p>Create an American put with the same strike.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
+<span class="go">American option &#39;Phi&#39;:</span>
+<span class="go">t        0     1     2     3</span>
+<span class="go">omega</span>
+<span class="go">0      0.0   0.0   0.0   0.0</span>
+<span class="go">1      0.0   0.0   0.0   0.0</span>
+<span class="go">2      0.0   0.0   1.0   0.0</span>
+<span class="go">3      0.0   0.0   1.0  10.9</span>
+<span class="go">4      0.0  10.0   1.0   0.0</span>
+<span class="go">5      0.0  10.0   1.0  10.9</span>
+<span class="go">6      0.0  10.0  19.0  10.9</span>
+<span class="go">7      0.0  10.0  19.0  27.1</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="sigalg.finance.Claim.asian_option" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">asian_option</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">asian_option</span><span class="p">(</span>
+    <span class="n">strike</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span>
+    <span class="n">early_exercise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
         <p>Create an Asian option.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>strike</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The strike price of the option.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="sigalg.finance.continuous_pricing_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_pricing_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The model of the underlying asset.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>type</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;call&#39;, &#39;put&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The type of option.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;call&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>early_exercise</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether the claim allows early exercise.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Hashable">Hashable</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the option.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;Phi&#34;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
@@ -4489,7 +5526,7 @@
     <p>Create an Asian call option with strike <code>K=100</code> and no early exercise.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Phi_call_no_early</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">asian_option</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_call_no_early&quot;</span>
+<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_call_no_early&quot;</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi_call_no_early</span><span class="p">)</span>
 <span class="go">Asian option &#39;Phi_call_no_early&#39;:</span>
@@ -4506,7 +5543,7 @@
 </code></pre></div>
     <p>Create an Asian call with the same strike and with early exercise.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Phi_call_early</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">asian_option</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_call_early&quot;</span>
+<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_call_early&quot;</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi_call_early</span><span class="p">)</span>
 <span class="go">Asian option &#39;Phi_call_early&#39;:</span>
@@ -4523,7 +5560,7 @@
 </code></pre></div>
     <p>Create an Asian put with the same strike and no early exercise.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Phi_put_no_early</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">asian_option</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_put_no_early&quot;</span>
+<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_put_no_early&quot;</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi_put_no_early</span><span class="p">)</span>
 <span class="go">Asian option &#39;Phi_put_no_early&#39;:</span>
@@ -4540,7 +5577,7 @@
 </code></pre></div>
     <p>Create an Asian put with the same strike and early exercise.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Phi_put_early</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">asian_option</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_put_early&quot;</span>
+<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_put_early&quot;</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi_put_early</span><span class="p">)</span>
 <span class="go">Asian option &#39;Phi_put_early&#39;:</span>
@@ -4555,36 +5592,6 @@
 <span class="go">6      0.0  5.0  9.666667   9.975</span>
 <span class="go">7      0.0  5.0  9.666667  14.025</span>
 </code></pre></div>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="sigalg.finance.Claim.asian_option" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">asian_option</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
-  </span>
-
-</h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">asian_option</span><span class="p">(</span>
-    <span class="n">strike</span><span class="p">,</span>
-    <span class="n">model</span><span class="p">,</span>
-    <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span>
-    <span class="n">early_exercise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi&quot;</span><span class="p">,</span>
-<span class="p">)</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Pass.</p>
 
 
     </div>
@@ -4869,6 +5876,108 @@
     <div class="doc doc-contents ">
 
         <p>Create a European option.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>strike</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The strike price of the option.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="sigalg.finance.continuous_pricing_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_pricing_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The model of the underlying asset.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>type</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;call&#39;, &#39;put&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The type of option.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;call&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Hashable">Hashable</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the option.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;Phi&#34;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>option</code></td>            <td>
+                  <code><span title="sigalg.finance.claims.european_option.EuropeanOption">EuropeanOption</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The option.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
