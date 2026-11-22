@@ -17,9 +17,9 @@ T = sa.Time.continuous(start=0, stop=1, dt=0.001)
 W = sa.BrownianMotion.generate(n_trajectories=5, index=T, name="W", random_state=rng)
 t = sa.StochasticProcess.from_time(process=W)
 
-cross_var(W, W).plot_trajectories(axes[0], colors=[sa.style.purple])
+quad_var(W).plot_trajectories(axes[0], colors=[sa.style.purple])
 cross_var(t, W).plot_trajectories(axes[1], colors=[sa.style.teal])
-cross_var(t, t).plot_trajectories(axes[2], colors=[sa.style.blue])
+quad_var(t).plot_trajectories(axes[2], colors=[sa.style.blue])
 
 axes[0].set_title(r"$[W]_t = t \quad \Rightarrow \quad dW_t^2=0$")
 axes[1].set_title(r"$[t,W]_t = 0 \quad \Rightarrow \quad dt \, dW_t=0$")
