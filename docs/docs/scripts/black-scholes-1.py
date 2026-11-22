@@ -18,7 +18,7 @@ S = sa.BlackScholes.generate(
     random_state=42,
 )
 
-Phi = sa.Claim.european_option(strike=52, model=S, type="put")
+Phi = sa.Claim.european_option(strike=52, model=S, option_type="put")
 X = Phi.price_process()  # (1)!
 delta = Phi.delta()  # (2)!
 

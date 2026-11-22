@@ -567,7 +567,7 @@ class BinomialPricingModel(DiscretePricingModel):
         Define a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> euro_call = Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
         >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'euro_call':
         t        0    1    2     3
@@ -588,7 +588,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Define an American put option with the same strike.
 
-        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> american_put = Claim.american_option(model=S, strike=K, option_type="put", name="american_put")
         >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
         American option 'american_put':
         t        0     1     2     3
@@ -668,7 +668,7 @@ class BinomialPricingModel(DiscretePricingModel):
         Define a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> euro_call = Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
         >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'euro_call':
         t        0    1    2     3
@@ -699,7 +699,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Define an American put option with the same strike.
 
-        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> american_put = Claim.american_option(model=S, strike=K, option_type="put", name="american_put")
         >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
         American option 'american_put':
         t        0     1     2     3
@@ -780,7 +780,7 @@ class BinomialPricingModel(DiscretePricingModel):
         Define a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> euro_call = Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
         >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'euro_call':
         t        0    1    2     3
@@ -811,7 +811,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Define an American put option with the same strike.
 
-        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> american_put = Claim.american_option(model=S, strike=K, option_type="put", name="american_put")
         >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
         American option 'american_put':
         t        0     1     2     3
@@ -892,7 +892,7 @@ class BinomialPricingModel(DiscretePricingModel):
         Define a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> euro_call = Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
         >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'euro_call':
         t        0    1    2     3
@@ -923,7 +923,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Define an American put option with the same strike.
 
-        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> american_put = Claim.american_option(model=S, strike=K, option_type="put", name="american_put")
         >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
         American option 'american_put':
         t        0     1     2     3
@@ -1004,7 +1004,7 @@ class BinomialPricingModel(DiscretePricingModel):
         Define a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> euro_call = Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
         >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'euro_call':
         t        0    1    2     3
@@ -1035,7 +1035,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Define an American put option with the same strike.
 
-        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> american_put = Claim.american_option(model=S, strike=K, option_type="put", name="american_put")
         >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
         American option 'american_put':
         t        0     1     2     3
@@ -1116,7 +1116,7 @@ class BinomialPricingModel(DiscretePricingModel):
         Define a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> euro_call = Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
         >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'euro_call':
         t        0    1    2     3
@@ -1147,7 +1147,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Define an American put option with the same strike.
 
-        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> american_put = Claim.american_option(model=S, strike=K, option_type="put", name="american_put")
         >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
         American option 'american_put':
         t        0     1     2     3
@@ -1234,7 +1234,7 @@ class BinomialPricingModel(DiscretePricingModel):
         Define a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> euro_call = Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
         >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'euro_call':
         t        0    1    2     3
@@ -1293,7 +1293,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Now define an Asian put option with early-exercise and the same strike.
 
-        >>> asian_put = Claim.asian_option(strike=100, model=S, type="put", early_exercise=True, name="asian_put")
+        >>> asian_put = Claim.asian_option(strike=100, model=S, option_type="put", early_exercise=True, name="asian_put")
         >>> print(asian_put)  # doctest: +NORMALIZE_WHITESPACE
         Asian option 'asian_put':
         t        0    1         2       3

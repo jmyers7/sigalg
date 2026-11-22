@@ -575,7 +575,7 @@ class Claim(StochasticProcess):
         cls,
         strike: Real,
         model: ContinuousPricingModel | DiscretePricingModel,
-        type: Literal["call", "put"] = "call",
+        option_type: Literal["call", "put"] = "call",
         name: Hashable = "Phi",
     ) -> EuropeanOption:
         """Create a European option.
@@ -586,7 +586,7 @@ class Claim(StochasticProcess):
             The strike price of the option.
         model : ContinuousPricingModel | DiscretePricingModel
             The model of the underlying asset.
-        type : Literal["call", "put"], default="call"
+        option_type : Literal["call", "put"], default="call"
             The type of option.
         name : Hashable, default="Phi"
             The name of the option.
@@ -628,7 +628,7 @@ class Claim(StochasticProcess):
         Create a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> Phi_call = Claim.european_option(strike=K, model=S, type="call", name="Phi_call")
+        >>> Phi_call = Claim.european_option(strike=K, model=S, option_type="call", name="Phi_call")
         >>> print(Phi_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'Phi_call':
         t        0    1    2     3
@@ -644,7 +644,7 @@ class Claim(StochasticProcess):
 
         Create a European put option with the same strike.
 
-        >>> Phi_put = Claim.european_option(strike=K, model=S, type="put", name="Phi_put")
+        >>> Phi_put = Claim.european_option(strike=K, model=S, option_type="put", name="Phi_put")
         >>> print(Phi_put)  # doctest: +NORMALIZE_WHITESPACE
         European option 'Phi_put':
         t        0    1    2     3
@@ -660,9 +660,11 @@ class Claim(StochasticProcess):
         """
         from .european_option import EuropeanOption
 
+        cls._validate_option_params(strike=strike, model=model, option_type=option_type)
+
         S_T = model.data.iloc[:, -1]
 
-        if type == "call":
+        if option_type == "call":
             Phi = (S_T - strike >= 0) * (
                 S_T - strike
             ) + 0.0  # add 0.0 to kill stupid negative zeros
@@ -684,7 +686,7 @@ class Claim(StochasticProcess):
         claim.model = model
         claim.__class__ = EuropeanOption
         claim._strike = strike
-        claim._option_type = type
+        claim._option_type = option_type
 
         return claim
 
@@ -693,7 +695,7 @@ class Claim(StochasticProcess):
         cls,
         strike: Real,
         model: ContinuousPricingModel | DiscretePricingModel,
-        type: Literal["call", "put"] = "call",
+        option_type: Literal["call", "put"] = "call",
         early_exercise: bool = False,
         name: Hashable = "Phi",
     ) -> AsianOption:
@@ -745,7 +747,7 @@ class Claim(StochasticProcess):
 
         >>> K = 100
         >>> Phi_call_no_early = Claim.asian_option(
-        ...     strike=K, model=S, type="call", early_exercise=False, name="Phi_call_no_early"
+        ...     strike=K, model=S, option_type="call", early_exercise=False, name="Phi_call_no_early"
         ... )
         >>> print(Phi_call_no_early)  # doctest: +NORMALIZE_WHITESPACE
         Asian option 'Phi_call_no_early':
@@ -763,7 +765,7 @@ class Claim(StochasticProcess):
         Create an Asian call with the same strike and with early exercise.
 
         >>> Phi_call_early = Claim.asian_option(
-        ...     strike=K, model=S, type="call", early_exercise=True, name="Phi_call_early"
+        ...     strike=K, model=S, option_type="call", early_exercise=True, name="Phi_call_early"
         ... )
         >>> print(Phi_call_early)  # doctest: +NORMALIZE_WHITESPACE
         Asian option 'Phi_call_early':
@@ -781,7 +783,7 @@ class Claim(StochasticProcess):
         Create an Asian put with the same strike and no early exercise.
 
         >>> Phi_put_no_early = Claim.asian_option(
-        ...     strike=K, model=S, type="put", early_exercise=False, name="Phi_put_no_early"
+        ...     strike=K, model=S, option_type="put", early_exercise=False, name="Phi_put_no_early"
         ... )
         >>> print(Phi_put_no_early)  # doctest: +NORMALIZE_WHITESPACE
         Asian option 'Phi_put_no_early':
@@ -799,7 +801,7 @@ class Claim(StochasticProcess):
         Create an Asian put with the same strike and early exercise.
 
         >>> Phi_put_early = Claim.asian_option(
-        ...     strike=K, model=S, type="put", early_exercise=True, name="Phi_put_early"
+        ...     strike=K, model=S, option_type="put", early_exercise=True, name="Phi_put_early"
         ... )
         >>> print(Phi_put_early)  # doctest: +NORMALIZE_WHITESPACE
         Asian option 'Phi_put_early':
@@ -816,7 +818,9 @@ class Claim(StochasticProcess):
         """
         from .asian_option import AsianOption
 
-        if type == "call":
+        cls._validate_option_params(strike=strike, model=model, option_type=option_type)
+
+        if option_type == "call":
             if early_exercise:
                 process = (model.cumavg() - strike).max(0)
             else:
@@ -849,7 +853,7 @@ class Claim(StochasticProcess):
         claim.model = model
         claim.__class__ = AsianOption
         claim._strike = strike
-        claim._option_type = type
+        claim._option_type = option_type
 
         return claim
 
@@ -858,7 +862,7 @@ class Claim(StochasticProcess):
         cls,
         strike: Real,
         model: ContinuousPricingModel | DiscretePricingModel,
-        type: Literal["call", "put"] = "call",
+        option_type: Literal["call", "put"] = "call",
         name: Hashable = "Phi",
     ) -> AmericanOption:
         """Create an American option.
@@ -869,7 +873,7 @@ class Claim(StochasticProcess):
             The strike price of the option.
         model : ContinuousPricingModel | DiscretePricingModel
             The model of the underlying asset.
-        type : Literal["call", "put"], default="call"
+        option_type : Literal["call", "put"], default="call"
             The type of option.
         name : Hashable, default="Phi"
             The name of the option.
@@ -911,7 +915,7 @@ class Claim(StochasticProcess):
         Create an American call option with strike `K=100`.
 
         >>> K = 100
-        >>> Phi = Claim.american_option(strike=K, model=S, type="call")
+        >>> Phi = Claim.american_option(strike=K, model=S, option_type="call")
         >>> print(Phi)  # doctest: +NORMALIZE_WHITESPACE
         American option 'Phi':
         t        0     1     2     3
@@ -927,7 +931,7 @@ class Claim(StochasticProcess):
 
         Create an American put with the same strike.
 
-        >>> Phi = Claim.american_option(strike=K, model=S, type="put")
+        >>> Phi = Claim.american_option(strike=K, model=S, option_type="put")
         >>> print(Phi)  # doctest: +NORMALIZE_WHITESPACE
         American option 'Phi':
         t        0     1     2     3
@@ -943,7 +947,9 @@ class Claim(StochasticProcess):
         """
         from .american_option import AmericanOption
 
-        if type == "call":
+        cls._validate_option_params(strike=strike, model=model, option_type=option_type)
+
+        if option_type == "call":
             data = (model.data - strike >= 0) * (model.data - strike) + 0.0
         else:
             data = (strike - model.data >= 0) * (strike - model.data) + 0.0
@@ -960,9 +966,28 @@ class Claim(StochasticProcess):
         claim.model = model
         claim.__class__ = AmericanOption
         claim._strike = strike
-        claim._option_type = type
+        claim._option_type = option_type
 
         return claim
+
+    @classmethod
+    def _validate_option_params(
+        cls,
+        strike: Real,
+        model: ContinuousPricingModel | DiscretePricingModel,
+        option_type: Literal["call", "put"],
+    ) -> None:
+        from ..continuous_models.continuous_pricing_model import ContinuousPricingModel
+        from ..discrete_models.discrete_pricing_model import DiscretePricingModel
+
+        if not isinstance(strike, Real) or strike <= 0:
+            raise ValueError("strike must be a positive real number.")
+        if not isinstance(model, ContinuousPricingModel | DiscretePricingModel):
+            raise TypeError(
+                "model must be an instance of ContinuousPricingModel or DiscretePricingModel."
+            )
+        if option_type not in ["call", "put"]:
+            raise ValueError("option_type must be 'call' or 'put'.")
 
     # --------------------- finance methods --------------------- #
 
@@ -1016,7 +1041,7 @@ class Claim(StochasticProcess):
         Define a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> euro_call = Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
         >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'euro_call':
         t        0    1    2     3
@@ -1037,7 +1062,7 @@ class Claim(StochasticProcess):
 
         Define an American put option with the same strike.
 
-        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> american_put = Claim.american_option(model=S, strike=K, option_type="put", name="american_put")
         >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
         American option 'american_put':
         t        0     1     2     3
@@ -1097,7 +1122,7 @@ class Claim(StochasticProcess):
         Define a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> euro_call = Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
         >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'euro_call':
         t        0    1    2     3
@@ -1128,7 +1153,7 @@ class Claim(StochasticProcess):
 
         Define an American put option with the same strike.
 
-        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> american_put = Claim.american_option(model=S, strike=K, option_type="put", name="american_put")
         >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
         American option 'american_put':
         t        0     1     2     3
@@ -1198,7 +1223,7 @@ class Claim(StochasticProcess):
         Define a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> euro_call = Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
         >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'euro_call':
         t        0    1    2     3
@@ -1229,7 +1254,7 @@ class Claim(StochasticProcess):
 
         Define an American put option with the same strike.
 
-        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> american_put = Claim.american_option(model=S, strike=K, option_type="put", name="american_put")
         >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
         American option 'american_put':
         t        0     1     2     3
@@ -1299,7 +1324,7 @@ class Claim(StochasticProcess):
         Define a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> euro_call = Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
         >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'euro_call':
         t        0    1    2     3
@@ -1330,7 +1355,7 @@ class Claim(StochasticProcess):
 
         Define an American put option with the same strike.
 
-        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> american_put = Claim.american_option(model=S, strike=K, option_type="put", name="american_put")
         >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
         American option 'american_put':
         t        0     1     2     3
@@ -1400,7 +1425,7 @@ class Claim(StochasticProcess):
         Define a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> euro_call = Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
         >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'euro_call':
         t        0    1    2     3
@@ -1431,7 +1456,7 @@ class Claim(StochasticProcess):
 
         Define an American put option with the same strike.
 
-        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> american_put = Claim.american_option(model=S, strike=K, option_type="put", name="american_put")
         >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
         American option 'american_put':
         t        0     1     2     3
@@ -1501,7 +1526,7 @@ class Claim(StochasticProcess):
         Define a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> euro_call = Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
         >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'euro_call':
         t        0    1    2     3
@@ -1532,7 +1557,7 @@ class Claim(StochasticProcess):
 
         Define an American put option with the same strike.
 
-        >>> american_put = Claim.american_option(model=S, strike=K, type="put", name="american_put")
+        >>> american_put = Claim.american_option(model=S, strike=K, option_type="put", name="american_put")
         >>> print(american_put)  # doctest: +NORMALIZE_WHITESPACE
         American option 'american_put':
         t        0     1     2     3
@@ -1602,7 +1627,7 @@ class Claim(StochasticProcess):
         Define a European call option with strike `K=100`.
 
         >>> K = 100
-        >>> euro_call = Claim.european_option(model=S, strike=K, type="call", name="euro_call")
+        >>> euro_call = Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
         >>> print(euro_call)  # doctest: +NORMALIZE_WHITESPACE
         European option 'euro_call':
         t        0    1    2     3
@@ -1661,7 +1686,7 @@ class Claim(StochasticProcess):
 
         Now define an Asian put option with early-exercise and the same strike.
 
-        >>> asian_put = Claim.asian_option(strike=100, model=S, type="put", early_exercise=True, name="asian_put")
+        >>> asian_put = Claim.asian_option(strike=100, model=S, option_type="put", early_exercise=True, name="asian_put")
         >>> print(asian_put)  # doctest: +NORMALIZE_WHITESPACE
         Asian option 'asian_put':
         t        0    1         2       3

@@ -13,6 +13,7 @@ from .continuous_pricing_model import ContinuousPricingModel
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
+    from ...core.functions.random_variable import RandomVariable
     from ...processes.base.stochastic_process import StochasticProcess
     from ...validation.index_validator import IndexLike
     from ..claims.claim import Claim
@@ -63,7 +64,7 @@ class BlackScholes(ContinuousPricingModel):
     Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.
 
     >>> K = 50
-    >>> Phi = Claim.european_option(strike=K, model=S, type="call")
+    >>> Phi = Claim.european_option(strike=K, model=S, option_type="call")
 
     Print the payoffs of the option.
 
@@ -186,7 +187,7 @@ class BlackScholes(ContinuousPricingModel):
         Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.
 
         >>> K = 50
-        >>> Phi = Claim.european_option(strike=K, model=S, type="call")
+        >>> Phi = Claim.european_option(strike=K, model=S, option_type="call")
 
         Print the payoffs of the option.
 
@@ -335,7 +336,7 @@ class BlackScholes(ContinuousPricingModel):
         Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.
 
         >>> K = 50
-        >>> Phi = Claim.european_option(strike=K, model=S, type="call")
+        >>> Phi = Claim.european_option(strike=K, model=S, option_type="call")
 
         Print the payoffs of the option.
 
@@ -433,7 +434,7 @@ class BlackScholes(ContinuousPricingModel):
         volatility: Real | None = None,
         option_type: Literal["call", "put"] = "call",
         **kwargs,
-    ) -> Real:
+    ) -> Real | RandomVariable:
         """Compute the Black-Scholes price of a European call or put option.
 
         This method may be called either as a class method, in which case explicit parameters like the current price and time to maturity must be passed, or the method may be called on an instance of `BlackScholes` with an explict European option passed as the `claim` parameter.
@@ -457,8 +458,8 @@ class BlackScholes(ContinuousPricingModel):
 
         Returns
         -------
-        price : Real
-            The Black-Scholes price of the option.
+        price : Real | np.ndarray
+            If the method is used as a class method, a real number is returned. If it is used as an instance method, an array containing the prices of each trajectory is return.
 
         Examples
         --------
@@ -499,11 +500,24 @@ class BlackScholes(ContinuousPricingModel):
         Define a `Claim` instance and price it.
 
         >>> Phi = Claim.european_option(strike=K, model=S)
-        >>> S.price(claim=Phi)
-        2.4005273232717137
+        >>> print(S.price(claim=Phi))  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X_0_0':
+                  X_0_0
+        omega
+        0      2.400527
+        1      2.400527
+        2      2.400527
+        3      2.400527
+        4      2.400527
+        5      2.400527
+        6      2.400527
+        7      2.400527
+        8      2.400527
+        9      2.400527
         """
         from scipy.stats import norm
 
+        from ...core.functions.random_variable import RandomVariable
         from ..claims.european_option import EuropeanOption
 
         BlackScholes._validate_pricing_params(
@@ -534,6 +548,16 @@ class BlackScholes(ContinuousPricingModel):
                 volatility,
             )
 
+            d_plus = (np.log(s / K) + (r + sigma**2 / 2) * tau) / (sigma * np.sqrt(tau))
+            d_neg = d_plus - sigma * np.sqrt(tau)
+            N = norm.cdf
+
+            if option_type == "call":
+                return (s * N(d_plus) - K * np.exp(-r * tau) * N(d_neg)).astype(Real)
+
+            else:
+                return (K * np.exp(-r * tau) * N(-d_neg) - s * N(-d_plus)).astype(Real)
+
         else:
             if claim is None:
                 raise ValueError(
@@ -542,21 +566,32 @@ class BlackScholes(ContinuousPricingModel):
 
             tau, s, K, r, sigma = (
                 claim.time[-1] - claim.time[0],
-                self_or_cls[claim.time[0]].item(),
+                np.array(self_or_cls[claim.time[0]]),
                 claim.strike,
                 self_or_cls.risk_free_rate,
                 self_or_cls.volatility,
             )
 
-        d_plus = (np.log(s / K) + (r + sigma**2 / 2) * tau) / (sigma * np.sqrt(tau))
-        d_neg = d_plus - sigma * np.sqrt(tau)
-        N = norm.cdf
+            d_plus = (np.log(s / K) + (r + sigma**2 / 2) * tau) / (sigma * np.sqrt(tau))
+            d_neg = d_plus - sigma * np.sqrt(tau)
+            N = norm.cdf
 
-        if option_type == "call":
-            return (s * N(d_plus) - K * np.exp(-r * tau) * N(d_neg)).astype(Real)
+            if option_type == "call":
+                pricing_arr = s * N(d_plus) - K * np.exp(-r * tau) * N(d_neg)
 
-        else:
-            return (K * np.exp(-r * tau) * N(-d_neg) - s * N(-d_plus)).astype(Real)
+            else:
+                pricing_arr = K * np.exp(-r * tau) * N(-d_neg) - s * N(-d_plus)
+
+            data = pd.Series(pricing_arr, index=self_or_cls.domain.data)
+
+            return RandomVariable._from_validated(
+                data=data,
+                sig_alg=self_or_cls.sig_alg,
+                measure=self_or_cls.measure,
+                index_kind=None,
+                index_name=None,
+                name=f"X_{claim.time[0]}".replace(".", "_"),
+            )
 
     def price_process(self, claim: Claim | None = None, **kwargs) -> StochasticProcess:
         """Compute the price process of a European call or put option.
@@ -598,7 +633,7 @@ class BlackScholes(ContinuousPricingModel):
         Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.
 
         >>> K = 50
-        >>> Phi = Claim.european_option(strike=K, model=S, type="call")
+        >>> Phi = Claim.european_option(strike=K, model=S, option_type="call")
 
         Print the payoffs of the option.
 
