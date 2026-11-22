@@ -673,7 +673,7 @@
 </div>
 <div>
 <h2 id="code-snippets">Code snippets</h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="2:7"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><input id="__tabbed_2_4" name="__tabbed_2" type="radio" /><input id="__tabbed_2_5" name="__tabbed_2" type="radio" /><input id="__tabbed_2_6" name="__tabbed_2" type="radio" /><input id="__tabbed_2_7" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Itô's lemma</label><label for="__tabbed_2_2">Fundamental Theorem of Calculus with Itô's correction</label><label for="__tabbed_2_3">Quadratic/cross variations in stochastic calculus</label><label for="__tabbed_2_4">Binomial pricing models</label><label for="__tabbed_2_5">Trinomial pricing models</label><label for="__tabbed_2_6">Markov chain</label><label for="__tabbed_2_7">Polynomial regression in an <span class="arithmatex">\(L^2\)</span>-space</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:8"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><input id="__tabbed_2_4" name="__tabbed_2" type="radio" /><input id="__tabbed_2_5" name="__tabbed_2" type="radio" /><input id="__tabbed_2_6" name="__tabbed_2" type="radio" /><input id="__tabbed_2_7" name="__tabbed_2" type="radio" /><input id="__tabbed_2_8" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Itô's lemma</label><label for="__tabbed_2_2">Fundamental Theorem of Calculus with Itô's correction</label><label for="__tabbed_2_3">Quadratic/cross variations in stochastic calculus</label><label for="__tabbed_2_4">Black-Scholes pricing and hedging</label><label for="__tabbed_2_5">Binomial pricing models</label><label for="__tabbed_2_6">Trinomial pricing models</label><label for="__tabbed_2_7">Markov chains</label><label for="__tabbed_2_8">Polynomial regression in an <span class="arithmatex">\(L^2\)</span>-space</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Demonstrate Itô&#39;s lemma with SigAlg.&quot;&quot;&quot;</span>
@@ -817,6 +817,50 @@
 </code></pre></div>
 <ol>
 <li>In stochastic calculus, the informal differential "multiplication" rules <span class="arithmatex">\(dW_t^2=0\)</span>, <span class="arithmatex">\(dt \, dW_t=0\)</span>, and <span class="arithmatex">\(dt^2=0\)</span> are used constantly, where <span class="arithmatex">\(W_t\)</span> is a standard Brownian motion. These are formal equations with no intrinsic meaning that stand for precise equalities regarding quadratic and cross variations. This snippet demonstrates that these latter equalities hold (approximately, since we're working in the discrete setting.)</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Demonstrate Black-Scholes pricing and hedging with SigAlg.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sa</span>
+
+<span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">set_style</span><span class="p">(</span><span class="s2">&quot;black&quot;</span><span class="p">)</span>
+
+<span class="n">S_0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+
+<span class="n">S</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">BlackScholes</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
+    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+    <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">Phi</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="mi">52</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">Phi</span><span class="o">.</span><span class="n">price_process</span><span class="p">()</span>  <span class="c1"># (1)!</span>
+<span class="n">delta</span> <span class="o">=</span> <span class="n">Phi</span><span class="o">.</span><span class="n">delta</span><span class="p">()</span>  <span class="c1"># (2)!</span>
+
+<span class="n">_</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+
+<span class="n">S</span><span class="o">.</span><span class="n">plot_trajectories</span><span class="p">(</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">purple</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;$S_t$&quot;</span><span class="p">)</span>
+<span class="n">X</span><span class="o">.</span><span class="n">plot_trajectories</span><span class="p">(</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">teal</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;$X_t$&quot;</span><span class="p">)</span>
+<span class="n">delta</span><span class="o">.</span><span class="n">plot_trajectories</span><span class="p">(</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">blue</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">lime</span><span class="p">])</span>
+
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Prices $S_t$ and $X_t$ of underlying asset and claim&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;$t$&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\Delta$-hedging process&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;$t$&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div>
+<ol>
+<li>Compute the price process of the European put.</li>
+<li>Compute the <span class="arithmatex">\(\Delta\)</span>-hedging process.</li>
 </ol>
 </div>
 <div class="tabbed-block">

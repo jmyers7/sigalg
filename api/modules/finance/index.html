@@ -790,6 +790,100 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sigalg.finance.BlackScholes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;BlackScholes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" BlackScholes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BlackScholes.risk_free_rate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;risk_free_rate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BlackScholes.volatility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;volatility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BlackScholes.delta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;delta
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BlackScholes.from_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;from_data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BlackScholes.generate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;generate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BlackScholes.price" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;price
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BlackScholes.price_process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;price_process
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sigalg.finance.Claim" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -828,17 +922,6 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;B
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sigalg.finance.Claim.BS_price" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;BS_price
       
     </span>
   </a>
@@ -2762,12 +2845,12 @@
       </thead>
       <tbody>
           <tr class="doc-section-item">
-<td><code>info</code></td>            <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="object">object</span>]</code>
+<td><code>model</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="            BinomialPricingModel (sigalg.finance.discrete_pricing_models.binomial_pricing_model.BinomialPricingModel)" href="#sigalg.finance.BinomialPricingModel">BinomialPricingModel</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>A dictionary containing the names of the BinomialPricingModel-specific parameters and their values.</p>
+                <p>The binomial pricing model.</p>
               </div>
             </td>
           </tr>
@@ -3458,6 +3541,428 @@
 
 
 
+<h3 id="sigalg.finance.BlackScholes" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">BlackScholes</span>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="sigalg.finance.continuous_pricing_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span></code></p>
+
+
+
+        <p>Class representing data for Black-Scholes pricing.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="sigalg.finance.BlackScholes.risk_free_rate" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">risk_free_rate</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">risk_free_rate</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Pass.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="sigalg.finance.BlackScholes.volatility" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">volatility</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">volatility</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Pass.</p>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="sigalg.finance.BlackScholes.delta" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">delta</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">delta</span><span class="p">(</span><span class="n">claim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Compute the delta process of a European call or put option.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>delta</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="            StochasticProcess (sigalg.processes.base.stochastic_process.StochasticProcess)" href="../processes/#sigalg.processes.StochasticProcess">StochasticProcess</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The delta process of the option.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="sigalg.finance.BlackScholes.from_data" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">from_data</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">from_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="p">,</span> <span class="n">volatility</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;S&#39;</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Pass.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="sigalg.finance.BlackScholes.generate" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">generate</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">generate</span><span class="p">(</span>
+    <span class="n">initial_price</span><span class="p">,</span>
+    <span class="n">risk_free_rate</span><span class="p">,</span>
+    <span class="n">volatility</span><span class="p">,</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;sim&quot;</span><span class="p">,</span>
+    <span class="n">n_trajectories</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">domain_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;S&quot;</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Generate trajectories of the Black Scholes model by Monte Carlo simulation.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>mode</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;enum&#39;, &#39;sim&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Not used. (This parameter is only included for consistency with the parent class.)</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;sim&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>n_trajectories</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The number of trajectories to simulate.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>index</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            Time (sigalg.core.Time)" href="../core/#sigalg.core.Time">Time</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The time index of the model. Must be provided. (The default is only included for consistency with the parent class.)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>length</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Not used. (This parameter is only included for consistency with the parent class.)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Hashable">Hashable</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the stochastic process.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;S&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>random_state</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | <span title="numpy.random.Generator">Generator</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An optional random state for reproducibility.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>model</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="            BlackScholes (sigalg.finance.continuous_pricing_models.black_scholes.BlackScholes)" href="#sigalg.finance.BlackScholes">BlackScholes</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The Black-Scholes pricing model.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="sigalg.finance.BlackScholes.price" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">price</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">price</span><span class="p">(</span><span class="n">claim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Compute the Black-Scholes price of a European call or put option.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>claim</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            Claim (sigalg.finance.claims.claim.Claim)" href="#sigalg.finance.Claim">Claim</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The contingent claim to price.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>price</code></td>            <td>
+                  <code><span title="numbers.Real">Real</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The Black-Scholes price of the option.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="sigalg.finance.BlackScholes.price_process" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">price_process</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">price_process</span><span class="p">(</span><span class="n">claim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Pass.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
 <h3 id="sigalg.finance.Claim" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">Claim</span>
 
@@ -3927,183 +4432,6 @@
 <span class="go">5      49.73275  88.401361  57.095238</span>
 <span class="go">6      49.73275  88.401361  95.238095</span>
 <span class="go">7      49.73275  88.401361  95.238095</span>
-</code></pre></div>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="sigalg.finance.Claim.BS_price" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">BS_price</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
-  </span>
-
-</h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">BS_price</span><span class="p">(</span>
-    <span class="n">initial_price</span><span class="p">,</span>
-    <span class="n">strike</span><span class="p">,</span>
-    <span class="n">risk_free_rate</span><span class="p">,</span>
-    <span class="n">volatility</span><span class="p">,</span>
-    <span class="n">time_to_maturity</span><span class="p">,</span>
-    <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span>
-<span class="p">)</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Compute the Black-Scholes price of a European call or put option.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>initial_price</code>
-            </td>
-            <td>
-                  <code><span title="numbers.Real">Real</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The initial price of the underlying asset.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>strike</code>
-            </td>
-            <td>
-                  <code><span title="numbers.Real">Real</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The strike price of the option.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>risk_free_rate</code>
-            </td>
-            <td>
-                  <code><span title="numbers.Real">Real</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The risk-free rate.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>volatility</code>
-            </td>
-            <td>
-                  <code><span title="numbers.Real">Real</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The volatility of the price of the underlying asset.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>time_to_maturity</code>
-            </td>
-            <td>
-                  <code><span title="numbers.Real">Real</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The time to maturity of the option.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>type</code>
-            </td>
-            <td>
-                  <code><span title="typing.Literal">Literal</span>[&#39;call&#39;, &#39;put&#39;]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The type of option.</p>
-              </div>
-            </td>
-            <td>
-                  <code>= &#34;call&#34;</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-<th>Name</th>          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-<td><code>price</code></td>            <td>
-                  <code><span title="numbers.Real">Real</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The Black-Scholes price of the option.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">Claim</span>
-</code></pre></div>
-    <p>Compute the BS prices of a European call and put option following Example 15.6 in Hull's <em>Options, Futures, and Other Derivatives</em> (11th edition).</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">T</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.5</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Claim</span><span class="o">.</span><span class="n">BS_price</span><span class="p">(</span><span class="n">S_0</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
-<span class="go">4.759422392871532</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Claim</span><span class="o">.</span><span class="n">BS_price</span><span class="p">(</span><span class="n">S_0</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">)</span>
-<span class="go">0.8085993729000922</span>
 </code></pre></div>
 
 
@@ -4806,7 +5134,7 @@
                 <code>model</code>
             </td>
             <td>
-                  <code><span title="sigalg.finance.discrete_pricing_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
+                  <code><span title="sigalg.finance.continuous_pricing_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_pricing_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5005,7 +5333,7 @@
                 <code>model</code>
             </td>
             <td>
-                  <code><span title="sigalg.finance.discrete_pricing_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
+                  <code><span title="sigalg.finance.continuous_pricing_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_pricing_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
             </td>
             <td>
               <div class="doc-md-description">
