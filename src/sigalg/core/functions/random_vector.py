@@ -289,6 +289,8 @@ class RandomVector(MeasurableVector):
         0  0.5
         1  0.5
         """
+        from ...processes.base.stochastic_process import StochasticProcess
+        from ..indices.time import Time
         from ..measures.probability_measure import ProbabilityMeasure
         from .random_variable import RandomVariable
 
@@ -313,7 +315,12 @@ class RandomVector(MeasurableVector):
         if result.dimension == 1:
             result.__class__ = RandomVariable
         else:
-            result.__class__ = RandomVector
+            if issubclass(cls, StochasticProcess):
+                result.__class__ = cls
+                result.index.__class__ = Time
+                result.index_kind = "Time"
+            else:
+                result.__class__ = RandomVector
 
         return result
 
