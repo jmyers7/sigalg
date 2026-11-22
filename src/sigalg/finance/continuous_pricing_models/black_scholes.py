@@ -408,7 +408,7 @@ class BlackScholes(ContinuousPricingModel):
     ) -> Real:
         """Compute the Black-Scholes price of a European call or put option.
 
-        This method may be called either a class method, in which case explicit parameters like the current price and time to maturity must be passed, or the method may be called on an instance of `BlackScholes` with an explict European option passed as the `claim` parameter.
+        This method may be called either as a class method, in which case explicit parameters like the current price and time to maturity must be passed, or the method may be called on an instance of `BlackScholes` with an explict European option passed as the `claim` parameter.
 
         Parameters
         ----------
@@ -646,7 +646,7 @@ class BlackScholes(ContinuousPricingModel):
     ) -> Real | StochasticProcess:
         """Compute the delta process of a European call or put option.
 
-        This method may be called either a class method, in which case explicit parameters like the current price and time to maturity must be passed, or the method may be called on an instance of `BlackScholes` with an explict European option passed as the `claim` parameter.
+        This method may be called either as a class method, in which case explicit parameters like the current price and time to maturity must be passed, or the method may be called on an instance of `BlackScholes` with an explict European option passed as the `claim` parameter.
 
         Parameters
         ----------
