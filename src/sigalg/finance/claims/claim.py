@@ -580,6 +580,22 @@ class Claim(StochasticProcess):
     ) -> EuropeanOption:
         """Create a European option.
 
+        Parameters
+        ----------
+        strike : Real
+            The strike price of the option.
+        model : ContinuousPricingModel | DiscretePricingModel
+            The model of the underlying asset.
+        type : Literal["call", "put"], default="call"
+            The type of option.
+        name : Hashable, default="Phi"
+            The name of the option.
+
+        Returns
+        -------
+        option : EuropeanOption
+            The option.
+
         Examples
         --------
         >>> from sigalg.finance import BinomialPricingModel, Claim
@@ -644,14 +660,28 @@ class Claim(StochasticProcess):
         """
         from .european_option import EuropeanOption
 
-        if type == "call":
-            rv = (model.last_rv - strike).max(0)
-        else:
-            rv = (strike - model.last_rv).max(0)
+        S_T = model.data.iloc[:, -1]
 
-        claim = cls.from_random_variables(
-            rvs=[rv], times=[model.time[-1]], model=model, name=name
+        if type == "call":
+            Phi = (S_T - strike >= 0) * (
+                S_T - strike
+            ) + 0.0  # add 0.0 to kill stupid negative zeros
+        else:
+            Phi = (strike - S_T >= 0) * (strike - S_T) + 0.0
+
+        data = pd.DataFrame(0.0, index=model.domain.data, columns=model.time.data)
+        data[Phi.name] = Phi
+
+        claim = Claim._from_validated(
+            data=data,
+            sig_alg=model.sig_alg,
+            measure=model.measure,
+            index_kind="Time",
+            index_name=model.index_name,
+            name=name,
         )
+
+        claim.model = model
         claim.__class__ = EuropeanOption
         claim._strike = strike
         claim._option_type = type
@@ -662,47 +692,25 @@ class Claim(StochasticProcess):
     def asian_option(
         cls,
         strike: Real,
-        model: DiscretePricingModel,
+        model: ContinuousPricingModel | DiscretePricingModel,
         type: Literal["call", "put"] = "call",
         early_exercise: bool = False,
         name: Hashable = "Phi",
     ) -> AsianOption:
-        """Pass."""
-        from .asian_option import AsianOption
-
-        if type == "call":
-            if early_exercise:
-                process = (model.cumavg() - strike).max(0)
-            else:
-                rv = (model.cumavg().last_rv - strike).max(0)
-        else:
-            if early_exercise:
-                process = (strike - model.cumavg()).max(0)
-            else:
-                rv = (strike - model.cumavg().last_rv).max(0)
-
-        if early_exercise:
-            claim = cls.from_stochastic_process(process=process, model=model, name=name)
-        else:
-            claim = cls.from_random_variables(
-                rvs=[rv], times=[model.time[-1]], model=model, name=name
-            )
-
-        claim.__class__ = AsianOption
-        claim._strike = strike
-        claim._option_type = type
-
-        return claim
-
-    @classmethod
-    def american_option(
-        cls,
-        strike: Real,
-        model: DiscretePricingModel,
-        type: Literal["call", "put"] = "call",
-        name: Hashable = "Phi",
-    ) -> AmericanOption:
         """Create an Asian option.
+
+        Parameters
+        ----------
+        strike : Real
+            The strike price of the option.
+        model : ContinuousPricingModel | DiscretePricingModel
+            The model of the underlying asset.
+        type : Literal["call", "put"], default="call"
+            The type of option.
+        early_exercise : bool, default=False
+            Whether the claim allows early exercise.
+        name : Hashable, default="Phi"
+            The name of the option.
 
         Examples
         --------
@@ -737,7 +745,7 @@ class Claim(StochasticProcess):
 
         >>> K = 100
         >>> Phi_call_no_early = Claim.asian_option(
-        ...     strike=100, model=S, type="call", early_exercise=False, name="Phi_call_no_early"
+        ...     strike=K, model=S, type="call", early_exercise=False, name="Phi_call_no_early"
         ... )
         >>> print(Phi_call_no_early)  # doctest: +NORMALIZE_WHITESPACE
         Asian option 'Phi_call_no_early':
@@ -755,7 +763,7 @@ class Claim(StochasticProcess):
         Create an Asian call with the same strike and with early exercise.
 
         >>> Phi_call_early = Claim.asian_option(
-        ...     strike=100, model=S, type="call", early_exercise=True, name="Phi_call_early"
+        ...     strike=K, model=S, type="call", early_exercise=True, name="Phi_call_early"
         ... )
         >>> print(Phi_call_early)  # doctest: +NORMALIZE_WHITESPACE
         Asian option 'Phi_call_early':
@@ -773,7 +781,7 @@ class Claim(StochasticProcess):
         Create an Asian put with the same strike and no early exercise.
 
         >>> Phi_put_no_early = Claim.asian_option(
-        ...     strike=100, model=S, type="put", early_exercise=False, name="Phi_put_no_early"
+        ...     strike=K, model=S, type="put", early_exercise=False, name="Phi_put_no_early"
         ... )
         >>> print(Phi_put_no_early)  # doctest: +NORMALIZE_WHITESPACE
         Asian option 'Phi_put_no_early':
@@ -791,7 +799,7 @@ class Claim(StochasticProcess):
         Create an Asian put with the same strike and early exercise.
 
         >>> Phi_put_early = Claim.asian_option(
-        ...     strike=100, model=S, type="put", early_exercise=True, name="Phi_put_early"
+        ...     strike=K, model=S, type="put", early_exercise=True, name="Phi_put_early"
         ... )
         >>> print(Phi_put_early)  # doctest: +NORMALIZE_WHITESPACE
         Asian option 'Phi_put_early':
@@ -806,14 +814,150 @@ class Claim(StochasticProcess):
         6      0.0  5.0  9.666667   9.975
         7      0.0  5.0  9.666667  14.025
         """
+        from .asian_option import AsianOption
+
+        if type == "call":
+            if early_exercise:
+                process = (model.cumavg() - strike).max(0)
+            else:
+                Phi = (model.cumavg().last_rv - strike).max(0)
+                Phi.data.name = model.time[-1]
+                Phi.name = model.time[-1]
+        else:
+            if early_exercise:
+                process = (strike - model.cumavg()).max(0)
+            else:
+                Phi = (strike - model.cumavg().last_rv).max(0)
+                Phi.data.name = model.time[-1]
+                Phi.name = model.time[-1]
+
+        if early_exercise:
+            data = process.data
+        else:
+            data = pd.DataFrame(0.0, index=model.domain.data, columns=model.time.data)
+            data[Phi.name] = Phi
+
+        claim = Claim._from_validated(
+            data=data,
+            sig_alg=model.sig_alg,
+            measure=model.measure,
+            index_kind="Time",
+            index_name=model.index_name,
+            name=name,
+        )
+
+        claim.model = model
+        claim.__class__ = AsianOption
+        claim._strike = strike
+        claim._option_type = type
+
+        return claim
+
+    @classmethod
+    def american_option(
+        cls,
+        strike: Real,
+        model: ContinuousPricingModel | DiscretePricingModel,
+        type: Literal["call", "put"] = "call",
+        name: Hashable = "Phi",
+    ) -> AmericanOption:
+        """Create an American option.
+
+        Parameters
+        ----------
+        strike : Real
+            The strike price of the option.
+        model : ContinuousPricingModel | DiscretePricingModel
+            The model of the underlying asset.
+        type : Literal["call", "put"], default="call"
+            The type of option.
+        name : Hashable, default="Phi"
+            The name of the option.
+
+        Returns
+        -------
+        option : EuropeanOption
+            The option.
+
+        Examples
+        --------
+        >>> from sigalg.finance import BinomialPricingModel, Claim
+
+        Define a binomial pricing model.
+
+        >>> S = BinomialPricingModel.generate(
+        ...     initial_price=100,
+        ...     up_prob=0.7,
+        ...     up_factor=1.1,
+        ...     down_factor=0.9,
+        ...     risk_free_rate=0.05,
+        ...     enum_mode="dense",
+        ...     mode="enum",
+        ...     length=3,
+        ... )
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        t          0      1      2      3
+        omega
+        0      100.0  110.0  121.0  133.1
+        1      100.0  110.0  121.0  108.9
+        2      100.0  110.0   99.0  108.9
+        3      100.0  110.0   99.0   89.1
+        4      100.0   90.0   99.0  108.9
+        5      100.0   90.0   99.0   89.1
+        6      100.0   90.0   81.0   89.1
+        7      100.0   90.0   81.0   72.9
+
+        Create an American call option with strike `K=100`.
+
+        >>> K = 100
+        >>> Phi = Claim.american_option(strike=K, model=S, type="call")
+        >>> print(Phi)  # doctest: +NORMALIZE_WHITESPACE
+        American option 'Phi':
+        t        0     1     2     3
+        omega
+        0      0.0  10.0  21.0  33.1
+        1      0.0  10.0  21.0   8.9
+        2      0.0  10.0   0.0   8.9
+        3      0.0  10.0   0.0   0.0
+        4      0.0   0.0   0.0   8.9
+        5      0.0   0.0   0.0   0.0
+        6      0.0   0.0   0.0   0.0
+        7      0.0   0.0   0.0   0.0
+
+        Create an American put with the same strike.
+
+        >>> Phi = Claim.american_option(strike=K, model=S, type="put")
+        >>> print(Phi)  # doctest: +NORMALIZE_WHITESPACE
+        American option 'Phi':
+        t        0     1     2     3
+        omega
+        0      0.0   0.0   0.0   0.0
+        1      0.0   0.0   0.0   0.0
+        2      0.0   0.0   1.0   0.0
+        3      0.0   0.0   1.0  10.9
+        4      0.0  10.0   1.0   0.0
+        5      0.0  10.0   1.0  10.9
+        6      0.0  10.0  19.0  10.9
+        7      0.0  10.0  19.0  27.1
+        """
         from .american_option import AmericanOption
 
         if type == "call":
-            process = (model - strike).max(0)
+            data = (model.data - strike >= 0) * (model.data - strike) + 0.0
         else:
-            process = (strike - model).max(0)
+            data = (strike - model.data >= 0) * (strike - model.data) + 0.0
 
-        claim = cls.from_stochastic_process(process=process, model=model, name=name)
+        claim = Claim._from_validated(
+            data=data,
+            sig_alg=model.sig_alg,
+            measure=model.measure,
+            index_kind="Time",
+            index_name=model.index_name,
+            name=name,
+        )
+
+        claim.model = model
         claim.__class__ = AmericanOption
         claim._strike = strike
         claim._option_type = type
