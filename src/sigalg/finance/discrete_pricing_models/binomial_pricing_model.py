@@ -159,8 +159,8 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Returns
         -------
-        info : dict[str, object]
-            A dictionary containing the names of the BinomialPricingModel-specific parameters and their values.
+        model : BinomialPricingModel
+            The binomial pricing model.
 
         Examples
         --------
