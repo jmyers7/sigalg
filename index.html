@@ -827,19 +827,20 @@
 
 <span class="n">sa</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">set_style</span><span class="p">(</span><span class="s2">&quot;black&quot;</span><span class="p">)</span>
 
-<span class="n">S_0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span>
+<span class="n">S_0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.1</span>
 <span class="n">T</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
 
 <span class="n">S</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">BlackScholes</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
     <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
     <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+    <span class="n">expected_return</span><span class="o">=</span><span class="n">mu</span><span class="p">,</span>
     <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
     <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
     <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
     <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="n">Phi</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="mi">52</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">)</span>
+<span class="n">Phi</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="mi">52</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">)</span>
 <span class="n">X</span> <span class="o">=</span> <span class="n">Phi</span><span class="o">.</span><span class="n">price_process</span><span class="p">()</span>  <span class="c1"># (1)!</span>
 <span class="n">delta</span> <span class="o">=</span> <span class="n">Phi</span><span class="o">.</span><span class="n">delta</span><span class="p">()</span>  <span class="c1"># (2)!</span>
 
@@ -881,7 +882,7 @@
 <span class="p">)</span>
 
 <span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="n">euro_call</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="n">euro_call</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 
 <span class="n">Delta</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="n">X</span> <span class="o">=</span> <span class="n">euro_call</span><span class="o">.</span><span class="n">price_process</span><span class="p">()</span>
@@ -920,7 +921,7 @@
 <span class="n">american_put</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span>
     <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span>
     <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span>
-    <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span>
+    <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span>
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 

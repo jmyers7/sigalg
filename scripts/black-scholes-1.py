@@ -5,19 +5,20 @@ import sigalg as sa
 
 sa.style.set_style("black")
 
-S_0, r, sigma = 50, 0.01, 0.1
+S_0, r, mu, sigma = 50, 0.01, 0.02, 0.1
 T = sa.Time.continuous(start=0, stop=5, dt=0.1)
 
 S = sa.BlackScholes.generate(
     initial_price=S_0,
     risk_free_rate=r,
+    expected_return=mu,
     volatility=sigma,
     n_trajectories=10,
     index=T,
     random_state=42,
 )
 
-Phi = sa.Claim.european_option(strike=52, model=S, type="put")
+Phi = sa.Claim.european_option(strike=52, model=S, option_type="put")
 X = Phi.price_process()  # (1)!
 delta = Phi.delta()  # (2)!
 

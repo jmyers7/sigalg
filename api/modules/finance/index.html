@@ -802,6 +802,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#sigalg.finance.BlackScholes.expected_return" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;expected_return
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sigalg.finance.BlackScholes.risk_free_rate" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1370,7 +1381,7 @@
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="sigalg.finance.discrete_pricing_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code></p>
+              Bases: <code><span title="sigalg.finance.discrete_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code></p>
 
 
 
@@ -1945,7 +1956,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -1974,7 +1985,7 @@
 <span class="go">7     -61.564626 -27.244898   0.000000</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -2106,7 +2117,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -2135,7 +2146,7 @@
 <span class="go">7      15.306122   4.540816   0.000000   0.0</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -2267,7 +2278,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -2296,7 +2307,7 @@
 <span class="go">7      0.768707  0.353175 -0.000000</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -2518,7 +2529,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -2547,7 +2558,7 @@
 <span class="go">7      inf</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -2846,7 +2857,7 @@
       <tbody>
           <tr class="doc-section-item">
 <td><code>model</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="            BinomialPricingModel (sigalg.finance.discrete_pricing_models.binomial_pricing_model.BinomialPricingModel)" href="#sigalg.finance.BinomialPricingModel">BinomialPricingModel</a></code>
+                  <code><a class="autorefs autorefs-internal" title="            BinomialPricingModel (sigalg.finance.discrete_models.binomial_pricing_model.BinomialPricingModel)" href="#sigalg.finance.BinomialPricingModel">BinomialPricingModel</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3033,7 +3044,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -3052,7 +3063,7 @@
 <span class="go">15.306122448979611</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -3174,7 +3185,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -3203,7 +3214,7 @@
 <span class="go">7      15.306122   4.540816   0.000000   0.0</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -3335,7 +3346,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -3391,7 +3402,7 @@
 <span class="go">7      15.306122   4.540816   0.000000   0.0</span>
 </code></pre></div>
     <p>Now define an Asian put option with early-exercise and the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">asian_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">asian_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;asian_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">asian_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">asian_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;asian_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">asian_put</span><span class="p">)</span>
 <span class="go">Asian option &#39;asian_put&#39;:</span>
 <span class="go">t        0    1         2       3</span>
@@ -3550,7 +3561,7 @@
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="sigalg.finance.continuous_pricing_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span></code></p>
+              Bases: <code><span title="sigalg.finance.continuous_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span></code></p>
 
 
 
@@ -3564,12 +3575,13 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
 </code></pre></div>
     <p>Build a Black-Scholes model with 5 simulated trajectories.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.2</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">mu</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.04</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">expected_return</span><span class="o">=</span><span class="n">mu</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
@@ -3578,26 +3590,26 @@
 <span class="go">Black-Scholes model &#39;S&#39;:</span>
 <span class="go">t      0.0        0.5        1.0        1.5        2.0</span>
 <span class="go">omega</span>
-<span class="go">0       49  52.452804  46.424988  52.929861  61.990652</span>
-<span class="go">1       49  38.126221  32.516455  33.947854  33.284844</span>
-<span class="go">2       49  50.121209  45.549772  52.887726  60.531729</span>
-<span class="go">3       49  50.711791  60.981737  66.799142  60.652929</span>
-<span class="go">4       49  52.929960  47.387717  55.014385  56.010216</span>
+<span class="go">0       49  52.191195  45.963051  52.141838  60.763155</span>
+<span class="go">1       49  37.936065  32.192911  33.442436  32.625760</span>
+<span class="go">2       49  49.871229  45.096545  52.100330  59.333120</span>
+<span class="go">3       49  50.458865  60.374959  65.804632  59.451921</span>
+<span class="go">4       49  52.665971  46.916201  54.195327  54.901139</span>
 </code></pre></div>
     <p>Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">50</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
 </code></pre></div>
     <p>Print the payoffs of the option.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
 <span class="go">European option &#39;Phi&#39;:</span>
 <span class="go">t      0.0  0.5  1.0  1.5        2.0</span>
 <span class="go">omega</span>
-<span class="go">0      0.0  0.0  0.0  0.0  11.990652</span>
+<span class="go">0      0.0  0.0  0.0  0.0  10.763155</span>
 <span class="go">1      0.0  0.0  0.0  0.0   0.000000</span>
-<span class="go">2      0.0  0.0  0.0  0.0  10.531729</span>
-<span class="go">3      0.0  0.0  0.0  0.0  10.652929</span>
-<span class="go">4      0.0  0.0  0.0  0.0   6.010216</span>
+<span class="go">2      0.0  0.0  0.0  0.0   9.333120</span>
+<span class="go">3      0.0  0.0  0.0  0.0   9.451921</span>
+<span class="go">4      0.0  0.0  0.0  0.0   4.901139</span>
 </code></pre></div>
     <p>Compute the price process of the claim.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">price_process</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
@@ -3605,11 +3617,11 @@
 <span class="go">Stochastic process &#39;X&#39;:</span>
 <span class="go">t           0.0       0.5        1.0        1.5        2.0</span>
 <span class="go">omega</span>
-<span class="go">0      7.386405  8.440085   3.202279   5.415626  11.990652</span>
-<span class="go">1      7.386405  1.231376   0.086297   0.009507   0.000000</span>
-<span class="go">2      7.386405  6.802385   2.788511   5.384392  10.531729</span>
-<span class="go">3      7.386405  7.202873  13.971552  18.070297  10.652929</span>
-<span class="go">4      7.386405  8.793073   3.695375   7.049514   6.010216</span>
+<span class="go">0      7.386405  8.249011   2.979762   4.844518  10.763155</span>
+<span class="go">1      7.386405  1.184672   0.075325   0.006723   0.000000</span>
+<span class="go">2      7.386405  6.635949   2.587312   4.815220   9.333120</span>
+<span class="go">3      7.386405  7.030119  13.421694  17.088206   9.451921</span>
+<span class="go">4      7.386405  8.597073   3.448950   6.387844   4.901139</span>
 </code></pre></div>
     <p>Compute the Delta-hedging process for the claim.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Delta</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">delta</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
@@ -3617,11 +3629,11 @@
 <span class="go">Stochastic process &#39;Delta&#39;:</span>
 <span class="go">t           0.0       0.5       1.0       1.5</span>
 <span class="go">omega</span>
-<span class="go">0      0.664052  0.733743  0.491652  0.742201</span>
-<span class="go">1      0.664052  0.248827  0.035821  0.006380</span>
-<span class="go">2      0.664052  0.669505  0.453792  0.740379</span>
-<span class="go">3      0.664052  0.686647  0.910325  0.989155</span>
-<span class="go">4      0.664052  0.745740  0.532557  0.822070</span>
+<span class="go">0      0.664052  0.726999  0.471728  0.706807</span>
+<span class="go">1      0.664052  0.242402  0.032057  0.004709</span>
+<span class="go">2      0.664052  0.662075  0.434044  0.704867</span>
+<span class="go">3      0.664052  0.679377  0.901952  0.985726</span>
+<span class="go">4      0.664052  0.739151  0.512644  0.793097</span>
 </code></pre></div>
 
 
@@ -3641,6 +3653,30 @@
 
 
 
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="sigalg.finance.BlackScholes.expected_return" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">expected_return</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">expected_return</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the expected return of the model.</p>
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-attribute">
 
@@ -3876,7 +3912,7 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
 </code></pre></div>
     <p>Define pricing parameters.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mi">20</span> <span class="o">/</span> <span class="mi">52</span><span class="p">,</span> <span class="mf">0.2</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">mu</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mi">20</span> <span class="o">/</span> <span class="mi">52</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.4</span>
 </code></pre></div>
     <p>Compute a delta using the method as a class method with explicit pricing parameters.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">delta</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">delta</span><span class="p">(</span>
@@ -3896,6 +3932,7 @@
 <span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">expected_return</span><span class="o">=</span><span class="n">mu</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
@@ -3937,7 +3974,13 @@
   </span>
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">from_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="p">,</span> <span class="n">volatility</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;S&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">from_data</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">,</span>
+    <span class="n">risk_free_rate</span><span class="p">,</span>
+    <span class="n">volatility</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">expected_return</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;S&quot;</span><span class="p">,</span>
+<span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4006,6 +4049,22 @@
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>expected_return</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The expected return of the underlying asset. If <code>None</code>, will be set equal to <code>risk_free_rate</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>name</code>
             </td>
             <td>
@@ -4040,7 +4099,7 @@
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
     <p>Build a Black-Scholes model using the data.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">expected_return</span><span class="o">=</span><span class="mf">0.045</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
 <span class="go">Black-Scholes model &#39;S&#39;:</span>
 <span class="go">t      0.0    0.5    1.0    1.5    2.0</span>
@@ -4053,7 +4112,7 @@
 </code></pre></div>
     <p>Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">50</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
 </code></pre></div>
     <p>Print the payoffs of the option.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
@@ -4108,6 +4167,7 @@
     <span class="n">initial_price</span><span class="p">,</span>
     <span class="n">risk_free_rate</span><span class="p">,</span>
     <span class="n">volatility</span><span class="p">,</span>
+    <span class="n">expected_return</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;sim&quot;</span><span class="p">,</span>
     <span class="n">n_trajectories</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">domain_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -4180,6 +4240,22 @@
             </td>
             <td>
                 <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>expected_return</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The expected return of the underlying asset. If <code>None</code>, will be set equal to <code>risk_free_rate</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -4293,7 +4369,7 @@
       <tbody>
           <tr class="doc-section-item">
 <td><code>model</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="            BlackScholes (sigalg.finance.continuous_pricing_models.black_scholes.BlackScholes)" href="#sigalg.finance.BlackScholes">BlackScholes</a></code>
+                  <code><a class="autorefs autorefs-internal" title="            BlackScholes (sigalg.finance.continuous_models.black_scholes.BlackScholes)" href="#sigalg.finance.BlackScholes">BlackScholes</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4311,12 +4387,13 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
 </code></pre></div>
     <p>Build a Black-Scholes model with 5 simulated trajectories.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.2</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">mu</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.04</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">expected_return</span><span class="o">=</span><span class="n">mu</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
@@ -4325,26 +4402,26 @@
 <span class="go">Black-Scholes model &#39;S&#39;:</span>
 <span class="go">t      0.0        0.5        1.0        1.5        2.0</span>
 <span class="go">omega</span>
-<span class="go">0       49  52.452804  46.424988  52.929861  61.990652</span>
-<span class="go">1       49  38.126221  32.516455  33.947854  33.284844</span>
-<span class="go">2       49  50.121209  45.549772  52.887726  60.531729</span>
-<span class="go">3       49  50.711791  60.981737  66.799142  60.652929</span>
-<span class="go">4       49  52.929960  47.387717  55.014385  56.010216</span>
+<span class="go">0       49  52.191195  45.963051  52.141838  60.763155</span>
+<span class="go">1       49  37.936065  32.192911  33.442436  32.625760</span>
+<span class="go">2       49  49.871229  45.096545  52.100330  59.333120</span>
+<span class="go">3       49  50.458865  60.374959  65.804632  59.451921</span>
+<span class="go">4       49  52.665971  46.916201  54.195327  54.901139</span>
 </code></pre></div>
     <p>Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">50</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
 </code></pre></div>
     <p>Print the payoffs of the option.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
 <span class="go">European option &#39;Phi&#39;:</span>
 <span class="go">t      0.0  0.5  1.0  1.5        2.0</span>
 <span class="go">omega</span>
-<span class="go">0      0.0  0.0  0.0  0.0  11.990652</span>
+<span class="go">0      0.0  0.0  0.0  0.0  10.763155</span>
 <span class="go">1      0.0  0.0  0.0  0.0   0.000000</span>
-<span class="go">2      0.0  0.0  0.0  0.0  10.531729</span>
-<span class="go">3      0.0  0.0  0.0  0.0  10.652929</span>
-<span class="go">4      0.0  0.0  0.0  0.0   6.010216</span>
+<span class="go">2      0.0  0.0  0.0  0.0   9.333120</span>
+<span class="go">3      0.0  0.0  0.0  0.0   9.451921</span>
+<span class="go">4      0.0  0.0  0.0  0.0   4.901139</span>
 </code></pre></div>
     <p>Compute the price process of the claim.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">price_process</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
@@ -4352,11 +4429,11 @@
 <span class="go">Stochastic process &#39;X&#39;:</span>
 <span class="go">t           0.0       0.5        1.0        1.5        2.0</span>
 <span class="go">omega</span>
-<span class="go">0      7.386405  8.440085   3.202279   5.415626  11.990652</span>
-<span class="go">1      7.386405  1.231376   0.086297   0.009507   0.000000</span>
-<span class="go">2      7.386405  6.802385   2.788511   5.384392  10.531729</span>
-<span class="go">3      7.386405  7.202873  13.971552  18.070297  10.652929</span>
-<span class="go">4      7.386405  8.793073   3.695375   7.049514   6.010216</span>
+<span class="go">0      7.386405  8.249011   2.979762   4.844518  10.763155</span>
+<span class="go">1      7.386405  1.184672   0.075325   0.006723   0.000000</span>
+<span class="go">2      7.386405  6.635949   2.587312   4.815220   9.333120</span>
+<span class="go">3      7.386405  7.030119  13.421694  17.088206   9.451921</span>
+<span class="go">4      7.386405  8.597073   3.448950   6.387844   4.901139</span>
 </code></pre></div>
     <p>Compute the Delta-hedging process for the claim.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Delta</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">delta</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
@@ -4364,11 +4441,11 @@
 <span class="go">Stochastic process &#39;Delta&#39;:</span>
 <span class="go">t           0.0       0.5       1.0       1.5</span>
 <span class="go">omega</span>
-<span class="go">0      0.664052  0.733743  0.491652  0.742201</span>
-<span class="go">1      0.664052  0.248827  0.035821  0.006380</span>
-<span class="go">2      0.664052  0.669505  0.453792  0.740379</span>
-<span class="go">3      0.664052  0.686647  0.910325  0.989155</span>
-<span class="go">4      0.664052  0.745740  0.532557  0.822070</span>
+<span class="go">0      0.664052  0.726999  0.471728  0.706807</span>
+<span class="go">1      0.664052  0.242402  0.032057  0.004709</span>
+<span class="go">2      0.664052  0.662075  0.434044  0.704867</span>
+<span class="go">3      0.664052  0.679377  0.901952  0.985726</span>
+<span class="go">4      0.664052  0.739151  0.512644  0.793097</span>
 </code></pre></div>
 
 
@@ -4541,11 +4618,11 @@
       <tbody>
           <tr class="doc-section-item">
 <td><code>price</code></td>            <td>
-                  <code><span title="numbers.Real">Real</span></code>
+                  <code><span title="numbers.Real">Real</span> | <span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The Black-Scholes price of the option.</p>
+                <p>If the method is used as a class method, a real number is returned. If it is used as an instance method, an array containing the prices of each trajectory is return.</p>
               </div>
             </td>
           </tr>
@@ -4559,7 +4636,7 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
 </code></pre></div>
     <p>Define pricing parameters.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mi">20</span> <span class="o">/</span> <span class="mi">52</span><span class="p">,</span> <span class="mf">0.2</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">mu</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mi">20</span> <span class="o">/</span> <span class="mi">52</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.04</span>
 </code></pre></div>
     <p>Compute a price using the method as a class method with explicit pricing parameters.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">price</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">price</span><span class="p">(</span>
@@ -4579,6 +4656,7 @@
 <span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">expected_return</span><span class="o">=</span><span class="n">mu</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
@@ -4586,8 +4664,20 @@
 </code></pre></div>
     <p>Define a <code>Claim</code> instance and price it.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span><span class="o">.</span><span class="n">price</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
-<span class="go">2.4005273232717137</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">S</span><span class="o">.</span><span class="n">price</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">))</span>
+<span class="go">Random variable &#39;X_0_0&#39;:</span>
+<span class="go">          X_0_0</span>
+<span class="go">omega</span>
+<span class="go">0      2.400527</span>
+<span class="go">1      2.400527</span>
+<span class="go">2      2.400527</span>
+<span class="go">3      2.400527</span>
+<span class="go">4      2.400527</span>
+<span class="go">5      2.400527</span>
+<span class="go">6      2.400527</span>
+<span class="go">7      2.400527</span>
+<span class="go">8      2.400527</span>
+<span class="go">9      2.400527</span>
 </code></pre></div>
 
 
@@ -4648,52 +4738,53 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
 </code></pre></div>
     <p>Build a Black-Scholes model with 5 simulated trajectories.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.2</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">mu</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.4</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">expected_return</span><span class="o">=</span><span class="n">mu</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
 <span class="go">Black-Scholes model &#39;S&#39;:</span>
-<span class="go">t      0.0        0.5        1.0        1.5        2.0</span>
+<span class="go">t      0.0        0.5        1.0         1.5         2.0</span>
 <span class="go">omega</span>
-<span class="go">0       49  52.452804  46.424988  52.929861  61.990652</span>
-<span class="go">1       49  38.126221  32.516455  33.947854  33.284844</span>
-<span class="go">2       49  50.121209  45.549772  52.887726  60.531729</span>
-<span class="go">3       49  50.711791  60.981737  66.799142  60.652929</span>
-<span class="go">4       49  52.929960  47.387717  55.014385  56.010216</span>
+<span class="go">0       49  62.484205  65.880193   89.475752  124.833844</span>
+<span class="go">1       49  45.417716  46.143046   57.387449   67.027446</span>
+<span class="go">2       49  59.706701  64.638204   89.404524  121.895933</span>
+<span class="go">3       49  60.410229  86.537204  112.921200  122.140000</span>
+<span class="go">4       49  63.052615  67.246371   92.999553  112.790724</span>
 </code></pre></div>
     <p>Define a European call option with the Black-Scholes model as the model for the price process of the underlying asset.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">50</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
 </code></pre></div>
     <p>Print the payoffs of the option.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
 <span class="go">European option &#39;Phi&#39;:</span>
 <span class="go">t      0.0  0.5  1.0  1.5        2.0</span>
 <span class="go">omega</span>
-<span class="go">0      0.0  0.0  0.0  0.0  11.990652</span>
-<span class="go">1      0.0  0.0  0.0  0.0   0.000000</span>
-<span class="go">2      0.0  0.0  0.0  0.0  10.531729</span>
-<span class="go">3      0.0  0.0  0.0  0.0  10.652929</span>
-<span class="go">4      0.0  0.0  0.0  0.0   6.010216</span>
+<span class="go">0      0.0  0.0  0.0  0.0  74.833844</span>
+<span class="go">1      0.0  0.0  0.0  0.0  17.027446</span>
+<span class="go">2      0.0  0.0  0.0  0.0  71.895933</span>
+<span class="go">3      0.0  0.0  0.0  0.0  72.140000</span>
+<span class="go">4      0.0  0.0  0.0  0.0  62.790724</span>
 </code></pre></div>
     <p>Compute the price process of the claim.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">price_process</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
 <span class="go">Stochastic process &#39;X&#39;:</span>
-<span class="go">t           0.0       0.5        1.0        1.5        2.0</span>
+<span class="go">t           0.0        0.5        1.0        1.5        2.0</span>
 <span class="go">omega</span>
-<span class="go">0      7.386405  8.440085   3.202279   5.415626  11.990652</span>
-<span class="go">1      7.386405  1.231376   0.086297   0.009507   0.000000</span>
-<span class="go">2      7.386405  6.802385   2.788511   5.384392  10.531729</span>
-<span class="go">3      7.386405  7.202873  13.971552  18.070297  10.652929</span>
-<span class="go">4      7.386405  8.793073   3.695375   7.049514   6.010216</span>
+<span class="go">0      7.386405  16.809103  18.560704  40.710274  74.833844</span>
+<span class="go">1      7.386405   4.006231   3.065372   9.084691  17.027446</span>
+<span class="go">2      7.386405  14.327734  17.376318  40.639046  71.895933</span>
+<span class="go">3      7.386405  14.947097  38.980742  64.155705  72.140000</span>
+<span class="go">4      7.386405  17.327843  19.875574  44.234062  62.790724</span>
 </code></pre></div>
 
 
@@ -5126,7 +5217,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -5155,7 +5246,7 @@
 <span class="go">7     -61.564626 -27.244898   0.000000</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -5201,7 +5292,9 @@
   </span>
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">american_option</span><span class="p">(</span><span class="n">strike</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;call&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Phi&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">american_option</span><span class="p">(</span>
+    <span class="n">strike</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi&quot;</span>
+<span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -5241,7 +5334,7 @@
                 <code>model</code>
             </td>
             <td>
-                  <code><span title="sigalg.finance.continuous_pricing_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_pricing_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
+                  <code><span title="sigalg.finance.continuous_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5254,7 +5347,7 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>type</code>
+                <code>option_type</code>
             </td>
             <td>
                   <code><span title="typing.Literal">Literal</span>[&#39;call&#39;, &#39;put&#39;]</code>
@@ -5340,7 +5433,7 @@
 </code></pre></div>
     <p>Create an American call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
 <span class="go">American option &#39;Phi&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -5355,7 +5448,7 @@
 <span class="go">7      0.0   0.0   0.0   0.0</span>
 </code></pre></div>
     <p>Create an American put with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
 <span class="go">American option &#39;Phi&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -5390,7 +5483,7 @@
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">asian_option</span><span class="p">(</span>
     <span class="n">strike</span><span class="p">,</span>
     <span class="n">model</span><span class="p">,</span>
-    <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span>
+    <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span>
     <span class="n">early_exercise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi&quot;</span><span class="p">,</span>
 <span class="p">)</span>
@@ -5433,7 +5526,7 @@
                 <code>model</code>
             </td>
             <td>
-                  <code><span title="sigalg.finance.continuous_pricing_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_pricing_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
+                  <code><span title="sigalg.finance.continuous_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5526,7 +5619,7 @@
     <p>Create an Asian call option with strike <code>K=100</code> and no early exercise.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Phi_call_no_early</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">asian_option</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_call_no_early&quot;</span>
+<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_call_no_early&quot;</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi_call_no_early</span><span class="p">)</span>
 <span class="go">Asian option &#39;Phi_call_no_early&#39;:</span>
@@ -5543,7 +5636,7 @@
 </code></pre></div>
     <p>Create an Asian call with the same strike and with early exercise.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Phi_call_early</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">asian_option</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_call_early&quot;</span>
+<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_call_early&quot;</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi_call_early</span><span class="p">)</span>
 <span class="go">Asian option &#39;Phi_call_early&#39;:</span>
@@ -5560,7 +5653,7 @@
 </code></pre></div>
     <p>Create an Asian put with the same strike and no early exercise.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Phi_put_no_early</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">asian_option</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_put_no_early&quot;</span>
+<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_put_no_early&quot;</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi_put_no_early</span><span class="p">)</span>
 <span class="go">Asian option &#39;Phi_put_no_early&#39;:</span>
@@ -5577,7 +5670,7 @@
 </code></pre></div>
     <p>Create an Asian put with the same strike and early exercise.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Phi_put_early</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">asian_option</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_put_early&quot;</span>
+<span class="gp">... </span>    <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_put_early&quot;</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi_put_early</span><span class="p">)</span>
 <span class="go">Asian option &#39;Phi_put_early&#39;:</span>
@@ -5665,7 +5758,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -5694,7 +5787,7 @@
 <span class="go">7      15.306122   4.540816   0.000000   0.0</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -5795,7 +5888,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -5824,7 +5917,7 @@
 <span class="go">7      0.768707  0.353175 -0.000000</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -5870,7 +5963,9 @@
   </span>
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">european_option</span><span class="p">(</span><span class="n">strike</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;call&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Phi&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">european_option</span><span class="p">(</span>
+    <span class="n">strike</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi&quot;</span>
+<span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -5910,7 +6005,7 @@
                 <code>model</code>
             </td>
             <td>
-                  <code><span title="sigalg.finance.continuous_pricing_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_pricing_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
+                  <code><span title="sigalg.finance.continuous_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5923,7 +6018,7 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>type</code>
+                <code>option_type</code>
             </td>
             <td>
                   <code><span title="typing.Literal">Literal</span>[&#39;call&#39;, &#39;put&#39;]</code>
@@ -6009,7 +6104,7 @@
 </code></pre></div>
     <p>Create a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi_call</span><span class="p">)</span>
 <span class="go">European option &#39;Phi_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -6024,7 +6119,7 @@
 <span class="go">7      0.0  0.0  0.0   0.0</span>
 </code></pre></div>
     <p>Create a European put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Phi_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Phi_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Phi_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Phi_put</span><span class="p">)</span>
 <span class="go">European option &#39;Phi_put&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -6111,7 +6206,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -6140,7 +6235,7 @@
 <span class="go">7      inf</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -6243,7 +6338,7 @@
                 <code>model</code>
             </td>
             <td>
-                  <code><span title="sigalg.finance.continuous_pricing_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_pricing_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
+                  <code><span title="sigalg.finance.continuous_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6442,7 +6537,7 @@
                 <code>model</code>
             </td>
             <td>
-                  <code><span title="sigalg.finance.continuous_pricing_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_pricing_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
+                  <code><span title="sigalg.finance.continuous_models.continuous_pricing_model.ContinuousPricingModel">ContinuousPricingModel</span> | <span title="sigalg.finance.discrete_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6626,7 +6721,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -6645,7 +6740,7 @@
 <span class="go">15.306122448979611</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -6736,7 +6831,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -6765,7 +6860,7 @@
 <span class="go">7      15.306122   4.540816   0.000000   0.0</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -6866,7 +6961,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -6922,7 +7017,7 @@
 <span class="go">7      15.306122   4.540816   0.000000   0.0</span>
 </code></pre></div>
     <p>Now define an Asian put option with early-exercise and the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">asian_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">asian_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;asian_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">asian_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">asian_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">early_exercise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;asian_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">asian_put</span><span class="p">)</span>
 <span class="go">Asian option &#39;asian_put&#39;:</span>
 <span class="go">t        0    1         2       3</span>
@@ -7002,7 +7097,7 @@
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="sigalg.finance.discrete_pricing_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code></p>
+              Bases: <code><span title="sigalg.finance.discrete_models.discrete_pricing_model.DiscretePricingModel">DiscretePricingModel</span></code></p>
 
 
 
@@ -7666,7 +7761,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -7733,7 +7828,7 @@
 <span class="go">26     13.97158   2.441950   0.000000   0.0</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -8114,7 +8209,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -8181,7 +8276,7 @@
 <span class="go">26     inf</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -8745,7 +8840,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -8783,7 +8878,7 @@
 <span class="go">13.971579743008329</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>
@@ -8961,7 +9056,7 @@
 </code></pre></div>
     <p>Define a European call option with strike <code>K=100</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;euro_call&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="go">European option &#39;euro_call&#39;:</span>
 <span class="go">t        0    1    2     3</span>
@@ -9028,7 +9123,7 @@
 <span class="go">26     13.97158   2.441950   0.000000   0.0</span>
 </code></pre></div>
     <p>Define an American put option with the same strike.</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">american_put</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">american_option</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;put&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;american_put&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">american_put</span><span class="p">)</span>
 <span class="go">American option &#39;american_put&#39;:</span>
 <span class="go">t        0     1     2     3</span>

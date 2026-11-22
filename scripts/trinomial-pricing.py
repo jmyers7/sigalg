@@ -20,7 +20,7 @@ K = 90
 american_put = sa.Claim.american_option(
     strike=K,
     model=S,
-    type="put",
+    option_type="put",
     name="american_put",
 )
 
