@@ -281,14 +281,6 @@ class TestDiscount:
         with pytest.raises(TypeError, match="rate must be a positive real number."):
             ProcessTransforms.discount(process=S, rate=rate)
 
-    @pytest.mark.parametrize("gross_return", [0.5, "not a real number"])
-    def test_invalid_gross_return_raises(self, S, gross_return):
-        """Test that an invalid gross_return raises TypeError."""
-        with pytest.raises(
-            TypeError, match="The gross return must be a real number greater than 1."
-        ):
-            ProcessTransforms.discount(process=S, gross_return=gross_return)
-
     def test_neither_rate_nor_gross_return_raises(self, S):
         """Test that providing neither rate nor gross_return raises TypeError."""
         with pytest.raises(

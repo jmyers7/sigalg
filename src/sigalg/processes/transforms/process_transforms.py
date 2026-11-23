@@ -397,9 +397,9 @@ class ProcessTransforms:
         if rate is not None and (not isinstance(rate, Real) or rate <= 0):
             raise TypeError("rate must be a positive real number.")
         if gross_return is not None and (
-            not isinstance(gross_return, Real) or gross_return <= 1
+            not isinstance(gross_return, Real) or gross_return <= 0
         ):
-            raise TypeError("The gross return must be a real number greater than 1.")
+            raise TypeError("The gross return must be a positive real number.")
         if rate is None and gross_return is None:
             raise TypeError("One of rate or gross_return must be given.")
         if name is not None and not isinstance(name, Hashable):
@@ -408,7 +408,9 @@ class ProcessTransforms:
         if gross_return is None:
             gross_return = 1 + rate
 
-        discount_factors = gross_return ** (-process.time.data)
+        powers = pd.Index(range(len(process.time.data)))
+
+        discount_factors = gross_return ** (-powers)
         discounted_data = process.data.multiply(discount_factors, axis=1)
 
         return StochasticProcess._from_validated(
@@ -716,7 +718,7 @@ class ProcessTransforms:
         integrator: StochasticProcess | None = None,
         name: Hashable | None = None,
     ) -> StochasticProcess:
-        r"""Compute the Itô integral of a stochastic process with respect to another stochastic process.
+        """Compute the Itô integral of a stochastic process with respect to another stochastic process.
 
         Parameters
         ----------
@@ -763,11 +765,32 @@ class ProcessTransforms:
                 name = f"int d{integrator.name}"
 
         elif integrand is not None and integrator is not None:
+            if len(integrand.time.data) == len(integrator.time.data) - 1 and all(
+                integrand.time.data == integrator.time.data[:-1]
+            ):
+                drop_flag = False
+
+            elif len(integrand.time.data) == len(integrator.time.data) and all(
+                integrand.time.data == integrator.time.data
+            ):
+                drop_flag = True
+
+            else:
+                raise ValueError(
+                    "The time indices of the integrand and integrator do not align."
+                )
+
             increments = -1 * integrator.data.diff(periods=-1, axis=1).dropna(axis=1)
-            integrand_data = integrand.data.drop(columns=integrand.data.columns[-1])
+
+            if drop_flag:
+                integrand_data = integrand.data.drop(columns=integrand.data.columns[-1])
+
+            else:
+                integrand_data = integrand.data
+
             data = (integrand_data * increments).cumsum(axis=1)
             data.insert(loc=0, column="initial", value=0)
-            data.columns = integrand.time.data
+            data.columns = integrator.time.data
 
             if name is None:
                 name = f"int {integrand.name} d{integrator.name}"
