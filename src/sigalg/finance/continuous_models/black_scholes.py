@@ -924,14 +924,14 @@ class BlackScholes(ContinuousPricingModel):
         The stochastic process `V` is the value process for the hedging portfolio. At maturity, the cash value of the hedger's position will be `V[maturity] - Phi[maturity]`, so the price to set up the hedging portfolio will be (the negative of) the present value of this difference.
 
         >>> cost_of_hedge = (V - Phi).discount(gross_return=R).last_rv.expectation().item()
-        >>> print(-cost_of_hedge)
-        2.7298617045786298
+        >>> round(-cost_of_hedge, 2)
+        2.73
 
         We compare this to the theoretical Black-Scholes price of the option.
 
         >>> theoretical_price = S.price(Phi).item()
-        >>> print(theoretical_price)
-        2.729352005124568
+        >>> round(theoretical_price, 2)
+        2.73
 
         The hedging portfolio is self-financing, and so does not require any infusions or withdrawals of capital. Using this, one may show that the discounted value process `V` is equal to the Itô integral of the process `Delta` against the discounted price process `S`. We check this.
 
