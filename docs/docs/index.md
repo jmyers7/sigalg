@@ -83,13 +83,16 @@ In addition to the tutorials below, the API Reference contains many examples of 
 
     1. In stochastic calculus, the informal differential "multiplication" rules $dW_t^2=0$, $dt \, dW_t=0$, and $dt^2=0$ are used constantly, where $W_t$ is a standard Brownian motion. These are formal equations with no intrinsic meaning that stand for precise equalities regarding quadratic and cross variations. This snippet demonstrates that these latter equalities hold (approximately, since we're working in the discrete setting.)
 
-=== "Black-Scholes pricing and hedging"
+=== "$\Delta$-hedging a short position on call options"
     ```python
     --8<-- "black-scholes-1.py"
     ```
 
-    1. Compute the price process of the European put.
-    2. Compute the $\Delta$-hedging process.
+    1. The parameter $n$ is the number of options sold.
+    2. We assume the premium for the options is $\$300$. The theoretical risk-neutral price is $\$273.94$.
+    3. Simulate three price trajectories with different random seeds.
+    4. Compute the hedging portfolio. $\Delta_t$ contains the familiar hedge ratios, $B_t$ contains the balances in the bank account earning the risk-free interest rate, and $V_t$ is the total cash value of the long position in the underlying asset and the short position in the bank account.
+    5. Plot the sum of the discounted value process $\tilde{V}_t$ and the premium paid to the option writer. At maturity, the goal is for this sum to be as close as possible to the (discounted) payoff of the options, the latter represented by a red horizontal line.
 
 === "Binomial pricing models"
     ```python
