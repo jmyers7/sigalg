@@ -61,6 +61,7 @@ class TestFinanceMethods:
                     0.97824837,
                     0.98987878,
                     0.99997449,
+                    1.0,
                 ]
             ],
             columns=pd.Index(
@@ -85,6 +86,7 @@ class TestFinanceMethods:
                     0.32692308,
                     0.34615385,
                     0.36538462,
+                    0.384615,
                 ],
                 name="t",
             ),

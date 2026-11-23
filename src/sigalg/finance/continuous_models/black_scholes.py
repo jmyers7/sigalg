@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from ...core.functions.random_variable import RandomVariable
     from ...processes.base.stochastic_process import StochasticProcess
     from ...validation.index_validator import IndexLike
-    from ..claims.claim import Claim
+    from ..claims.european_option import EuropeanOption
 
 
 class hybridmethod(classmethod):
@@ -96,13 +96,13 @@ class BlackScholes(ContinuousPricingModel):
     >>> Delta = S.delta(claim=Phi)
     >>> print(Delta)  # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'Delta':
-    t           0.0       0.5       1.0       1.5
+    t           0.0       0.5       1.0       1.5  2.0
     omega
-    0      0.664052  0.726999  0.471728  0.706807
-    1      0.664052  0.242402  0.032057  0.004709
-    2      0.664052  0.662075  0.434044  0.704867
-    3      0.664052  0.679377  0.901952  0.985726
-    4      0.664052  0.739151  0.512644  0.793097
+    0      0.664052  0.726999  0.471728  0.706807  1.0
+    1      0.664052  0.242402  0.032057  0.004709  0.0
+    2      0.664052  0.662075  0.434044  0.704867  1.0
+    3      0.664052  0.679377  0.901952  0.985726  1.0
+    4      0.664052  0.739151  0.512644  0.793097  1.0
     """
 
     _repr_name = "BlackScholesModel"
@@ -219,13 +219,13 @@ class BlackScholes(ContinuousPricingModel):
         >>> Delta = S.delta(claim=Phi)
         >>> print(Delta)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'Delta':
-        t           0.0       0.5       1.0       1.5
+        t           0.0       0.5       1.0       1.5  2.0
         omega
-        0      0.664052  0.726999  0.471728  0.706807
-        1      0.664052  0.242402  0.032057  0.004709
-        2      0.664052  0.662075  0.434044  0.704867
-        3      0.664052  0.679377  0.901952  0.985726
-        4      0.664052  0.739151  0.512644  0.793097
+        0      0.664052  0.726999  0.471728  0.706807  1.0
+        1      0.664052  0.242402  0.032057  0.004709  0.0
+        2      0.664052  0.662075  0.434044  0.704867  1.0
+        3      0.664052  0.679377  0.901952  0.985726  1.0
+        4      0.664052  0.739151  0.512644  0.793097  1.0
         """
         cls._validate_pricing_params(
             initial_price=initial_price,
@@ -368,13 +368,13 @@ class BlackScholes(ContinuousPricingModel):
         >>> Delta = S.delta(claim=Phi)
         >>> print(Delta)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'Delta':
-        t           0.0       0.5       1.0       1.5
+        t           0.0       0.5       1.0       1.5  2.0
         omega
-        0      0.672669  0.752669  0.479031  0.766536
-        1      0.672669  0.208064  0.017970  0.001979
-        2      0.672669  0.680719  0.435926  0.764651
-        3      0.672669  0.700076  0.935131  0.995588
-        4      0.672669  0.765975  0.526413  0.850999
+        0      0.672669  0.752669  0.479031  0.766536  1.0
+        1      0.672669  0.208064  0.017970  0.001979  0.0
+        2      0.672669  0.680719  0.435926  0.764651  1.0
+        3      0.672669  0.700076  0.935131  0.995588  1.0
+        4      0.672669  0.765975  0.526413  0.850999  1.0
         """
         if not isinstance(data, pd.DataFrame):
             raise TypeError("data must be a pd.DataFrame")
@@ -412,6 +412,12 @@ class BlackScholes(ContinuousPricingModel):
         return self._risk_free_rate
 
     @property
+    def risk_free_gross_return(self) -> Real:
+        """Get the risk-free gross return."""
+        dt = self.time[1] - self.time[0]
+        return np.exp(self.risk_free_rate * dt)
+
+    @property
     def volatility(self) -> Real:
         """Get the volatility of the model."""
         return self._volatility
@@ -426,7 +432,7 @@ class BlackScholes(ContinuousPricingModel):
     @hybridmethod
     def price(
         self_or_cls,
-        claim: Claim | None = None,
+        claim: EuropeanOption | None = None,
         time_to_maturity: Real | None = None,
         price: Real | None = None,
         strike: Real | None = None,
@@ -441,7 +447,7 @@ class BlackScholes(ContinuousPricingModel):
 
         Parameters
         ----------
-        claim : Claim | None, default=None
+        claim : EuropeanOption | None, default=None
             The contingent claim to price. If not given, the pricing parameters must be given.
         time_to_maturity : Real | None, default=None
             The time to maturity of the option.
@@ -593,12 +599,14 @@ class BlackScholes(ContinuousPricingModel):
                 name=f"X_{claim.time[0]}".replace(".", "_"),
             )
 
-    def price_process(self, claim: Claim | None = None, **kwargs) -> StochasticProcess:
+    def price_process(
+        self, claim: EuropeanOption | None = None, **kwargs
+    ) -> StochasticProcess:
         """Compute the price process of a European call or put option.
 
         Parameters
         ----------
-        claim : Claim | None, default=None
+        claim : EuropeanOption | None, default=None
             The contingent claim to price.
 
         Examples
@@ -700,7 +708,7 @@ class BlackScholes(ContinuousPricingModel):
     @hybridmethod
     def delta(
         self_or_cls,
-        claim: Claim | None = None,
+        claim: EuropeanOption | None = None,
         time_to_maturity: Real | None = None,
         price: Real | None = None,
         strike: Real | None = None,
@@ -715,7 +723,7 @@ class BlackScholes(ContinuousPricingModel):
 
         Parameters
         ----------
-        claim : Claim | None, default=None
+        claim : EuropeanOption | None, default=None
             The contingent claim whose delta process is desired. If not given, the pricing parameters must be given.
         time_to_maturity : Real | None, default=None
             The time to maturity of the option.
@@ -850,6 +858,11 @@ class BlackScholes(ContinuousPricingModel):
             data = pd.DataFrame(
                 delta_arr, index=self.domain.data, columns=self.index.data[:-1]
             )
+            data.insert(
+                loc=len(self.index.data) - 1,
+                column=self.index.data[-1],
+                value=(claim.data.iloc[:, -1] > 0).astype(float),
+            )
 
             return StochasticProcess._from_validated(
                 data=data,
@@ -859,6 +872,111 @@ class BlackScholes(ContinuousPricingModel):
                 index_name=self.index_name,
                 name="Delta",
             )
+
+    def hedging_portfolio(
+        self, claim: EuropeanOption, **kwargs
+    ) -> tuple[
+        StochasticProcess,
+        StochasticProcess,
+        StochasticProcess,
+    ]:
+        """Compute the Delta-hedging portfolio for a given European option.
+
+        Parameters
+        ----------
+        claim : EuropeanOption
+            The option for which to compute the replicating portfolio.
+
+        Returns
+        -------
+        hedging_portfolio : tuple[StochasticProcess, StochasticProcess, StochasticProcess,]
+            Three processes `Delta`, `B`, and `V`. The first gives the number of units of the risky asset, the second gives the cash value of the position in the non-risky asset, and the third is the value process of the two-asset hedging portfolio.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg import BlackScholes, Claim, Time
+        >>> rng = np.random.default_rng(42)
+
+        Define a Black-Scholes model. Notice that we will rebalance the hedging portfolio over subintervals of length `0.001`. We simulate `1_000` price trajectories.
+
+        >>> S_0, r, sigma = 49, 0.05, 0.1
+        >>> T = Time.continuous(start=0, stop=1, dt=0.001)
+        >>> S = BlackScholes.generate(
+        ...     initial_price=S_0,
+        ...     risk_free_rate=r,
+        ...     volatility=sigma,
+        ...     n_trajectories=1_000,
+        ...     index=T,
+        ...     random_state=rng,
+        ... )
+
+        Define a European call option with strike `K=50`, and get the risk-free gross return of the model.
+
+        >>> K = 50
+        >>> Phi = Claim.european_option(strike=K, model=S, option_type="call")
+        >>> R = S.risk_free_gross_return
+
+        Compute the hedging portfolio.
+
+        >>> Delta, B, V = S.hedging_portfolio(Phi)
+
+        The stochastic process `V` is the value process for the hedging portfolio. At maturity, the cash value of the hedger's position will be `V[maturity] - Phi[maturity]`, so the price to set up the hedging portfolio will be (the negative of) the present value of this difference.
+
+        >>> cost_of_hedge = (V - Phi).discount(gross_return=R).last_rv.expectation().item()
+        >>> print(-cost_of_hedge)
+        2.7298617045786298
+
+        We compare this to the theoretical Black-Scholes price of the option.
+
+        >>> theoretical_price = S.price(Phi).item()
+        >>> print(theoretical_price)
+        2.729352005124568
+
+        The hedging portfolio is self-financing, and so does not require any infusions or withdrawals of capital. Using this, one may show that the discounted value process `V` is equal to the Itô integral of the process `Delta` against the discounted price process `S`. We check this.
+
+        >>> V_discount = V.discount(gross_return=R)
+        >>> S_discount = S.discount(gross_return=R)
+        >>> np.allclose(V_discount, Delta.ito_integral(S_discount))
+        True
+        """
+        from ...processes.base.stochastic_process import StochasticProcess
+        from ..claims.european_option import EuropeanOption
+
+        if claim is not None and not isinstance(claim, EuropeanOption):
+            raise TypeError(
+                "If passed, the claim must be an instance of EuropeanOption"
+            )
+
+        R = self.risk_free_gross_return
+        Delta = self.delta(claim=claim)
+        Delta_data = Delta.data.drop(columns=self.data.columns[-1])
+
+        powers = pd.Index(range(len(self.time.data)))
+        discount_factors = R ** (-powers)
+        discounted_price = self.data.multiply(discount_factors, axis=1)
+
+        increments = -1 * discounted_price.diff(periods=-1, axis=1).dropna(axis=1)
+
+        data = (Delta_data * increments).cumsum(axis=1)
+        data.insert(loc=0, column="initial", value=0)
+        data.columns = self.time.data
+
+        future_value_factors = (1 / R) ** (-powers)
+        data = data.multiply(future_value_factors, axis=1)
+
+        V = StochasticProcess._from_validated(
+            data=data,
+            sig_alg=self.sig_alg,
+            measure=self.measure,
+            index_kind="Time",
+            index_name=self.index_name,
+            name="V",
+        )
+
+        B = (V - self * Delta).with_name("B")
+
+        return Delta, B, V
 
     # --------------------- simulation methods --------------------- #
 
