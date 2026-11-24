@@ -1184,14 +1184,14 @@ class BinomialPricingModel(DiscretePricingModel):
         self._compute_pricing_data(claim=claim)
         return claim._pricing_data.B
 
-    def hedging_portfolio(
+    def replicating_portfolio(
         self, claim: Claim, **kwargs
     ) -> tuple[
         StochasticProcess,
         StochasticProcess,
         StochasticProcess,
     ]:
-        """Compute the Delta-hedging portfolio for a given contingent claim.
+        """Compute the replicating portfolio for a given contingent claim.
 
         Parameters
         ----------
@@ -1200,8 +1200,8 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Returns
         -------
-        hedging_portfolio : tuple[StochasticProcess, StochasticProcess, StochasticProcess,]
-            Three processes `Delta`, `B`, and `V`. The first gives the number of units of the risky asset, the second gives the cash value of the position in the non-risky asset, and the third is the value process of the two-asset hedging portfolio.
+        replicating_portfolio : tuple[StochasticProcess, StochasticProcess, StochasticProcess,]
+            Three processes `Delta`, `B`, and `V`. The first gives the number of units of the risky asset, the second gives the cash value of the position in the non-risky asset, and the third is the value process of the two-asset replicating portfolio.
 
         Examples
         --------
@@ -1250,9 +1250,9 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Generate the replicating portfolio for the European call.
 
-        >>> Delta, B, V = S.hedging_portfolio(claim=euro_call)
+        >>> Delta, B, V = S.replicating_portfolio(claim=euro_call)
 
-        Print the `Delta` and `B` price processes of the hedging portfolio, along with its value process `V`.
+        Print the `Delta` and `B` price processes of the replicating portfolio, along with its value process `V`.
 
         >>> print(Delta) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'Delta':
@@ -1309,7 +1309,7 @@ class BinomialPricingModel(DiscretePricingModel):
 
         Compute and print the replicating portfolio.
 
-        >>> Delta, B, V = S.hedging_portfolio(claim=asian_put)
+        >>> Delta, B, V = S.replicating_portfolio(claim=asian_put)
         >>> print(Delta)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'Delta':
         t             0         1        2
@@ -1349,7 +1349,7 @@ class BinomialPricingModel(DiscretePricingModel):
         """
         if self.mode == "sim":
             raise NotImplementedError(
-                "The 'hedging_portfolio' method is not yet implemented in 'sim' mode."
+                "The 'replicating_portfolio' method is not yet implemented in 'sim' mode."
             )
 
         self._compute_pricing_data(claim=claim)

@@ -707,7 +707,7 @@ class Claim(StochasticProcess):
             The strike price of the option.
         model : ContinuousPricingModel | DiscretePricingModel
             The model of the underlying asset.
-        type : Literal["call", "put"], default="call"
+        option_type : Literal["call", "put"], default="call"
             The type of option.
         early_exercise : bool, default=False
             Whether the claim allows early exercise.
@@ -1588,7 +1588,7 @@ class Claim(StochasticProcess):
         """
         return self.model.B(claim=self, **kwargs)
 
-    def hedging_portfolio(self, **kwargs):
+    def replicating_portfolio(self, **kwargs):
         """Compute the replicating portfolio of the claim.
 
         Returns
@@ -1643,7 +1643,7 @@ class Claim(StochasticProcess):
 
         Generate the replicating portfolio for the European call.
 
-        >>> Delta, B, V = euro_call.hedging_portfolio()
+        >>> Delta, B, V = euro_call.replicating_portfolio()
 
         Print the `Delta` and `B` price processes of the hedging portfolio, along with its value process `V`.
 
@@ -1702,7 +1702,7 @@ class Claim(StochasticProcess):
 
         Compute and print the replicating portfolio.
 
-        >>> Delta, B, V = asian_put.hedging_portfolio()
+        >>> Delta, B, V = asian_put.replicating_portfolio()
         >>> print(Delta)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'Delta':
         t             0         1        2
@@ -1740,4 +1740,4 @@ class Claim(StochasticProcess):
         6      1.23603  5.110544  10.464286   9.975
         7      1.23603  5.110544  10.464286  14.025
         """
-        return self.model.hedging_portfolio(claim=self, **kwargs)
+        return self.model.replicating_portfolio(claim=self, **kwargs)

@@ -19,7 +19,7 @@ euro_call = sa.Claim.european_option(
     model=S, strike=K, option_type="call", name="euro_call"
 )
 
-Delta, B, V = S.hedging_portfolio(claim=euro_call)
+Delta, B, V = S.replicating_portfolio(claim=euro_call)
 X = euro_call.price_process()
 
 X.last_rv == V.last_rv  # (1)!
