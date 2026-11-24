@@ -416,6 +416,33 @@ class Time(Index):
         new_name = f"remove({self.name})"
         return Time._from_validated(data=new_data, name=new_name)
 
+    def time_to_end(self, name: Hashable | None = None) -> Index:
+        """Return the time to end of the time index.
+
+        Parameters
+        ----------
+        name : Hashable | None, default=None
+            The name of the new time index. If `None`, the name of the existing index will be used.
+
+        Examples
+        --------
+        >>> from sigalg import Time
+        >>> T = Time.discrete(start=0, stop=3)
+        >>> print(T.time_to_end())  # doctest: +NORMALIZE_WHITESPACE
+        Index 'T':
+         t
+         3
+         2
+         1
+         0
+        """
+        if name is None:
+            name = self.name
+
+        data = pd.Index(self[-1] - np.array(self), name=self.variable_names[0])
+
+        return Index._from_validated(data=data, name=name)
+
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
