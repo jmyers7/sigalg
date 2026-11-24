@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from collections.abc import Hashable
 
     from ...core.functions.random_variable import RandomVariable
+    from ...core.indices.index import Index
     from ...processes.base.stochastic_process import StochasticProcess
     from ...validation.index_validator import IndexLike
     from ..claims.european_option import EuropeanOption
@@ -429,6 +430,63 @@ class BlackScholes(ContinuousPricingModel):
 
     # --------------------- finance methods --------------------- #
 
+    @staticmethod
+    def BS_formula(
+        t: Real | Index | np.ndarray,
+        S: Real | np.ndarray,
+        K: Real,
+        r: Real,
+        sigma: Real,
+        option_type: Literal["call", "put"] = "call",
+    ) -> Real | np.ndarray:
+        """Compute the Black-Scholes formula for a European call or put option.
+
+        Parameters
+        ----------
+        t : Real | Index | np.ndarray
+            The time to maturity of the option.
+        S : Real | np.ndarray
+            The current price of the underlying asset.
+        K : Real | np.ndarray
+            The strike price of the option.
+        r : Real | np.ndarray
+            The continuous risk-free rate.
+        sigma : Real | np.ndarray
+            The volatility of the underlying asset
+        option_type : Literal["call", "put"], default="call"
+            The option type.
+
+        Returns
+        -------
+        price : Real | np.ndarray
+            If `t` is a real number, then a real number is returned. If `t` is an instance of `Time` or an array, then an array is returned.
+        """
+        from scipy.stats import norm
+
+        from ...core.indices.time import Index
+
+        BlackScholes._validate_pricing_params(
+            initial_price=S if not isinstance(S, np.ndarray) else None,
+            risk_free_rate=r if not isinstance(r, np.ndarray) else None,
+            volatility=sigma if not isinstance(sigma, np.ndarray) else None,
+            time_to_maturity=t if isinstance(t, Real) else None,
+            strike=K if not isinstance(K, np.ndarray) else None,
+            option_type=option_type,
+        )
+
+        if isinstance(t, Index):
+            t = np.array(t)
+
+        d_plus = (np.log(S / K) + (r + sigma**2 / 2) * t) / (sigma * np.sqrt(t))
+        d_neg = d_plus - sigma * np.sqrt(t)
+        N = norm.cdf
+
+        if option_type == "call":
+            return S * N(d_plus) - K * np.exp(-r * t) * N(d_neg)
+
+        else:
+            return K * np.exp(-r * t) * N(-d_neg) - S * N(-d_plus)
+
     @hybridmethod
     def price(
         self_or_cls,
@@ -521,19 +579,8 @@ class BlackScholes(ContinuousPricingModel):
         8      2.400527
         9      2.400527
         """
-        from scipy.stats import norm
-
         from ...core.functions.random_variable import RandomVariable
         from ..claims.european_option import EuropeanOption
-
-        BlackScholes._validate_pricing_params(
-            initial_price=price,
-            risk_free_rate=risk_free_rate,
-            volatility=volatility,
-            time_to_maturity=time_to_maturity,
-            strike=strike,
-            option_type=option_type,
-        )
 
         if claim is not None and not isinstance(claim, EuropeanOption):
             raise TypeError(
@@ -554,15 +601,9 @@ class BlackScholes(ContinuousPricingModel):
                 volatility,
             )
 
-            d_plus = (np.log(s / K) + (r + sigma**2 / 2) * tau) / (sigma * np.sqrt(tau))
-            d_neg = d_plus - sigma * np.sqrt(tau)
-            N = norm.cdf
-
-            if option_type == "call":
-                return (s * N(d_plus) - K * np.exp(-r * tau) * N(d_neg)).astype(Real)
-
-            else:
-                return (K * np.exp(-r * tau) * N(-d_neg) - s * N(-d_plus)).astype(Real)
+            return BlackScholes.BS_formula(
+                tau, price, strike, risk_free_rate, volatility, option_type
+            ).astype(Real)
 
         else:
             if claim is None:
@@ -578,15 +619,7 @@ class BlackScholes(ContinuousPricingModel):
                 self_or_cls.volatility,
             )
 
-            d_plus = (np.log(s / K) + (r + sigma**2 / 2) * tau) / (sigma * np.sqrt(tau))
-            d_neg = d_plus - sigma * np.sqrt(tau)
-            N = norm.cdf
-
-            if option_type == "call":
-                pricing_arr = s * N(d_plus) - K * np.exp(-r * tau) * N(d_neg)
-
-            else:
-                pricing_arr = K * np.exp(-r * tau) * N(-d_neg) - s * N(-d_plus)
+            pricing_arr = BlackScholes.BS_formula(tau, s, K, r, sigma, option_type)
 
             data = pd.Series(pricing_arr, index=self_or_cls.domain.data)
 
@@ -704,6 +737,109 @@ class BlackScholes(ContinuousPricingModel):
             index_name=self.index_name,
             name="X",
         )
+
+    def hedging_portfolio(
+        self, claim: EuropeanOption, **kwargs
+    ) -> tuple[
+        StochasticProcess,
+        StochasticProcess,
+        StochasticProcess,
+    ]:
+        """Compute the Delta-hedging portfolio for a given European option.
+
+        Parameters
+        ----------
+        claim : EuropeanOption
+            The option for which to compute the replicating portfolio.
+
+        Returns
+        -------
+        hedging_portfolio : tuple[StochasticProcess, StochasticProcess, StochasticProcess,]
+            Three processes `Delta`, `B`, and `V`. The first gives the number of units of the risky asset, the second gives the cash value of the position in the non-risky asset, and the third is the value process of the two-asset hedging portfolio.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg import BlackScholes, Claim, Time
+        >>> rng = np.random.default_rng(42)
+
+        Define a Black-Scholes model. Notice that we will rebalance the hedging portfolio over subintervals of length `0.001`. We simulate `1_000` price trajectories.
+
+        >>> S_0, r, sigma = 49, 0.05, 0.1
+        >>> T = Time.continuous(start=0, stop=1, dt=0.001)
+        >>> S = BlackScholes.generate(
+        ...     initial_price=S_0,
+        ...     risk_free_rate=r,
+        ...     volatility=sigma,
+        ...     n_trajectories=1_000,
+        ...     index=T,
+        ...     random_state=rng,
+        ... )
+
+        Define a European call option with strike `K=50`, and get the risk-free gross return of the model.
+
+        >>> K = 50
+        >>> Phi = Claim.european_option(strike=K, model=S, option_type="call")
+        >>> R = S.risk_free_gross_return
+
+        Compute the hedging portfolio.
+
+        >>> Delta, B, V = S.hedging_portfolio(Phi)
+
+        The sum of the value of the portfolio at maturity and the premium (with interest earned) is supposed to replicate the payoff of the option. Thus the present value of this sum should be close to the theoretical price of the option. We check this.
+
+        >>> premium = S.price(Phi).item()
+        >>> round(premium, 2)
+        2.73
+
+        >>> simulated_price = (V.discount(gross_return=R) + premium).last_rv.expectation().item()
+        >>> round(simulated_price, 2)
+        2.79
+
+        The stochastic process `V` is the value process for the hedging portfolio. It is self-financing, and so does not require any infusions or withdrawals of capital. One may then show that the discounted value process `V` is equal to the Itô integral of the process `Delta` against the discounted price process `S`. We check this.
+
+        >>> V_discount = V.discount(gross_return=R)
+        >>> S_discount = S.discount(gross_return=R)
+        >>> np.allclose(V_discount, Delta.ito_integral(S_discount))
+        True
+        """
+        from ...processes.base.stochastic_process import StochasticProcess
+        from ..claims.european_option import EuropeanOption
+
+        if claim is not None and not isinstance(claim, EuropeanOption):
+            raise TypeError(
+                "If passed, the claim must be an instance of EuropeanOption"
+            )
+
+        R = self.risk_free_gross_return
+        Delta = self.delta(claim=claim)
+        Delta_data = Delta.data.drop(columns=self.data.columns[-1])
+
+        powers = pd.Index(range(len(self.time.data)))
+        discount_factors = R ** (-powers)
+        discounted_price = self.data.multiply(discount_factors, axis=1)
+
+        increments = -1 * discounted_price.diff(periods=-1, axis=1).dropna(axis=1)
+
+        data = (Delta_data * increments).cumsum(axis=1)
+        data.insert(loc=0, column="initial", value=0)
+        data.columns = self.time.data
+
+        future_value_factors = (1 / R) ** (-powers)
+        data = data.multiply(future_value_factors, axis=1)
+
+        V = StochasticProcess._from_validated(
+            data=data,
+            sig_alg=self.sig_alg,
+            measure=self.measure,
+            index_kind="Time",
+            index_name=self.index_name,
+            name="V",
+        )
+
+        B = (V - self * Delta).with_name("B")
+
+        return Delta, B, V
 
     @hybridmethod
     def delta(
@@ -873,108 +1009,127 @@ class BlackScholes(ContinuousPricingModel):
                 name="Delta",
             )
 
-    def hedging_portfolio(
-        self, claim: EuropeanOption, **kwargs
-    ) -> tuple[
-        StochasticProcess,
-        StochasticProcess,
-        StochasticProcess,
-    ]:
-        """Compute the Delta-hedging portfolio for a given European option.
+    @hybridmethod
+    def theta(
+        self_or_cls,
+        claim: EuropeanOption | None = None,
+        time_to_maturity: Real | None = None,
+        price: Real | None = None,
+        strike: Real | None = None,
+        risk_free_rate: Real | None = None,
+        volatility: Real | None = None,
+        option_type: Literal["call", "put"] = "call",
+        **kwargs,
+    ) -> Real | StochasticProcess:
+        """Compute the theta process of a European call or put option.
+
+        This method may be called either as a class method, in which case explicit parameters like the current price and time to maturity must be passed, or the method may be called on an instance of `BlackScholes` with an explict European option passed as the `claim` parameter.
 
         Parameters
         ----------
-        claim : EuropeanOption
-            The option for which to compute the replicating portfolio.
+        claim : EuropeanOption | None, default=None
+            The contingent claim whose theta process is desired. If not given, the pricing parameters must be given.
+        time_to_maturity : Real | None, default=None
+            The time to maturity of the option.
+        price : Real | None, default=None
+            The current price of the underlying asset.
+        strike : Real | None, default=None
+            The strike price of the option.
+        risk_free_rate : Real | None, default=None
+            The continuous risk-free rate.
+        volatility : Real | None, default=None
+            The volatility of the underlying asset
+        option_type : Literal["call", "put"], default="call"
+            The option type.
 
         Returns
         -------
-        hedging_portfolio : tuple[StochasticProcess, StochasticProcess, StochasticProcess,]
-            Three processes `Delta`, `B`, and `V`. The first gives the number of units of the risky asset, the second gives the cash value of the position in the non-risky asset, and the third is the value process of the two-asset hedging portfolio.
-
-        Examples
-        --------
-        >>> import numpy as np
-        >>> from sigalg import BlackScholes, Claim, Time
-        >>> rng = np.random.default_rng(42)
-
-        Define a Black-Scholes model. Notice that we will rebalance the hedging portfolio over subintervals of length `0.001`. We simulate `1_000` price trajectories.
-
-        >>> S_0, r, sigma = 49, 0.05, 0.1
-        >>> T = Time.continuous(start=0, stop=1, dt=0.001)
-        >>> S = BlackScholes.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     volatility=sigma,
-        ...     n_trajectories=1_000,
-        ...     index=T,
-        ...     random_state=rng,
-        ... )
-
-        Define a European call option with strike `K=50`, and get the risk-free gross return of the model.
-
-        >>> K = 50
-        >>> Phi = Claim.european_option(strike=K, model=S, option_type="call")
-        >>> R = S.risk_free_gross_return
-
-        Compute the hedging portfolio.
-
-        >>> Delta, B, V = S.hedging_portfolio(Phi)
-
-        The sum of the value of the portfolio at maturity and the premium (with interest earned) is supposed to replicate the payoff of the option. Thus the present value of this sum should be close to the theoretical price of the option. We check this.
-
-        >>> premium = S.price(Phi).item()
-        >>> round(premium, 2)
-        2.73
-
-        >>> simulated_price = (V.discount(gross_return=R) + premium).last_rv.expectation().item()
-        >>> round(simulated_price, 2)
-        2.79
-
-        The stochastic process `V` is the value process for the hedging portfolio. It is self-financing, and so does not require any infusions or withdrawals of capital. One may then show that the discounted value process `V` is equal to the Itô integral of the process `Delta` against the discounted price process `S`. We check this.
-
-        >>> V_discount = V.discount(gross_return=R)
-        >>> S_discount = S.discount(gross_return=R)
-        >>> np.allclose(V_discount, Delta.ito_integral(S_discount))
-        True
+        theta : Real | StochasticProcess
+            If `claim` is passed, the entire theta process is returned. Otherwise, if only the pricing parameters are passed, then a single real number is returned.
         """
+        from scipy.stats import norm
+
         from ...processes.base.stochastic_process import StochasticProcess
         from ..claims.european_option import EuropeanOption
+
+        BlackScholes._validate_pricing_params(
+            initial_price=price,
+            risk_free_rate=risk_free_rate,
+            volatility=volatility,
+            time_to_maturity=time_to_maturity,
+            strike=strike,
+            option_type=option_type,
+        )
 
         if claim is not None and not isinstance(claim, EuropeanOption):
             raise TypeError(
                 "If passed, the claim must be an instance of EuropeanOption"
             )
 
-        R = self.risk_free_gross_return
-        Delta = self.delta(claim=claim)
-        Delta_data = Delta.data.drop(columns=self.data.columns[-1])
+        if isinstance(self_or_cls, type):
+            if claim is not None:
+                raise ValueError(
+                    "If the delta method is used as a class method, an explicit claim cannot be passed."
+                )
 
-        powers = pd.Index(range(len(self.time.data)))
-        discount_factors = R ** (-powers)
-        discounted_price = self.data.multiply(discount_factors, axis=1)
+            tau, s, K, r, sigma = (
+                time_to_maturity,
+                price,
+                strike,
+                risk_free_rate,
+                volatility,
+            )
 
-        increments = -1 * discounted_price.diff(periods=-1, axis=1).dropna(axis=1)
+            d_plus = (np.log(s / K) + (r + sigma**2 / 2) * tau) / (sigma * np.sqrt(tau))
+            d_neg = d_plus - sigma * np.sqrt(tau)
+            N = norm.cdf
+            f = norm.pdf
 
-        data = (Delta_data * increments).cumsum(axis=1)
-        data.insert(loc=0, column="initial", value=0)
-        data.columns = self.time.data
+            if option_type == "call":
+                return (
+                    -(s * f(d_plus) * sigma) / (2 * np.sqrt(tau))
+                    - r * K * np.exp(-r * tau) * N(d_neg)
+                ).astype(Real)
+            else:
+                return (
+                    -(s * f(d_plus) * sigma) / (2 * np.sqrt(tau))
+                    + r * K * np.exp(-r * tau) * N(-d_neg)
+                ).astype(Real)
 
-        future_value_factors = (1 / R) ** (-powers)
-        data = data.multiply(future_value_factors, axis=1)
+        else:
+            self = self_or_cls
 
-        V = StochasticProcess._from_validated(
-            data=data,
-            sig_alg=self.sig_alg,
-            measure=self.measure,
-            index_kind="Time",
-            index_name=self.index_name,
-            name="V",
-        )
+            K, r, sigma = (claim.strike, self.risk_free_rate, self.volatility)
 
-        B = (V - self * Delta).with_name("B")
+            s = np.array(self)[:, :-1]
+            tau = (self.index[-1] - np.array(self.index))[:-1]
 
-        return Delta, B, V
+            d_plus = (np.log(s / K) + (r + sigma**2 / 2) * tau) / (sigma * np.sqrt(tau))
+            d_neg = d_plus - sigma * np.sqrt(tau)
+            N = norm.cdf
+            f = norm.pdf
+
+            if claim.option_type == "call":
+                theta_arr = (-s * f(d_plus) * sigma) / (
+                    2 * np.sqrt(tau)
+                ) - r * K * np.exp(-r * tau) * N(d_neg)
+            else:
+                theta_arr = -(s * f(d_plus) * sigma) / (
+                    2 * np.sqrt(tau)
+                ) + r * K * np.exp(-r * tau) * N(-d_neg)
+
+            data = pd.DataFrame(
+                theta_arr, index=self.domain.data, columns=self.index.data[:-1]
+            )
+
+            return StochasticProcess._from_validated(
+                data=data,
+                sig_alg=self.sig_alg,
+                measure=self.measure,
+                index_kind="Time",
+                index_name=self.index_name,
+                name="Theta",
+            )
 
     # --------------------- simulation methods --------------------- #
 
