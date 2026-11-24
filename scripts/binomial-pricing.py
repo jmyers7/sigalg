@@ -15,7 +15,9 @@ S = sa.BinomialPricingModel.generate(
 )
 
 K = 100
-euro_call = sa.Claim.european_option(model=S, strike=K, option_type="call", name="euro_call")
+euro_call = sa.Claim.european_option(
+    model=S, strike=K, option_type="call", name="euro_call"
+)
 
 Delta, B, V = S.replicating_portfolio(claim=euro_call)
 X = euro_call.price_process()

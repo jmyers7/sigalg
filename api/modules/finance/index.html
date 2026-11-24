@@ -813,6 +813,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sigalg.finance.BlackScholes.risk_free_gross_return" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;risk_free_gross_return
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sigalg.finance.BlackScholes.risk_free_rate" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -861,6 +872,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;generate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BlackScholes.hedging_portfolio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;hedging_portfolio
       
     </span>
   </a>
@@ -3310,7 +3332,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Three processes <code>Delta</code>, <code>B</code>, and <code>V</code>. The first gives the number of units of the risky asset, the second gives the cash value of the position in the non-risky asset, and the third is the value process of the two-asset portfolio.</p>
+                <p>Three processes <code>Delta</code>, <code>B</code>, and <code>V</code>. The first gives the number of units of the risky asset, the second gives the cash value of the position in the non-risky asset, and the third is the value process of the two-asset replicating portfolio.</p>
               </div>
             </td>
           </tr>
@@ -3363,7 +3385,7 @@
     <p>Generate the replicating portfolio for the European call.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Delta</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">euro_call</span><span class="p">)</span>
 </code></pre></div>
-    <p>Print the <code>Delta</code> and <code>B</code> price processes of the hedging portfolio, along with its value process <code>V</code>.</p>
+    <p>Print the <code>Delta</code> and <code>B</code> price processes of the replicating portfolio, along with its value process <code>V</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Delta</span><span class="p">)</span>
 <span class="go">Stochastic process &#39;Delta&#39;:</span>
 <span class="go">t             0         1         2</span>
@@ -3627,13 +3649,13 @@
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Delta</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">delta</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Delta</span><span class="p">)</span>
 <span class="go">Stochastic process &#39;Delta&#39;:</span>
-<span class="go">t           0.0       0.5       1.0       1.5</span>
+<span class="go">t           0.0       0.5       1.0       1.5  2.0</span>
 <span class="go">omega</span>
-<span class="go">0      0.664052  0.726999  0.471728  0.706807</span>
-<span class="go">1      0.664052  0.242402  0.032057  0.004709</span>
-<span class="go">2      0.664052  0.662075  0.434044  0.704867</span>
-<span class="go">3      0.664052  0.679377  0.901952  0.985726</span>
-<span class="go">4      0.664052  0.739151  0.512644  0.793097</span>
+<span class="go">0      0.664052  0.726999  0.471728  0.706807  1.0</span>
+<span class="go">1      0.664052  0.242402  0.032057  0.004709  0.0</span>
+<span class="go">2      0.664052  0.662075  0.434044  0.704867  1.0</span>
+<span class="go">3      0.664052  0.679377  0.901952  0.985726  1.0</span>
+<span class="go">4      0.664052  0.739151  0.512644  0.793097  1.0</span>
 </code></pre></div>
 
 
@@ -3673,6 +3695,30 @@
     <div class="doc doc-contents ">
 
         <p>Get the expected return of the model.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="sigalg.finance.BlackScholes.risk_free_gross_return" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">risk_free_gross_return</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">risk_free_gross_return</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the risk-free gross return.</p>
 
     </div>
 
@@ -3772,7 +3818,7 @@
                 <code>claim</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="            Claim (sigalg.finance.claims.claim.Claim)" href="#sigalg.finance.Claim">Claim</a> | None</code>
+                  <code><span title="sigalg.finance.claims.european_option.EuropeanOption">EuropeanOption</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4141,13 +4187,13 @@
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Delta</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">delta</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Delta</span><span class="p">)</span>
 <span class="go">Stochastic process &#39;Delta&#39;:</span>
-<span class="go">t           0.0       0.5       1.0       1.5</span>
+<span class="go">t           0.0       0.5       1.0       1.5  2.0</span>
 <span class="go">omega</span>
-<span class="go">0      0.672669  0.752669  0.479031  0.766536</span>
-<span class="go">1      0.672669  0.208064  0.017970  0.001979</span>
-<span class="go">2      0.672669  0.680719  0.435926  0.764651</span>
-<span class="go">3      0.672669  0.700076  0.935131  0.995588</span>
-<span class="go">4      0.672669  0.765975  0.526413  0.850999</span>
+<span class="go">0      0.672669  0.752669  0.479031  0.766536  1.0</span>
+<span class="go">1      0.672669  0.208064  0.017970  0.001979  0.0</span>
+<span class="go">2      0.672669  0.680719  0.435926  0.764651  1.0</span>
+<span class="go">3      0.672669  0.700076  0.935131  0.995588  1.0</span>
+<span class="go">4      0.672669  0.765975  0.526413  0.850999  1.0</span>
 </code></pre></div>
 
 
@@ -4439,13 +4485,129 @@
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Delta</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">delta</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">Phi</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Delta</span><span class="p">)</span>
 <span class="go">Stochastic process &#39;Delta&#39;:</span>
-<span class="go">t           0.0       0.5       1.0       1.5</span>
+<span class="go">t           0.0       0.5       1.0       1.5  2.0</span>
 <span class="go">omega</span>
-<span class="go">0      0.664052  0.726999  0.471728  0.706807</span>
-<span class="go">1      0.664052  0.242402  0.032057  0.004709</span>
-<span class="go">2      0.664052  0.662075  0.434044  0.704867</span>
-<span class="go">3      0.664052  0.679377  0.901952  0.985726</span>
-<span class="go">4      0.664052  0.739151  0.512644  0.793097</span>
+<span class="go">0      0.664052  0.726999  0.471728  0.706807  1.0</span>
+<span class="go">1      0.664052  0.242402  0.032057  0.004709  0.0</span>
+<span class="go">2      0.664052  0.662075  0.434044  0.704867  1.0</span>
+<span class="go">3      0.664052  0.679377  0.901952  0.985726  1.0</span>
+<span class="go">4      0.664052  0.739151  0.512644  0.793097  1.0</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="sigalg.finance.BlackScholes.hedging_portfolio" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">hedging_portfolio</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">hedging_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Compute the Delta-hedging portfolio for a given European option.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>claim</code>
+            </td>
+            <td>
+                  <code><span title="sigalg.finance.claims.european_option.EuropeanOption">EuropeanOption</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The option for which to compute the replicating portfolio.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>hedging_portfolio</code></td>            <td>
+                  <code><span title="tuple">tuple</span>[<a class="autorefs autorefs-internal" title="            StochasticProcess (sigalg.processes.base.stochastic_process.StochasticProcess)" href="../processes/#sigalg.processes.StochasticProcess">StochasticProcess</a>, <a class="autorefs autorefs-internal" title="            StochasticProcess (sigalg.processes.base.stochastic_process.StochasticProcess)" href="../processes/#sigalg.processes.StochasticProcess">StochasticProcess</a>, <a class="autorefs autorefs-internal" title="            StochasticProcess (sigalg.processes.base.stochastic_process.StochasticProcess)" href="../processes/#sigalg.processes.StochasticProcess">StochasticProcess</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Three processes <code>Delta</code>, <code>B</code>, and <code>V</code>. The first gives the number of units of the risky asset, the second gives the cash value of the position in the non-risky asset, and the third is the value process of the two-asset hedging portfolio.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">BlackScholes</span><span class="p">,</span> <span class="n">Claim</span><span class="p">,</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</code></pre></div>
+    <p>Define a Black-Scholes model. Notice that we will rebalance the hedging portfolio over subintervals of length <code>0.001</code>. We simulate <code>1_000</code> price trajectories.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">49</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BlackScholes</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">volatility</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">1_000</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">random_state</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</code></pre></div>
+    <p>Define a European call option with strike <code>K=50</code>, and get the risk-free gross return of the model.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Phi</span> <span class="o">=</span> <span class="n">Claim</span><span class="o">.</span><span class="n">european_option</span><span class="p">(</span><span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">R</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">risk_free_gross_return</span>
+</code></pre></div>
+    <p>Compute the hedging portfolio.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">Delta</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">hedging_portfolio</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
+</code></pre></div>
+    <p>The sum of the value of the portfolio at maturity and the premium (with interest earned) is supposed to replicate the payoff of the option. Thus the present value of this sum should be close to the theoretical price of the option. We check this.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">premium</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">price</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">premium</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">2.73</span>
+</code></pre></div>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">simulated_price</span> <span class="o">=</span> <span class="p">(</span><span class="n">V</span><span class="o">.</span><span class="n">discount</span><span class="p">(</span><span class="n">gross_return</span><span class="o">=</span><span class="n">R</span><span class="p">)</span> <span class="o">+</span> <span class="n">premium</span><span class="p">)</span><span class="o">.</span><span class="n">last_rv</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">simulated_price</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">2.79</span>
+</code></pre></div>
+    <p>The stochastic process <code>V</code> is the value process for the hedging portfolio. It is self-financing, and so does not require any infusions or withdrawals of capital. One may then show that the discounted value process <code>V</code> is equal to the Itô integral of the process <code>Delta</code> against the discounted price process <code>S</code>. We check this.</p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">V_discount</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">discount</span><span class="p">(</span><span class="n">gross_return</span><span class="o">=</span><span class="n">R</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S_discount</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">discount</span><span class="p">(</span><span class="n">gross_return</span><span class="o">=</span><span class="n">R</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">V_discount</span><span class="p">,</span> <span class="n">Delta</span><span class="o">.</span><span class="n">ito_integral</span><span class="p">(</span><span class="n">S_discount</span><span class="p">))</span>
+<span class="go">True</span>
 </code></pre></div>
 
 
@@ -4496,7 +4658,7 @@
                 <code>claim</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="            Claim (sigalg.finance.claims.claim.Claim)" href="#sigalg.finance.Claim">Claim</a> | None</code>
+                  <code><span title="sigalg.finance.claims.european_option.EuropeanOption">EuropeanOption</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4717,7 +4879,7 @@
                 <code>claim</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="            Claim (sigalg.finance.claims.claim.Claim)" href="#sigalg.finance.Claim">Claim</a> | None</code>
+                  <code><span title="sigalg.finance.claims.european_option.EuropeanOption">EuropeanOption</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5539,7 +5701,7 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>type</code>
+                <code>option_type</code>
             </td>
             <td>
                   <code><span title="typing.Literal">Literal</span>[&#39;call&#39;, &#39;put&#39;]</code>
