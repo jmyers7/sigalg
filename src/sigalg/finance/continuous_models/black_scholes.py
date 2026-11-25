@@ -13,7 +13,6 @@ from .continuous_pricing_model import ContinuousPricingModel
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-    from ...core.functions.random_variable import RandomVariable
     from ...core.indices.index import Index
     from ...processes.base.stochastic_process import StochasticProcess
     from ...validation.index_validator import IndexLike
@@ -272,9 +271,9 @@ class BlackScholes(ContinuousPricingModel):
         ):
             raise ValueError("expected must be a positive real number.")
         if time_to_maturity is not None and (
-            not isinstance(time_to_maturity, Real) or time_to_maturity <= 0
+            not isinstance(time_to_maturity, Real) or time_to_maturity < 0
         ):
-            raise ValueError("time_to_maturity must be a positive real number.")
+            raise ValueError("time_to_maturity must be a non-negative real number.")
         if strike is not None and (not isinstance(strike, Real) or strike <= 0):
             raise ValueError("strike must be a positive real number.")
         if option_type is not None and option_type not in ["call", "put"]:
@@ -430,40 +429,124 @@ class BlackScholes(ContinuousPricingModel):
 
     # --------------------- finance methods --------------------- #
 
-    @staticmethod
-    def BS_formula(
-        t: Real | Index | np.ndarray,
-        S: Real | np.ndarray,
-        K: Real,
-        r: Real,
-        sigma: Real,
+    @hybridmethod
+    def formula(
+        self_or_cls,
+        claim: EuropeanOption | None = None,
+        t: Real | Index | np.ndarray | None = None,
+        S: Real | np.ndarray | None = None,
+        K: Real | np.ndarray | None = None,
+        r: Real | np.ndarray | None = None,
+        sigma: Real | np.ndarray | None = None,
         option_type: Literal["call", "put"] = "call",
+        greek: Literal["delta", "theta", "gamma"] | None = None,
     ) -> Real | np.ndarray:
-        """Compute the Black-Scholes formula for a European call or put option.
+        """Compute the Black-Scholes formulas for the price or Greeks of a European call or put option.
+
+        This method may be called either as a class method, in which case explicit parameters like the current price and time to maturity must be passed, or the method may be called on an instance of `BlackScholes` with an explict European option passed as the `claim` parameter.
 
         Parameters
         ----------
-        t : Real | Index | np.ndarray
+        claim : EuropeanOption | None, default=None
+            The European option. If not given, the pricing parameters below must be given.
+        t : Real | Index | np.ndarray | None, default=None
             The time to maturity of the option.
-        S : Real | np.ndarray
+        S : Real | np.ndarray | None, default=None
             The current price of the underlying asset.
-        K : Real | np.ndarray
+        K : Real | np.ndarray | None, default=None
             The strike price of the option.
-        r : Real | np.ndarray
+        r : Real | np.ndarray | None, default=None
             The continuous risk-free rate.
-        sigma : Real | np.ndarray
+        sigma : Real | np.ndarray | None, default=None
             The volatility of the underlying asset
         option_type : Literal["call", "put"], default="call"
             The option type.
+        greek : Literal["delta", "theta", "gamma"] | None, default=None
+            The type of Greek to return. If `None`, the price is returned.
 
         Returns
         -------
-        price : Real | np.ndarray
-            If `t` is a real number, then a real number is returned. If `t` is an instance of `Time` or an array, then an array is returned.
+        formula : Real
+            The computed formula.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg import BlackScholes, Claim, Time
+        >>> rng = np.random.default_rng(42)
+
+        Define pricing parameters.
+
+        >>> S_0, K, r, sigma = 49, 50, 0.05, 0.1
+
+        Compute a price, using `formula` as a class method.
+
+        >>> price = BlackScholes.formula(t=1, S=S_0, K=K, r=r, sigma=sigma, option_type="call")
+        >>> round(price, 5)
+        2.72935
+
+        Compute a delta, by passing in the parameter `greek='delta'`.
+
+        >>> delta = BlackScholes.formula(
+        ...     t=1, S=S_0, K=K, r=r, sigma=sigma, option_type="put", greek="delta"
+        ... )
+        >>> round(delta, 5)
+        -0.36393
+
+        Alternatively, we may use the `formula` as an instance method, passing in an instance of `Claim`.
+
+        >>> T = Time.continuous(start=0, stop=1, dt=0.2)
+        >>> S = BlackScholes.generate(
+        ...     initial_price=S_0,
+        ...     risk_free_rate=r,
+        ...     volatility=sigma,
+        ...     n_trajectories=10,
+        ...     index=T,
+        ...     random_state=rng,
+        ... )
+        >>> Phi = Claim.european_option(strike=K, model=S, option_type="call")
+        >>> price = S.formula(claim=Phi)
+        >>> round(price, 5)
+        2.72935
+
+        The parameters of the `formula` method are also vectorized. We pass in the `Time` instance, which is internally converted into a NumPy array.
+
+        >>> price_arr = BlackScholes.formula(t=T, S=S_0, K=K, r=r, sigma=sigma, option_type="call")
+        >>> print(price_arr)
+        [0.         0.65014689 1.23129372 1.75732631 2.25318517 2.72935201]
         """
         from scipy.stats import norm
 
-        from ...core.indices.time import Index
+        from ..claims.european_option import EuropeanOption
+
+        if not isinstance(self_or_cls, type):
+            if claim is None:
+                raise ValueError(
+                    "If the method is used as an instance method, an explicit claim must be passed."
+                )
+            if not isinstance(claim, EuropeanOption):
+                raise TypeError(
+                    "If passed, the claim must be an instance of EuropeanOption."
+                )
+            t, S, K, r, sigma, option_type = (
+                claim.time[-1] - claim.time[0],
+                np.array(self_or_cls[claim.time[0]]),
+                claim.strike,
+                self_or_cls.risk_free_rate,
+                self_or_cls.volatility,
+                claim.option_type,
+            )
+
+        else:
+            if claim is not None:
+                raise TypeError(
+                    "If the method is used as a class method, an explicit claim cannot be passed."
+                )
+
+            if any(param is None for param in [t, S, K, r, sigma]):
+                raise TypeError(
+                    "If the method is used as a class method, explict pricing parameters must be passed (t, S, K, r, sigma)."
+                )
 
         BlackScholes._validate_pricing_params(
             initial_price=S if not isinstance(S, np.ndarray) else None,
@@ -474,163 +557,78 @@ class BlackScholes(ContinuousPricingModel):
             option_type=option_type,
         )
 
-        if isinstance(t, Index):
-            t = np.array(t)
+        t = np.asarray(t, dtype=float)
+        at_maturity = t == 0
+        t_safe = np.where(at_maturity, 1.0, t)
 
-        d_plus = (np.log(S / K) + (r + sigma**2 / 2) * t) / (sigma * np.sqrt(t))
-        d_neg = d_plus - sigma * np.sqrt(t)
-        N = norm.cdf
+        d_plus = (np.log(S / K) + (r + sigma**2 / 2) * t_safe) / (
+            sigma * np.sqrt(t_safe)
+        )
+        d_neg = d_plus - sigma * np.sqrt(t_safe)
+
+        F = norm.cdf
+        f = norm.pdf
 
         if option_type == "call":
-            return S * N(d_plus) - K * np.exp(-r * t) * N(d_neg)
+            if greek == "delta":
+                result = F(d_plus)
+
+            elif greek == "theta":
+                result = -(S * f(d_plus) * sigma) / (
+                    2 * np.sqrt(t_safe)
+                ) - r * K * np.exp(-r * t_safe) * F(d_neg)
+
+            elif greek == "gamma":
+                result = f(d_plus) / (S * sigma * np.sqrt(t_safe))
+
+            else:
+                result = S * F(d_plus) - K * np.exp(-r * t_safe) * F(d_neg)
 
         else:
-            return K * np.exp(-r * t) * N(-d_neg) - S * N(-d_plus)
+            if greek == "delta":
+                result = F(d_plus) - 1
 
-    @hybridmethod
-    def price(
-        self_or_cls,
-        claim: EuropeanOption | None = None,
-        time_to_maturity: Real | None = None,
-        price: Real | None = None,
-        strike: Real | None = None,
-        risk_free_rate: Real | None = None,
-        volatility: Real | None = None,
-        option_type: Literal["call", "put"] = "call",
-        **kwargs,
-    ) -> Real | RandomVariable:
-        """Compute the Black-Scholes price of a European call or put option.
+            elif greek == "theta":
+                result = -(S * f(d_plus) * sigma) / (
+                    2 * np.sqrt(t_safe)
+                ) + r * K * np.exp(-r * t_safe) * F(-d_neg)
 
-        This method may be called either as a class method, in which case explicit parameters like the current price and time to maturity must be passed, or the method may be called on an instance of `BlackScholes` with an explict European option passed as the `claim` parameter.
+            elif greek == "gamma":
+                result = f(d_plus) / (S * sigma * np.sqrt(t_safe))
 
-        Parameters
-        ----------
-        claim : EuropeanOption | None, default=None
-            The contingent claim to price. If not given, the pricing parameters must be given.
-        time_to_maturity : Real | None, default=None
-            The time to maturity of the option.
-        price : Real | None, default=None
-            The current price of the underlying asset.
-        strike : Real | None, default=None
-            The strike price of the option.
-        risk_free_rate : Real | None, default=None
-            The continuous risk-free rate.
-        volatility : Real | None, default=None
-            The volatility of the underlying asset
-        option_type : Literal["call", "put"], default="call"
-            The option type.
+            else:
+                result = K * np.exp(-r * t_safe) * F(-d_neg) - S * F(-d_plus)
 
-        Returns
-        -------
-        price : Real | np.ndarray
-            If the method is used as a class method, a real number is returned. If it is used as an instance method, an array containing the prices of each trajectory is return.
+        if np.any(at_maturity):
+            call = option_type == "call"
+            itm = (S > K) if call else (S < K)
+            atm = S == K
 
-        Examples
-        --------
-        >>> import numpy as np
-        >>> from sigalg import BlackScholes, Claim, Time
-        >>> rng = np.random.default_rng(42)
+            if greek == "delta":
+                limit = np.where(atm, np.nan, (1.0 if call else -1.0) * itm)
 
-        Define pricing parameters.
+            elif greek == "theta":
+                limit = np.where(atm, -np.inf, (-1.0 if call else 1.0) * r * K * itm)
 
-        >>> S_0, K, r, tau, sigma, mu = 49, 50, 0.05, 20 / 52, 0.2, 0.04
+            elif greek == "gamma":
+                limit = np.where(atm, np.inf, 0.0)
 
-        Compute a price using the method as a class method with explicit pricing parameters.
+            else:
+                limit = np.maximum(S - K, 0) if call else np.maximum(K - S, 0)
 
-        >>> price = BlackScholes.price(
-        ...     time_to_maturity=tau,
-        ...     price=S_0,
-        ...     strike=K,
-        ...     risk_free_rate=r,
-        ...     volatility=sigma,
-        ...     option_type="call",
-        ... )
-        >>> price
-        2.4005273232717137
+            result = np.where(at_maturity, limit, result)
 
-        Instead, the method may be called on an instance of `BlackScholes`. Define such an instance using the same parameters as above.
+        if claim is not None:
+            return result[0].astype(Real)
 
-        >>> T = Time.continuous(start=0, stop=tau, dt=0.01)
-        >>> S = BlackScholes.generate(
-        ...     initial_price=S_0,
-        ...     risk_free_rate=r,
-        ...     volatility=sigma,
-        ...     expected_return=mu,
-        ...     n_trajectories=10,
-        ...     index=T,
-        ...     random_state=rng,
-        ... )
+        elif result.ndim == 1 and np.all(result == result[0]):
+            return result[0].astype(Real)
 
-        Define a `Claim` instance and price it.
-
-        >>> Phi = Claim.european_option(strike=K, model=S)
-        >>> print(S.price(claim=Phi))  # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'X_0_0':
-                  X_0_0
-        omega
-        0      2.400527
-        1      2.400527
-        2      2.400527
-        3      2.400527
-        4      2.400527
-        5      2.400527
-        6      2.400527
-        7      2.400527
-        8      2.400527
-        9      2.400527
-        """
-        from ...core.functions.random_variable import RandomVariable
-        from ..claims.european_option import EuropeanOption
-
-        if claim is not None and not isinstance(claim, EuropeanOption):
-            raise TypeError(
-                "If passed, the claim must be an instance of EuropeanOption"
-            )
-
-        if isinstance(self_or_cls, type):
-            if claim is not None:
-                raise ValueError(
-                    "If the price method is used as a class method, an explicit claim cannot be passed."
-                )
-
-            tau, s, K, r, sigma = (
-                time_to_maturity,
-                price,
-                strike,
-                risk_free_rate,
-                volatility,
-            )
-
-            return BlackScholes.BS_formula(
-                tau, price, strike, risk_free_rate, volatility, option_type
-            ).astype(Real)
+        elif isinstance(result, np.generic):
+            return result.astype(Real)
 
         else:
-            if claim is None:
-                raise ValueError(
-                    "If the price method is used as an instance method, an explicit claim must be passed."
-                )
-
-            tau, s, K, r, sigma = (
-                claim.time[-1] - claim.time[0],
-                np.array(self_or_cls[claim.time[0]]),
-                claim.strike,
-                self_or_cls.risk_free_rate,
-                self_or_cls.volatility,
-            )
-
-            pricing_arr = BlackScholes.BS_formula(tau, s, K, r, sigma, option_type)
-
-            data = pd.Series(pricing_arr, index=self_or_cls.domain.data)
-
-            return RandomVariable._from_validated(
-                data=data,
-                sig_alg=self_or_cls.sig_alg,
-                measure=self_or_cls.measure,
-                index_kind=None,
-                index_name=None,
-                name=f"X_{claim.time[0]}".replace(".", "_"),
-            )
+            return result
 
     def price_process(
         self, claim: EuropeanOption | None = None, **kwargs
@@ -701,8 +699,6 @@ class BlackScholes(ContinuousPricingModel):
         3      7.386405  14.947097  38.980742  64.155705  72.140000
         4      7.386405  17.327843  19.875574  44.234062  62.790724
         """
-        from scipy.stats import norm
-
         from ...processes.base.stochastic_process import StochasticProcess
         from ..claims.european_option import EuropeanOption
 
@@ -711,23 +707,26 @@ class BlackScholes(ContinuousPricingModel):
 
         K, r, sigma = (claim.strike, self.risk_free_rate, self.volatility)
 
-        s = np.array(self)[:, :-1]
-        tau = (self.index[-1] - np.array(self.index))[:-1]
+        s = np.array(self)
+        t = self.index[-1] - np.array(self.index)
 
-        d_plus = (np.log(s / K) + (r + sigma**2 / 2) * tau) / (sigma * np.sqrt(tau))
-        d_neg = d_plus - sigma * np.sqrt(tau)
-        N = norm.cdf
-
-        if claim.option_type == "call":
-            pricing_arr = s * N(d_plus) - K * np.exp(-r * tau) * N(d_neg)
-
-        else:
-            pricing_arr = K * np.exp(-r * tau) * N(-d_neg) - s * N(-d_plus)
+        pricing_arr = BlackScholes.formula(
+            t=t,
+            S=s,
+            K=K,
+            r=r,
+            sigma=sigma,
+            option_type=claim.option_type,
+        )
 
         data = pd.DataFrame(
-            pricing_arr, index=self.domain.data, columns=self.index.data[:-1]
+            pricing_arr, index=self.domain.data, columns=self.index.data
         )
-        data.insert(loc=data.shape[1], column=self.index[-1], value=claim.last_rv)
+        # data.insert(
+        #     loc=len(self.index.data) - 1,
+        #     column=self.index.data[-1],
+        #     value=(claim.data.iloc[:, -1] > 0).astype(float),
+        # )
 
         return StochasticProcess._from_validated(
             data=data,
@@ -788,7 +787,7 @@ class BlackScholes(ContinuousPricingModel):
 
         The sum of the value of the portfolio at maturity and the premium (with interest earned) is supposed to replicate the payoff of the option. Thus the present value of this sum should be close to the theoretical price of the option. We check this.
 
-        >>> premium = S.price(Phi).item()
+        >>> premium = S.formula(claim=Phi)
         >>> round(premium, 2)
         2.73
 
@@ -841,43 +840,18 @@ class BlackScholes(ContinuousPricingModel):
 
         return Delta, B, V
 
-    @hybridmethod
-    def delta(
-        self_or_cls,
-        claim: EuropeanOption | None = None,
-        time_to_maturity: Real | None = None,
-        price: Real | None = None,
-        strike: Real | None = None,
-        risk_free_rate: Real | None = None,
-        volatility: Real | None = None,
-        option_type: Literal["call", "put"] = "call",
-        **kwargs,
-    ) -> Real | StochasticProcess:
+    def delta(self, claim: EuropeanOption, **kwargs) -> StochasticProcess:
         """Compute the delta process of a European call or put option.
-
-        This method may be called either as a class method, in which case explicit parameters like the current price and time to maturity must be passed, or the method may be called on an instance of `BlackScholes` with an explict European option passed as the `claim` parameter.
 
         Parameters
         ----------
-        claim : EuropeanOption | None, default=None
-            The contingent claim whose delta process is desired. If not given, the pricing parameters must be given.
-        time_to_maturity : Real | None, default=None
-            The time to maturity of the option.
-        price : Real | None, default=None
-            The current price of the underlying asset.
-        strike : Real | None, default=None
-            The strike price of the option.
-        risk_free_rate : Real | None, default=None
-            The continuous risk-free rate.
-        volatility : Real | None, default=None
-            The volatility of the underlying asset
-        option_type : Literal["call", "put"], default="call"
-            The option type.
+        claim : EuropeanOption
+            The contingent claim whose delta process is desired.
 
         Returns
         -------
-        delta : Real | StochasticProcess
-            If `claim` is passed, the entire delta process is returned. Otherwise, if only the pricing parameters are passed, then a single real number is returned.
+        delta : StochasticProcess
+            The delta process of the claim.
 
         Examples
         --------
@@ -885,31 +859,14 @@ class BlackScholes(ContinuousPricingModel):
         >>> from sigalg import BlackScholes, Claim, Time
         >>> rng = np.random.default_rng(42)
 
-        Define pricing parameters.
+        Define pricing parameters for a call option with a twenty-week maturity.
 
-        >>> S_0, K, r, tau, sigma, mu = 49, 50, 0.05, 20 / 52, 0.2, 0.4
-
-        Compute a delta using the method as a class method with explicit pricing parameters.
-
-        >>> delta = BlackScholes.delta(
-        ...     time_to_maturity=tau,
-        ...     price=S_0,
-        ...     strike=K,
-        ...     risk_free_rate=r,
-        ...     volatility=sigma,
-        ...     option_type="call",
-        ... )
-        >>> delta
-        0.5216046610663964
-
-        Instead, the method may be called on an instance of `BlackScholes`. Define such an instance using the same parameters as above.
-
-        >>> T = Time.continuous(start=0, stop=tau, dt=0.01)
+        >>> S_0, K, r, sigma = 49, 50, 0.05, 0.2
+        >>> T = Time.continuous(start=0, stop=20 / 52, dt=1 / 52)
         >>> S = BlackScholes.generate(
         ...     initial_price=S_0,
         ...     risk_free_rate=r,
         ...     volatility=sigma,
-        ...     expected_return=mu,
         ...     n_trajectories=10,
         ...     index=T,
         ...     random_state=rng,
@@ -919,6 +876,9 @@ class BlackScholes(ContinuousPricingModel):
 
         >>> Phi = Claim.european_option(strike=K, model=S)
         >>> Delta = S.delta(claim=Phi)
+
+        Print the initial delta.
+
         >>> print(Delta[0])  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'Delta_0_0':
                Delta_0_0
@@ -934,202 +894,123 @@ class BlackScholes(ContinuousPricingModel):
         8       0.521605
         9       0.521605
         """
-        from scipy.stats import norm
-
         from ...processes.base.stochastic_process import StochasticProcess
         from ..claims.european_option import EuropeanOption
 
-        BlackScholes._validate_pricing_params(
-            initial_price=price,
-            risk_free_rate=risk_free_rate,
-            volatility=volatility,
-            time_to_maturity=time_to_maturity,
-            strike=strike,
-            option_type=option_type,
+        if not isinstance(claim, EuropeanOption):
+            raise TypeError("The claim must be an instance of EuropeanOption")
+
+        K, r, sigma = (claim.strike, self.risk_free_rate, self.volatility)
+
+        s = np.array(self)
+        t = self.index[-1] - np.array(self.index)
+
+        delta_arr = BlackScholes.formula(
+            t=t,
+            S=s,
+            K=K,
+            r=r,
+            sigma=sigma,
+            option_type=claim.option_type,
+            greek="delta",
         )
 
-        if claim is not None and not isinstance(claim, EuropeanOption):
-            raise TypeError(
-                "If passed, the claim must be an instance of EuropeanOption"
-            )
+        data = pd.DataFrame(delta_arr, index=self.domain.data, columns=self.index.data)
 
-        if isinstance(self_or_cls, type):
-            if claim is not None:
-                raise ValueError(
-                    "If the delta method is used as a class method, an explicit claim cannot be passed."
-                )
+        return StochasticProcess._from_validated(
+            data=data,
+            sig_alg=self.sig_alg,
+            measure=self.measure,
+            index_kind="Time",
+            index_name=self.index_name,
+            name="Delta",
+        )
 
-            tau, s, K, r, sigma = (
-                time_to_maturity,
-                price,
-                strike,
-                risk_free_rate,
-                volatility,
-            )
-
-            d_plus = (np.log(s / K) + (r + sigma**2 / 2) * tau) / (sigma * np.sqrt(tau))
-            N = norm.cdf
-
-            if option_type == "call":
-                return N(d_plus).astype(Real)
-            else:
-                return (N(d_plus) - 1).astype(Real)
-
-        else:
-            self = self_or_cls
-
-            K, r, sigma = (claim.strike, self.risk_free_rate, self.volatility)
-
-            s = np.array(self)[:, :-1]
-            tau = (self.index[-1] - np.array(self.index))[:-1]
-
-            d_plus = (np.log(s / K) + (r + sigma**2 / 2) * tau) / (sigma * np.sqrt(tau))
-            N = norm.cdf
-
-            if claim.option_type == "call":
-                delta_arr = N(d_plus)
-            else:
-                delta_arr = N(d_plus) - 1
-
-            data = pd.DataFrame(
-                delta_arr, index=self.domain.data, columns=self.index.data[:-1]
-            )
-            data.insert(
-                loc=len(self.index.data) - 1,
-                column=self.index.data[-1],
-                value=(claim.data.iloc[:, -1] > 0).astype(float),
-            )
-
-            return StochasticProcess._from_validated(
-                data=data,
-                sig_alg=self.sig_alg,
-                measure=self.measure,
-                index_kind="Time",
-                index_name=self.index_name,
-                name="Delta",
-            )
-
-    @hybridmethod
-    def theta(
-        self_or_cls,
-        claim: EuropeanOption | None = None,
-        time_to_maturity: Real | None = None,
-        price: Real | None = None,
-        strike: Real | None = None,
-        risk_free_rate: Real | None = None,
-        volatility: Real | None = None,
-        option_type: Literal["call", "put"] = "call",
-        **kwargs,
-    ) -> Real | StochasticProcess:
+    def theta(self, claim: EuropeanOption, **kwargs) -> StochasticProcess:
         """Compute the theta process of a European call or put option.
-
-        This method may be called either as a class method, in which case explicit parameters like the current price and time to maturity must be passed, or the method may be called on an instance of `BlackScholes` with an explict European option passed as the `claim` parameter.
 
         Parameters
         ----------
-        claim : EuropeanOption | None, default=None
-            The contingent claim whose theta process is desired. If not given, the pricing parameters must be given.
-        time_to_maturity : Real | None, default=None
-            The time to maturity of the option.
-        price : Real | None, default=None
-            The current price of the underlying asset.
-        strike : Real | None, default=None
-            The strike price of the option.
-        risk_free_rate : Real | None, default=None
-            The continuous risk-free rate.
-        volatility : Real | None, default=None
-            The volatility of the underlying asset
-        option_type : Literal["call", "put"], default="call"
-            The option type.
+        claim : EuropeanOption
+            The contingent claim whose theta process is desired.
 
         Returns
         -------
-        theta : Real | StochasticProcess
-            If `claim` is passed, the entire theta process is returned. Otherwise, if only the pricing parameters are passed, then a single real number is returned.
-        """
-        from scipy.stats import norm
+        theta : StochasticProcess
+            The theta process of the claim.
 
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg import BlackScholes, Claim, Time
+        >>> rng = np.random.default_rng(42)
+
+        Define pricing parameters for a call option with a twenty-week maturity.
+
+        >>> S_0, K, r, sigma = 49, 50, 0.05, 0.2
+        >>> T = Time.continuous(start=0, stop=20 / 52, dt=1 / 52)
+        >>> S = BlackScholes.generate(
+        ...     initial_price=S_0,
+        ...     risk_free_rate=r,
+        ...     volatility=sigma,
+        ...     n_trajectories=10,
+        ...     index=T,
+        ...     random_state=rng,
+        ... )
+
+        Define a `Claim` instance and compute its theta process.
+
+        >>> Phi = Claim.european_option(strike=K, model=S)
+        >>> Theta = S.theta(claim=Phi)
+
+        Print the initial theta.
+
+        >>> print(Theta[0])  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'Theta_0_0':
+              Theta_0_0
+        omega
+        0      -4.30533
+        1      -4.30533
+        2      -4.30533
+        3      -4.30533
+        4      -4.30533
+        5      -4.30533
+        6      -4.30533
+        7      -4.30533
+        8      -4.30533
+        9      -4.30533
+        """
         from ...processes.base.stochastic_process import StochasticProcess
         from ..claims.european_option import EuropeanOption
 
-        BlackScholes._validate_pricing_params(
-            initial_price=price,
-            risk_free_rate=risk_free_rate,
-            volatility=volatility,
-            time_to_maturity=time_to_maturity,
-            strike=strike,
-            option_type=option_type,
+        if not isinstance(claim, EuropeanOption):
+            raise TypeError("The claim must be an instance of EuropeanOption")
+
+        K, r, sigma = (claim.strike, self.risk_free_rate, self.volatility)
+
+        s = np.array(self)
+        t = self.index[-1] - np.array(self.index)
+
+        theta_arr = BlackScholes.formula(
+            t=t,
+            S=s,
+            K=K,
+            r=r,
+            sigma=sigma,
+            option_type=claim.option_type,
+            greek="theta",
         )
 
-        if claim is not None and not isinstance(claim, EuropeanOption):
-            raise TypeError(
-                "If passed, the claim must be an instance of EuropeanOption"
-            )
+        data = pd.DataFrame(theta_arr, index=self.domain.data, columns=self.index.data)
 
-        if isinstance(self_or_cls, type):
-            if claim is not None:
-                raise ValueError(
-                    "If the delta method is used as a class method, an explicit claim cannot be passed."
-                )
-
-            tau, s, K, r, sigma = (
-                time_to_maturity,
-                price,
-                strike,
-                risk_free_rate,
-                volatility,
-            )
-
-            d_plus = (np.log(s / K) + (r + sigma**2 / 2) * tau) / (sigma * np.sqrt(tau))
-            d_neg = d_plus - sigma * np.sqrt(tau)
-            N = norm.cdf
-            f = norm.pdf
-
-            if option_type == "call":
-                return (
-                    -(s * f(d_plus) * sigma) / (2 * np.sqrt(tau))
-                    - r * K * np.exp(-r * tau) * N(d_neg)
-                ).astype(Real)
-            else:
-                return (
-                    -(s * f(d_plus) * sigma) / (2 * np.sqrt(tau))
-                    + r * K * np.exp(-r * tau) * N(-d_neg)
-                ).astype(Real)
-
-        else:
-            self = self_or_cls
-
-            K, r, sigma = (claim.strike, self.risk_free_rate, self.volatility)
-
-            s = np.array(self)[:, :-1]
-            tau = (self.index[-1] - np.array(self.index))[:-1]
-
-            d_plus = (np.log(s / K) + (r + sigma**2 / 2) * tau) / (sigma * np.sqrt(tau))
-            d_neg = d_plus - sigma * np.sqrt(tau)
-            N = norm.cdf
-            f = norm.pdf
-
-            if claim.option_type == "call":
-                theta_arr = (-s * f(d_plus) * sigma) / (
-                    2 * np.sqrt(tau)
-                ) - r * K * np.exp(-r * tau) * N(d_neg)
-            else:
-                theta_arr = -(s * f(d_plus) * sigma) / (
-                    2 * np.sqrt(tau)
-                ) + r * K * np.exp(-r * tau) * N(-d_neg)
-
-            data = pd.DataFrame(
-                theta_arr, index=self.domain.data, columns=self.index.data[:-1]
-            )
-
-            return StochasticProcess._from_validated(
-                data=data,
-                sig_alg=self.sig_alg,
-                measure=self.measure,
-                index_kind="Time",
-                index_name=self.index_name,
-                name="Theta",
-            )
+        return StochasticProcess._from_validated(
+            data=data,
+            sig_alg=self.sig_alg,
+            measure=self.measure,
+            index_kind="Time",
+            index_name=self.index_name,
+            name="Theta",
+        )
 
     # --------------------- simulation methods --------------------- #
 
